@@ -1,1 +1,1 @@
-# Proof of concept reactive-
+# reactive-fp
