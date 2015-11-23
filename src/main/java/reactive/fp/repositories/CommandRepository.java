@@ -3,12 +3,15 @@ package reactive.fp.repositories;
 import reactive.fp.commands.CommandExecutor;
 import reactive.fp.commands.hystrix.HystrixCommandExecutor;
 import reactive.fp.config.CommandRepositoryConfig;
-import reactive.fp.types.*;
+import reactive.fp.errors.CommandNotFound;
+import reactive.fp.types.EventHandler;
 import reactive.fp.vertx.VertxWebSocketEventHandler;
-import rx.Observable;
+
 import java.net.URI;
 import java.util.Optional;
 import java.util.function.Function;
+
+import static reactive.fp.mappers.Mappers.mapToEventHandlers;
 
 /**
  * @author OZY on 2015.11.13.
@@ -21,31 +24,23 @@ public class CommandRepository {
         this.config = config;
     }
 
-    public <T,U> Optional<CommandExecutor<T,U>> findCommand(String name) {
+    public <T> Optional<CommandExecutor<T>> findCommand(String name) {
         return findCommand(name, VertxWebSocketEventHandler::new);
     }
 
-    public <T,U> Optional<CommandExecutor<T,U>> findCommand(String name, Function<URI, EventHandler<T,U>> eventHandlerFactory) {
+    public <T> Optional<CommandExecutor<T>> findCommand(String name, Function<URI, EventHandler<T>> eventHandlerFactory) {
         return config.findDistributedCommand(name)
-                .<EventHandlers<T,U>>flatMap(distributedCommandDef -> mapToEventHandlers(distributedCommandDef, eventHandlerFactory))
+                .flatMap(distributedCommandDef -> mapToEventHandlers(distributedCommandDef, eventHandlerFactory))
                 .map(eventHandlers -> new HystrixCommandExecutor<>(name, eventHandlers));
     }
 
-    public <T,U> Observable<U> executeCommand(String name, T arg, Class<U> observableClass) {
-        return findCommand(name)
-                .map(executor -> executor.execute(arg))
-                .map(o -> o.cast(observableClass))
-                .orElse(Observable.error(new RuntimeException("Command " + name + " cannot be executed with arg " + arg)));
+    public <T> CommandExecutor<T> getCommand(String name) {
+        return getCommand(name, VertxWebSocketEventHandler::new);
     }
 
-    protected <T,U> Optional<EventHandlers<T,U>> mapToEventHandlers(DistributedCommandDef distributedCommandDef, Function<URI, EventHandler<T,U>> eventHandlerFactory) {
-        return Optional.ofNullable(distributedCommandDef.mainURI())
-                .map(eventHandlerFactory::apply)
-                .map(mainEventHandler -> new EventHandlers<>(mainEventHandler, Optional.empty()))
-                .map(eventHandlers -> distributedCommandDef.fallbackURI()
-                        .map(eventHandlerFactory::apply)
-                        .map(eventHandlers::copy)
-                        .orElse(eventHandlers));
+    public <T> CommandExecutor<T> getCommand(String name, Function<URI, EventHandler<T>> eventHandlerFactory) {
+        return findCommand(name, eventHandlerFactory)
+                .orElseThrow(() -> new CommandNotFound(name));
     }
 
     @Override

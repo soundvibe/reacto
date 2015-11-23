@@ -4,19 +4,20 @@ import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandKey;
 import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixObservableCommand;
+import reactive.fp.types.Event;
 import reactive.fp.types.EventHandlers;
 import rx.Observable;
 
 /**
  * @author OZY on 2015.11.13.
  */
-public class HystrixDistributedObservableCommand<T, U> extends HystrixObservableCommand<U> {
+public class HystrixDistributedObservableCommand<T> extends HystrixObservableCommand<Event<?>> {
 
     private final T arg;
     private final String commandName;
-    private final EventHandlers<T,U> eventHandlers;
+    private final EventHandlers<T> eventHandlers;
 
-    public HystrixDistributedObservableCommand(final T arg, String commandName, EventHandlers<T,U> eventHandlers) {
+    public HystrixDistributedObservableCommand(final T arg, String commandName, EventHandlers<T> eventHandlers) {
         super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("DistributedCommandsRegistry"))
                 .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
                         .withFallbackEnabled(true)
@@ -29,14 +30,14 @@ public class HystrixDistributedObservableCommand<T, U> extends HystrixObservable
     }
 
     @Override
-    protected Observable<U> construct() {
+    protected Observable<Event<?>> construct() {
         return eventHandlers.mainNodeClient.toObservable(commandName, arg);
     }
 
     @Override
-    protected Observable<U> resumeWithFallback() {
+    protected Observable<Event<?>> resumeWithFallback() {
         return eventHandlers.fallbackNodeClient
-                .<Observable<U>>map(socketClient -> socketClient.toObservable(commandName, arg))
+                .map(socketClient -> socketClient.toObservable(commandName, arg))
                 .orElseGet(() -> super.resumeWithFallback());
     }
 

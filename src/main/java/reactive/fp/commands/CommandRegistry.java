@@ -11,7 +11,7 @@ import java.util.function.*;
  */
 public class CommandRegistry {
 
-    public static final Map<String, Function<Object, Observable<?>>> commands = new ConcurrentHashMap<>();
+    private final Map<String, Function<Object, Observable<?>>> commands = new ConcurrentHashMap<>();
 
     public CommandRegistry register(String commandName, Function<Object, Observable<?>> onInvoke) {
         commands.put(commandName, onInvoke);

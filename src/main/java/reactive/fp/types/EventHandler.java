@@ -5,8 +5,8 @@ import rx.Observable;
 /**
  * @author Cipolinas on 2015.11.16.
  */
-public interface EventHandler<T,U> {
+public interface EventHandler<T> {
 
-    Observable<U> toObservable(String commandName, T arg);
+    Observable<Event<?>> toObservable(String commandName, T arg);
 
 }

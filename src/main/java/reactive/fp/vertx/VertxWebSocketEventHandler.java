@@ -13,10 +13,10 @@ import static reactive.fp.mappers.Mappers.*;
 /**
  * @author OZY on 2015.11.23.
  */
-public class VertxWebSocketEventHandler<T,U> implements EventHandler<T,U> {
+public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
 
     private final URI wsUrl;
-    private final Subject<U, U> subject;
+    private final Subject<Event<?>, Event<?>> subject;
     private final Vertx vertx;
 
     public VertxWebSocketEventHandler(URI wsUrl) {
@@ -31,7 +31,7 @@ public class VertxWebSocketEventHandler<T,U> implements EventHandler<T,U> {
                     final Event<?> receivedEvent = fromJsonToEvent(bytes);
                     switch (receivedEvent.eventType) {
                         case NEXT: {
-                            subject.onNext(mapFromEvent(receivedEvent));
+                            subject.onNext(receivedEvent);
                             break;
                         }
                         case ERROR: {
@@ -47,12 +47,7 @@ public class VertxWebSocketEventHandler<T,U> implements EventHandler<T,U> {
         );
     }
 
-    @SuppressWarnings("unchecked")
-    protected U mapFromEvent(Event<?> event) {
-        return (U) event.payload;
-    }
-
-    public Observable<U> toObservable(String commandName, T arg) {
+    public Observable<Event<?>> toObservable(String commandName, T arg) {
         final HttpClient httpClient = vertx.createHttpClient(new HttpClientOptions());
         return Observable.using(() -> httpClient.websocketStream(wsUrl.getPort() == -1 ?
                 80:

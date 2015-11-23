@@ -6,7 +6,10 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import reactive.fp.types.*;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Arrays;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * @author Linas on 2015.10.25.
@@ -59,6 +62,17 @@ public interface Mappers {
         } catch (IOException e) {
             throw new RuntimeJsonMappingException("Cannot deserialize command from json: " + Arrays.toString(bytes));
         }
+    }
+
+    static <T> Optional<EventHandlers<T>> mapToEventHandlers(DistributedCommandDef distributedCommandDef,
+                                                                       Function<URI, EventHandler<T>> eventHandlerFactory) {
+        return Optional.ofNullable(distributedCommandDef.mainURI())
+                .map(eventHandlerFactory::apply)
+                .map(mainEventHandler -> new EventHandlers<>(mainEventHandler, Optional.empty()))
+                .map(eventHandlers -> distributedCommandDef.fallbackURI()
+                        .map(eventHandlerFactory::apply)
+                        .map(eventHandlers::copy)
+                        .orElse(eventHandlers));
     }
 
 }

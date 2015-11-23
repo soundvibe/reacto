@@ -7,6 +7,7 @@ import org.junit.Test;
 import reactive.fp.commands.CommandRegistry;
 import reactive.fp.config.CommandRepositoryConfig;
 import reactive.fp.config.WebServerConfig;
+import reactive.fp.errors.CommandNotFound;
 import reactive.fp.repositories.CommandRepository;
 import reactive.fp.types.CommandNodes;
 import reactive.fp.types.DistributedCommandDef;
@@ -84,10 +85,20 @@ public class CommandRepositoryTest {
     }
 
     @Test
+    public void shouldGetCommand() throws Exception {
+        assertNotNull(sut.getCommand(TEST_COMMAND));
+    }
+
+    @Test(expected = CommandNotFound.class)
+    public void shouldNotGetCommand() throws Exception {
+        sut.getCommand("foo");
+    }
+
+    @Test
     public void shouldExecuteCommand() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        sut.<String, String>findCommand(TEST_COMMAND).get()
-                .execute("foo")
+        sut.getCommand(TEST_COMMAND)
+                .execute("foo", String.class)
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -97,7 +108,8 @@ public class CommandRepositoryTest {
     @Test
     public void shouldCallCommandAndReceiveMultipleEvents() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        sut.executeCommand(TEST_COMMAND_MANY, "bar", String.class)
+        sut.getCommand(TEST_COMMAND_MANY)
+                .execute("bar", String.class)
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -114,8 +126,8 @@ public class CommandRepositoryTest {
     @Test
     public void shouldMainFailAndNoFallbackAvailable() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        sut.<String, String>findCommand(TEST_FAIL_COMMAND).get()
-                .execute("foo")
+        sut.getCommand(TEST_FAIL_COMMAND)
+                .execute("foo", String.class)
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -130,8 +142,8 @@ public class CommandRepositoryTest {
     @Test
     public void shouldMainFailAndFallbackSucceed() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        sut.<String, String>findCommand(TEST_FAIL_BUT_FALLBACK_COMMAND).get()
-                .execute("foo")
+        sut.getCommand(TEST_FAIL_BUT_FALLBACK_COMMAND)
+                .execute("foo", String.class)
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -140,18 +152,38 @@ public class CommandRepositoryTest {
         testSubscriber.assertValue("Recovered: foo");
     }
 
-    @Test(expected = ClassCastException.class)
+    @Test
     public void shouldFailWhenPayloadIsOfInvalidClass() throws Exception {
         TestSubscriber<Integer> testSubscriber = new TestSubscriber<>();
-        sut.<String, Integer>findCommand(TEST_COMMAND).get()
-                .execute("foo")
+        sut.getCommand(TEST_COMMAND)
+                .execute("foo", Integer.class)
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNoErrors();
-        testSubscriber.assertCompleted();
-        final List<Integer> onNextEvents = testSubscriber.getOnNextEvents();
-        final Integer integer = onNextEvents.get(0);//should fail
-        fail("Should not go here");
+        testSubscriber.assertError(ClassCastException.class);
+        testSubscriber.assertNotCompleted();
+        testSubscriber.assertNoValues();
+    }
+
+    @Test
+    public void shouldFailWhenCannotDeserializeObject() throws Exception {
+        TestSubscriber<Foo> testSubscriber = new TestSubscriber<>();
+        sut.getCommand(TEST_COMMAND)
+                .execute("bar", Foo.class)
+                .subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNotCompleted();
+        testSubscriber.assertNoValues();
+        testSubscriber.assertError(ClassCastException.class);
+    }
+
+    private class Foo {
+        public final String name;
+
+        private Foo(String name) {
+            this.name = name;
+        }
     }
 }
+
