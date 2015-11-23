@@ -53,6 +53,7 @@ public class VertxServer implements WebServer {
     protected void setupRoutes() {
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
+        router.route(root() + "hystrix.stream").handler(routingContext -> new HystrixEventStreamHandler().handle(routingContext));
 
         httpServer.websocketHandler(webSocketHandler());
         httpServer.requestHandler(router::accept);
@@ -79,6 +80,7 @@ public class VertxServer implements WebServer {
     protected String getCommandNameFrom(String path) {
         return path.substring(path.lastIndexOf("/") + 1, path.length());
     }
+
 
     protected String root() {
         return includeEndDelimiter(includeStartDelimiter(config.root));
