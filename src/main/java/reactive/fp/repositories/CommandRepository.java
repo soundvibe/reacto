@@ -6,10 +6,12 @@ import reactive.fp.config.CommandRepositoryConfig;
 import reactive.fp.types.DistributedCommandDef;
 import reactive.fp.types.EventHandler;
 import reactive.fp.types.EventHandlers;
-import reactive.fp.jetty.JettyWebSocketEventHandler;
+import reactive.fp.vertx.VertxWebSocketEventHandler;
 import rx.Observable;
 
+import java.net.URI;
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * @author OZY on 2015.11.13.
@@ -23,8 +25,12 @@ public class CommandRepository {
     }
 
     public <T,U> Optional<CommandExecutor<T,U>> findCommand(String name) {
+        return findCommand(name, VertxWebSocketEventHandler::new);
+    }
+
+    public <T,U> Optional<CommandExecutor<T,U>> findCommand(String name, Function<URI, EventHandler<T,U>> eventHandlerFactory) {
         return config.findDistributedCommand(name)
-                .<EventHandlers<T,U>>flatMap(this::mapToEventHandlers)
+                .<EventHandlers<T,U>>flatMap(distributedCommandDef -> mapToEventHandlers(distributedCommandDef, eventHandlerFactory))
                 .map(eventHandlers -> new HystrixCommandExecutor<>(name, eventHandlers));
     }
 
@@ -35,11 +41,12 @@ public class CommandRepository {
                 .orElse(Observable.error(new RuntimeException("Command " + name + " cannot be executed with arg " + arg)));
     }
 
-    protected <T,U> Optional<EventHandlers<T,U>> mapToEventHandlers(DistributedCommandDef distributedCommandDef) {
-        return EventHandler.<T,U>canStartEventHandler(distributedCommandDef.mainURI(), JettyWebSocketEventHandler::new)
+    protected <T,U> Optional<EventHandlers<T,U>> mapToEventHandlers(DistributedCommandDef distributedCommandDef, Function<URI, EventHandler<T,U>> eventHandlerFactory) {
+        return Optional.ofNullable(distributedCommandDef.mainURI())
+                .map(eventHandlerFactory::apply)
                 .map(mainEventHandler -> new EventHandlers<>(mainEventHandler, Optional.empty()))
                 .map(eventHandlers -> distributedCommandDef.fallbackURI()
-                        .flatMap(uri -> EventHandler.<T,U>canStartEventHandler(uri, JettyWebSocketEventHandler::new))
+                        .map(eventHandlerFactory::apply)
                         .map(eventHandlers::copy)
                         .orElse(eventHandlers));
     }

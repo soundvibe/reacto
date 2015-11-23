@@ -146,44 +146,11 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
      * Create a new object id.
      */
     public ObjectId() {
-        this(new Date());
+        this(LocalDateTime.now());
     }
 
     public ObjectId(LocalDateTime localDateTime) {
         this(localDateTimeToTimestampSeconds(localDateTime), MACHINE_IDENTIFIER, PROCESS_IDENTIFIER, NEXT_COUNTER.getAndIncrement(), false);
-    }
-
-    /**
-     * Constructs a new instance using the given date.
-     *
-     * @param date the date
-     */
-    public ObjectId(final Date date) {
-        this(dateToTimestampSeconds(date), MACHINE_IDENTIFIER, PROCESS_IDENTIFIER, NEXT_COUNTER.getAndIncrement(), false);
-    }
-
-    /**
-     * Constructs a new instances using the given date and counter.
-     *
-     * @param date    the date
-     * @param counter the counter
-     * @throws IllegalArgumentException if the high order byte of counter is not zero
-     */
-    public ObjectId(final Date date, final int counter) {
-        this(date, MACHINE_IDENTIFIER, PROCESS_IDENTIFIER, counter);
-    }
-
-    /**
-     * Constructs a new instances using the given date, machine identifier, process identifier, and counter.
-     *
-     * @param date              the date
-     * @param machineIdentifier the machine identifier
-     * @param processIdentifier the process identifier
-     * @param counter           the counter
-     * @throws IllegalArgumentException if the high order byte of machineIdentifier or counter is not zero
-     */
-    public ObjectId(final Date date, final int machineIdentifier, final short processIdentifier, final int counter) {
-        this(dateToTimestampSeconds(date), machineIdentifier, processIdentifier, counter);
     }
 
     /**
@@ -364,21 +331,11 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
         }
 
         ObjectId objectId = (ObjectId) o;
+        return counter == objectId.counter &&
+                machineIdentifier == objectId.machineIdentifier &&
+                processIdentifier == objectId.processIdentifier &&
+                timestamp == objectId.timestamp;
 
-        if (counter != objectId.counter) {
-            return false;
-        }
-        if (machineIdentifier != objectId.machineIdentifier) {
-            return false;
-        }
-        if (processIdentifier != objectId.processIdentifier) {
-            return false;
-        }
-        if (timestamp != objectId.timestamp) {
-            return false;
-        }
-
-        return true;
     }
 
     @Override

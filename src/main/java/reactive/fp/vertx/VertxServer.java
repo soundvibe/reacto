@@ -10,14 +10,12 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import reactive.fp.commands.CommandRegistry;
 import reactive.fp.config.WebServerConfig;
-import reactive.fp.mappers.Mappers;
 import reactive.fp.types.Command;
 import reactive.fp.types.Event;
 import reactive.fp.types.WebServer;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-
+import static reactive.fp.mappers.Mappers.fromJsonToCommand;
+import static reactive.fp.mappers.Mappers.messageToJsonString;
 import static reactive.fp.utils.WebUtils.includeEndDelimiter;
 import static reactive.fp.utils.WebUtils.includeStartDelimiter;
 
@@ -52,8 +50,7 @@ public class VertxServer implements WebServer {
         httpServer.close();
     }
 
-    @Override
-    public void setupRoutes() {
+    protected void setupRoutes() {
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
 
@@ -64,27 +61,19 @@ public class VertxServer implements WebServer {
     protected Handler<ServerWebSocket> webSocketHandler() {
         return wsSocket ->
                 commands.findCommand(getCommandNameFrom(wsSocket.path())).ifPresent(command -> wsSocket.handler(buffer -> {
-            try {
-                Command<?> receivedArgument = Mappers.jsonMapper.readValue(buffer.getBytes(), Command.class);
+                Command<?> receivedArgument = fromJsonToCommand(buffer.getBytes());
                 command.apply(receivedArgument.payload)
                                 .subscribe(
                                         payload -> send(wsSocket, Event.onNext(payload)),
                                         throwable -> send(wsSocket, Event.onError(throwable)),
                                         () -> send(wsSocket, Event.onCompleted("Completed")))
                         ;
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
         }));
     }
 
     public void send(ServerWebSocket ws, Event<?> event) {
-        try {
-            final String value = Mappers.jsonMapper.writeValueAsString(event);
-            ws.writeFrame(WebSocketFrame.textFrame(value, true));
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        final String value = messageToJsonString(event);
+        ws.writeFrame(WebSocketFrame.textFrame(value, true));
     }
 
     protected String getCommandNameFrom(String path) {

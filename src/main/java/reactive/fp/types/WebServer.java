@@ -9,6 +9,4 @@ public interface WebServer {
 
     void stop();
 
-    void setupRoutes();
-
 }
