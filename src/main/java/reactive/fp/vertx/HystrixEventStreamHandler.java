@@ -31,14 +31,17 @@ public class HystrixEventStreamHandler implements Handler<RoutingContext> {
         response.putHeader("Content-Encoding", "UTF-8");
         response.putHeader("Pragma", "no-cache");
         response.setChunked(true);
-        final HystrixMetricsPoller hystrixMetricsPoller = new HystrixMetricsPoller(json -> {
-            if (json == null || "".equals(json)) {
-                response.write("ping: \n\n");
-            } else {
-                response.write("data: " + json + "\n\n");
-            }
-        }, delay);
+        final HystrixMetricsPoller hystrixMetricsPoller = new HystrixMetricsPoller(
+                json -> writeJsonData(response, json), delay);
         hystrixMetricsPoller.start();
+    }
+
+    private void writeJsonData(HttpServerResponse response, String json) {
+        if (json == null || "".equals(json)) {
+            response.write("ping: \n\n");
+        } else {
+            response.write("data: " + json + "\n\n");
+        }
     }
 
 }

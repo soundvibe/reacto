@@ -1,6 +1,7 @@
 package reactive.fp.vertx;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.WebSocket;
@@ -15,7 +16,7 @@ import rx.subjects.Subject;
 import java.net.URI;
 
 import static reactive.fp.mappers.Mappers.fromJsonToEvent;
-import static reactive.fp.mappers.Mappers.messageToJsonString;
+import static reactive.fp.mappers.Mappers.messageToJsonBytes;
 
 /**
  * @author OZY on 2015.11.23.
@@ -61,20 +62,22 @@ public class VertxWebSocketEventHandler<T,U> implements EventHandler<T,U> {
 
     public Observable<U> toObservable(String commandName, T arg) {
         final HttpClient httpClient = vertx.createHttpClient(new HttpClientOptions());
-        return Observable.using(() -> httpClient.websocketStream(wsUrl.getPort() == -1 ? 80: wsUrl.getPort(), wsUrl.getHost(), wsUrl.getPath()),
+        return Observable.using(() -> httpClient.websocketStream(wsUrl.getPort() == -1 ?
+                80:
+                wsUrl.getPort(), wsUrl.getHost(), wsUrl.getPath()),
                 webSocketStream -> {
                     webSocketStream.handler(webSocket -> {
                         startCommand(commandName, arg, webSocket);
                         checkForEvents(webSocket);
                     });
                     return subject;
-                }, webSocketStream -> {webSocketStream.pause(); httpClient.close();});
+                }, webSocketStream -> { webSocketStream.pause(); httpClient.close(); });
     }
 
     private void startCommand(String commandName, T arg, WebSocket webSocket) {
         Command<T> command = Command.create(commandName, arg);
-        String messageJson = messageToJsonString(command);
-        webSocket.writeFinalTextFrame(messageJson);
+        byte[] messageJson = messageToJsonBytes(command);
+        webSocket.writeFinalBinaryFrame(Buffer.buffer(messageJson));
     }
 
 }

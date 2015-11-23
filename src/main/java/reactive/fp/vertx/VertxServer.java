@@ -2,6 +2,7 @@ package reactive.fp.vertx;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.ServerWebSocket;
@@ -15,7 +16,7 @@ import reactive.fp.types.Event;
 import reactive.fp.types.WebServer;
 
 import static reactive.fp.mappers.Mappers.fromJsonToCommand;
-import static reactive.fp.mappers.Mappers.messageToJsonString;
+import static reactive.fp.mappers.Mappers.messageToJsonBytes;
 import static reactive.fp.utils.WebUtils.includeEndDelimiter;
 import static reactive.fp.utils.WebUtils.includeStartDelimiter;
 
@@ -26,7 +27,7 @@ public class VertxServer implements WebServer {
 
     private final WebServerConfig config;
     private final CommandRegistry commands;
-    private final Vertx vertx;
+    public final Vertx vertx;
     private final HttpServer httpServer;
 
     public VertxServer(WebServerConfig config, CommandRegistry commands) {
@@ -53,9 +54,11 @@ public class VertxServer implements WebServer {
     protected void setupRoutes() {
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
-        router.route(root() + "hystrix.stream").handler(routingContext -> new HystrixEventStreamHandler().handle(routingContext));
+
 
         httpServer.websocketHandler(webSocketHandler());
+        router.route(root() + "hystrix.stream")
+                .handler(new HystrixEventStreamHandler());
         httpServer.requestHandler(router::accept);
     }
 
@@ -73,8 +76,8 @@ public class VertxServer implements WebServer {
     }
 
     public void send(ServerWebSocket ws, Event<?> event) {
-        final String value = messageToJsonString(event);
-        ws.writeFrame(WebSocketFrame.textFrame(value, true));
+        final byte[] bytes = messageToJsonBytes(event);
+        ws.writeFrame(WebSocketFrame.binaryFrame(Buffer.buffer(bytes), true));
     }
 
     protected String getCommandNameFrom(String path) {

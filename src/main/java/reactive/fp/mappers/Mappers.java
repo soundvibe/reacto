@@ -34,6 +34,13 @@ public interface Mappers {
 
     ObjectMapper jsonMapper = createJsonMapper();
 
+    static <T> byte[] messageToJsonBytes(T message) {
+        try {
+            return jsonMapper.writeValueAsBytes(message);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeJsonMappingException("Cannot serialize message to json: " + message);
+        }
+    }
 
     static <T> String messageToJsonString(T message) {
         try {
