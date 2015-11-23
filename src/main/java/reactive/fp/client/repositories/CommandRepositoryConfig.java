@@ -1,6 +1,6 @@
-package reactive.fp.config;
+package reactive.fp.client.repositories;
 
-import reactive.fp.types.DistributedCommandDef;
+import reactive.fp.client.commands.DistributedCommandDef;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;

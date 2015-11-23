@@ -1,8 +1,8 @@
-package reactive.fp.commands.hystrix;
+package reactive.fp.client.commands.hystrix;
 
-import reactive.fp.commands.CommandExecutor;
+import reactive.fp.client.commands.CommandExecutor;
 import reactive.fp.types.Event;
-import reactive.fp.types.EventHandlers;
+import reactive.fp.client.events.EventHandlers;
 import rx.Observable;
 
 /**

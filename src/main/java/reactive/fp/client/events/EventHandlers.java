@@ -1,4 +1,4 @@
-package reactive.fp.types;
+package reactive.fp.client.events;
 
 import java.util.Optional;
 

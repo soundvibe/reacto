@@ -1,5 +1,6 @@
-package reactive.fp.types;
+package reactive.fp.client.events;
 
+import reactive.fp.types.Event;
 import rx.Observable;
 
 /**

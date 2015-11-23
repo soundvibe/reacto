@@ -1,4 +1,4 @@
-package reactive.fp.vertx;
+package reactive.fp.server;
 
 import com.netflix.hystrix.contrib.metrics.eventstream.HystrixMetricsPoller;
 import io.vertx.core.Handler;

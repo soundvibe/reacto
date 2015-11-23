@@ -1,4 +1,4 @@
-package reactive.fp.commands;
+package reactive.fp.server;
 
 import rx.Observable;
 

@@ -1,7 +1,7 @@
 package reactive.fp;
 
 import org.junit.Test;
-import reactive.fp.commands.CommandRegistry;
+import reactive.fp.server.CommandRegistry;
 import rx.Observable;
 
 import static org.junit.Assert.*;

@@ -1,4 +1,4 @@
-package reactive.fp.config;
+package reactive.fp.server;
 
 /**
  * @author Linas on 2015.11.12.

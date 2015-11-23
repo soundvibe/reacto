@@ -1,9 +1,9 @@
-package reactive.fp.types;
+package reactive.fp.server;
 
 /**
  * @author Cipolinas on 2015.11.16.
  */
-public interface WebServer {
+public interface Server {
 
     void start();
 

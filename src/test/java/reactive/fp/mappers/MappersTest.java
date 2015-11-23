@@ -1,10 +1,10 @@
 package reactive.fp.mappers;
 
 import org.junit.Test;
-import reactive.fp.types.CommandNodes;
-import reactive.fp.types.DistributedCommandDef;
+import reactive.fp.client.commands.CommandNodes;
+import reactive.fp.client.commands.DistributedCommandDef;
 import reactive.fp.types.Event;
-import reactive.fp.types.EventHandlers;
+import reactive.fp.client.events.EventHandlers;
 import rx.Observable;
 
 import java.util.Optional;

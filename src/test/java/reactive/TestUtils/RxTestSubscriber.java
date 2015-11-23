@@ -4,6 +4,8 @@ import rx.Observer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 
@@ -15,6 +17,7 @@ public class RxTestSubscriber<T> implements Observer<T> {
     private final List<T> items = new ArrayList<>();
     private Throwable lastError = null;
     private boolean wasCompleted = false;
+    private final CountDownLatch countDownLatch = new CountDownLatch(1);
 
     public static <T> RxTestSubscriber<T> create() {
         return new RxTestSubscriber<>();
@@ -23,11 +26,13 @@ public class RxTestSubscriber<T> implements Observer<T> {
     @Override
     public void onCompleted() {
         wasCompleted = true;
+        countDownLatch.countDown();
     }
 
     @Override
     public void onError(Throwable e) {
         lastError = e;
+        countDownLatch.countDown();
     }
 
     @Override
@@ -61,5 +66,13 @@ public class RxTestSubscriber<T> implements Observer<T> {
 
     public void assertValueCount(String message, int count) {
         assertEquals(message, count, emittedItemCount());
+    }
+
+    public void awaitTerminalEvent() throws InterruptedException {
+        countDownLatch.await();
+    }
+
+    public void awaitTerminalEvent(long timeout, TimeUnit timeUnit) throws InterruptedException {
+        countDownLatch.await(timeout, timeUnit);
     }
 }

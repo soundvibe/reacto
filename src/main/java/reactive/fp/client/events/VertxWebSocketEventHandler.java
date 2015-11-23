@@ -1,14 +1,21 @@
-package reactive.fp.vertx;
+package reactive.fp.client.events;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.*;
-import reactive.fp.types.*;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.WebSocket;
+import reactive.fp.types.Command;
+import reactive.fp.types.Event;
 import rx.Observable;
-import rx.subjects.*;
+import rx.subjects.ReplaySubject;
+import rx.subjects.SerializedSubject;
+import rx.subjects.Subject;
+
 import java.net.URI;
 
-import static reactive.fp.mappers.Mappers.*;
+import static reactive.fp.mappers.Mappers.fromJsonToEvent;
+import static reactive.fp.mappers.Mappers.messageToJsonBytes;
 
 /**
  * @author OZY on 2015.11.23.

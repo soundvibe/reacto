@@ -6,8 +6,9 @@ import io.vertx.core.http.HttpClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import reactive.fp.commands.CommandRegistry;
-import reactive.fp.config.WebServerConfig;
+import reactive.fp.server.CommandRegistry;
+import reactive.fp.server.VertxServer;
+import reactive.fp.server.WebServerConfig;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 

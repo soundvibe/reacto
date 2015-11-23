@@ -1,4 +1,4 @@
-package reactive.fp.types;
+package reactive.fp.client.commands;
 
 import java.util.Optional;
 

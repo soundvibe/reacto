@@ -4,6 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import reactive.fp.client.commands.DistributedCommandDef;
+import reactive.fp.client.events.EventHandler;
+import reactive.fp.client.events.EventHandlers;
 import reactive.fp.types.*;
 import java.io.IOException;
 import java.net.URI;
@@ -65,7 +68,7 @@ public interface Mappers {
     }
 
     static <T> Optional<EventHandlers<T>> mapToEventHandlers(DistributedCommandDef distributedCommandDef,
-                                                                       Function<URI, EventHandler<T>> eventHandlerFactory) {
+                                                             Function<URI, EventHandler<T>> eventHandlerFactory) {
         return Optional.ofNullable(distributedCommandDef.mainURI())
                 .map(eventHandlerFactory::apply)
                 .map(mainEventHandler -> new EventHandlers<>(mainEventHandler, Optional.empty()))

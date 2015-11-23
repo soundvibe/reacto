@@ -1,4 +1,4 @@
-package reactive.fp.errors;
+package reactive.fp.client.errors;
 
 /**
  * @author Cipolinas on 2015.11.23.

@@ -1,17 +1,17 @@
-package reactive.fp;
+package reactive.fp.itests;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import reactive.fp.commands.CommandRegistry;
-import reactive.fp.config.CommandRepositoryConfig;
-import reactive.fp.config.WebServerConfig;
-import reactive.fp.errors.CommandNotFound;
-import reactive.fp.repositories.CommandRepository;
-import reactive.fp.types.CommandNodes;
-import reactive.fp.types.DistributedCommandDef;
-import reactive.fp.vertx.VertxServer;
+import reactive.fp.server.CommandRegistry;
+import reactive.fp.client.repositories.CommandRepositoryConfig;
+import reactive.fp.server.WebServerConfig;
+import reactive.fp.client.errors.CommandNotFound;
+import reactive.fp.client.repositories.CommandRepository;
+import reactive.fp.client.commands.CommandNodes;
+import reactive.fp.client.commands.DistributedCommandDef;
+import reactive.fp.server.VertxServer;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 

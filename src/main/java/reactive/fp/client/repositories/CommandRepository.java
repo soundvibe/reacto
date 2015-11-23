@@ -1,11 +1,10 @@
-package reactive.fp.repositories;
+package reactive.fp.client.repositories;
 
-import reactive.fp.commands.CommandExecutor;
-import reactive.fp.commands.hystrix.HystrixCommandExecutor;
-import reactive.fp.config.CommandRepositoryConfig;
-import reactive.fp.errors.CommandNotFound;
-import reactive.fp.types.EventHandler;
-import reactive.fp.vertx.VertxWebSocketEventHandler;
+import reactive.fp.client.commands.CommandExecutor;
+import reactive.fp.client.commands.hystrix.HystrixCommandExecutor;
+import reactive.fp.client.errors.CommandNotFound;
+import reactive.fp.client.events.EventHandler;
+import reactive.fp.client.events.VertxWebSocketEventHandler;
 
 import java.net.URI;
 import java.util.Optional;
