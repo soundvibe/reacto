@@ -7,7 +7,6 @@ import org.junit.Test;
 import reactive.fp.commands.CommandRegistry;
 import reactive.fp.config.CommandRepositoryConfig;
 import reactive.fp.config.WebServerConfig;
-import reactive.fp.jetty.JettyServer;
 import reactive.fp.repositories.CommandRepository;
 import reactive.fp.types.CommandNodes;
 import reactive.fp.types.DistributedCommandDef;
@@ -40,8 +39,6 @@ public class CommandRepositoryTest {
     private final CommandRepository sut = new CommandRepository(config);
     private static CommandRegistry webCommandRegistry;
     private static CommandRegistry distributedFallbackCommandsRegistry;
-    private static JettyServer jettyServer;
-    private static JettyServer fallbackJettyServer;
 
     private static VertxServer vertxServer;
     private static VertxServer fallbackVertxServer;
@@ -66,13 +63,6 @@ public class CommandRepositoryTest {
 
         vertxServer = new VertxServer(webServerConfig, webCommandRegistry);
         fallbackVertxServer = new VertxServer(distributedFallbackCommandsConfig, distributedFallbackCommandsRegistry);
-        /*
-        jettyServer = new JettyServer(webServerConfig, webCommandRegistry);
-        fallbackJettyServer = new JettyServer(distributedFallbackCommandsConfig, distributedFallbackCommandsRegistry);*/
-
-        /*fallbackJettyServer.setupRoutes();
-        jettyServer.start();*/
-
         fallbackVertxServer.start();
         vertxServer.start();
     }
@@ -81,8 +71,6 @@ public class CommandRepositoryTest {
     public static void tearDown() throws Exception {
         vertxServer.stop();
         fallbackVertxServer.stop();
-/*        jettyServer.stop();
-        fallbackJettyServer.stop();*/
     }
 
     @Test

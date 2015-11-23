@@ -17,6 +17,8 @@
 package reactive.fp.types;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.io.Serializable;
 import java.net.NetworkInterface;
 import java.nio.BufferUnderflowException;
@@ -332,6 +334,7 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
      *
      * @return the Date
      */
+    @JsonIgnore
     public Date getDate() {
         return new Date(timestamp * 1000L);
     }
@@ -405,40 +408,6 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
 
     @Override
     public String toString() {
-        return toHexString();
-    }
-
-    // Deprecated methods
-
-    /**
-     * Gets the time of this ID, in seconds.
-     *
-     * @deprecated Use #getTimestamp instead
-     * @return the time component of this ID in seconds
-     */
-    @Deprecated
-    public int getTimeSecond() {
-        return timestamp;
-    }
-
-    /**
-     * Gets the time of this instance, in milliseconds.
-     *
-     * @deprecated Use #getDate instead
-     * @return the time component of this ID in milliseconds
-     */
-    @Deprecated
-    public long getTime() {
-        return timestamp * 1000L;
-    }
-
-    /**
-     * @return a string representation of the ObjectId in hexadecimal format
-     * @see ObjectId#toHexString()
-     * @deprecated use {@link #toHexString()}
-     */
-    @Deprecated
-    public String toStringMongod() {
         return toHexString();
     }
 

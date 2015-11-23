@@ -1,1 +1,1 @@
-# Proof of concept reactive-
+# Proof of concept react-fp
