@@ -139,4 +139,19 @@ public class CommandRepositoryTest {
         testSubscriber.assertCompleted();
         testSubscriber.assertValue("Recovered: foo");
     }
+
+    @Test(expected = ClassCastException.class)
+    public void shouldFailWhenPayloadIsOfInvalidClass() throws Exception {
+        TestSubscriber<Integer> testSubscriber = new TestSubscriber<>();
+        sut.<String, Integer>findCommand(TEST_COMMAND).get()
+                .execute("foo")
+                .subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertCompleted();
+        final List<Integer> onNextEvents = testSubscriber.getOnNextEvents();
+        final Integer integer = onNextEvents.get(0);//should fail
+        fail("Should not go here");
+    }
 }

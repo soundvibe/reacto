@@ -2,21 +2,13 @@ package reactive.fp.vertx;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.http.WebSocket;
-import reactive.fp.types.Command;
-import reactive.fp.types.Event;
-import reactive.fp.types.EventHandler;
+import io.vertx.core.http.*;
+import reactive.fp.types.*;
 import rx.Observable;
-import rx.subjects.ReplaySubject;
-import rx.subjects.SerializedSubject;
-import rx.subjects.Subject;
-
+import rx.subjects.*;
 import java.net.URI;
 
-import static reactive.fp.mappers.Mappers.fromJsonToEvent;
-import static reactive.fp.mappers.Mappers.messageToJsonBytes;
+import static reactive.fp.mappers.Mappers.*;
 
 /**
  * @author OZY on 2015.11.23.
@@ -35,8 +27,8 @@ public class VertxWebSocketEventHandler<T,U> implements EventHandler<T,U> {
 
     protected void checkForEvents(WebSocket webSocket) {
         webSocket.handler(buffer -> {
-                    byte[] bytes = buffer.getBytes();
-                    Event<?> receivedEvent = fromJsonToEvent(bytes);
+                    final byte[] bytes = buffer.getBytes();
+                    final Event<?> receivedEvent = fromJsonToEvent(bytes);
                     switch (receivedEvent.eventType) {
                         case NEXT: {
                             subject.onNext(mapFromEvent(receivedEvent));
@@ -75,8 +67,8 @@ public class VertxWebSocketEventHandler<T,U> implements EventHandler<T,U> {
     }
 
     private void startCommand(String commandName, T arg, WebSocket webSocket) {
-        Command<T> command = Command.create(commandName, arg);
-        byte[] messageJson = messageToJsonBytes(command);
+        final Command<T> command = Command.create(commandName, arg);
+        final byte[] messageJson = messageToJsonBytes(command);
         webSocket.writeFinalBinaryFrame(Buffer.buffer(messageJson));
     }
 

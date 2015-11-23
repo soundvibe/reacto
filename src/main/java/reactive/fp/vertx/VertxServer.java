@@ -1,24 +1,16 @@
 package reactive.fp.vertx;
 
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
+import io.vertx.core.*;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpServer;
-import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.http.ServerWebSocket;
-import io.vertx.core.http.WebSocketFrame;
+import io.vertx.core.http.*;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import reactive.fp.commands.CommandRegistry;
 import reactive.fp.config.WebServerConfig;
-import reactive.fp.types.Command;
-import reactive.fp.types.Event;
-import reactive.fp.types.WebServer;
+import reactive.fp.types.*;
 
-import static reactive.fp.mappers.Mappers.fromJsonToCommand;
-import static reactive.fp.mappers.Mappers.messageToJsonBytes;
-import static reactive.fp.utils.WebUtils.includeEndDelimiter;
-import static reactive.fp.utils.WebUtils.includeStartDelimiter;
+import static reactive.fp.mappers.Mappers.*;
+import static reactive.fp.utils.WebUtils.*;
 
 /**
  * @author OZY on 2015.11.23.
