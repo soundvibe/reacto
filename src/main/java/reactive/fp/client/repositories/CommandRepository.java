@@ -23,23 +23,23 @@ public class CommandRepository {
         this.config = config;
     }
 
-    public <T> Optional<CommandExecutor<T>> findCommand(String name) {
-        return findCommand(name, VertxWebSocketEventHandler::new);
+    public <T> Optional<CommandExecutor<T>> findByName(String commandName) {
+        return findByName(commandName, VertxWebSocketEventHandler::new);
     }
 
-    public <T> Optional<CommandExecutor<T>> findCommand(String name, Function<URI, EventHandler<T>> eventHandlerFactory) {
-        return config.findDistributedCommand(name)
+    public <T> Optional<CommandExecutor<T>> findByName(String commandName, Function<URI, EventHandler<T>> eventHandlerFactory) {
+        return config.findDistributedCommand(commandName)
                 .flatMap(distributedCommandDef -> mapToEventHandlers(distributedCommandDef, eventHandlerFactory))
-                .map(eventHandlers -> new HystrixCommandExecutor<>(name, eventHandlers));
+                .map(eventHandlers -> new HystrixCommandExecutor<>(commandName, eventHandlers));
     }
 
-    public <T> CommandExecutor<T> getCommand(String name) {
-        return getCommand(name, VertxWebSocketEventHandler::new);
+    public <T> CommandExecutor<T> getByName(String commandName) {
+        return getByName(commandName, VertxWebSocketEventHandler::new);
     }
 
-    public <T> CommandExecutor<T> getCommand(String name, Function<URI, EventHandler<T>> eventHandlerFactory) {
-        return findCommand(name, eventHandlerFactory)
-                .orElseThrow(() -> new CommandNotFound(name));
+    public <T> CommandExecutor<T> getByName(String commandName, Function<URI, EventHandler<T>> eventHandlerFactory) {
+        return findByName(commandName, eventHandlerFactory)
+                .orElseThrow(() -> new CommandNotFound(commandName));
     }
 
     @Override

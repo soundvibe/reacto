@@ -9,6 +9,7 @@ import org.junit.Test;
 import reactive.fp.server.CommandRegistry;
 import reactive.fp.server.VertxServer;
 import reactive.fp.server.WebServerConfig;
+import reactive.fp.utils.Factories;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 
@@ -30,7 +31,7 @@ public class HystrixEventStreamHandlerTest {
         vertxServer = new VertxServer(new WebServerConfig(8282, "test"), new CommandRegistry());
         vertxServer.start();
         lastData = new AtomicReference<>();
-        httpClient = vertxServer.vertx.createHttpClient();
+        httpClient = Factories.vertx().createHttpClient();
     }
 
     @After

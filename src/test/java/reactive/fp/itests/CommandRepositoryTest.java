@@ -14,6 +14,7 @@ import reactive.fp.client.commands.DistributedCommandDef;
 import reactive.fp.server.VertxServer;
 import rx.Observable;
 import rx.observers.TestSubscriber;
+import rx.schedulers.Schedulers;
 
 import java.util.List;
 import java.util.Optional;
@@ -76,28 +77,28 @@ public class CommandRepositoryTest {
 
     @Test
     public void shouldFindCommand() throws Exception {
-        assertTrue(sut.findCommand(TEST_COMMAND).isPresent());
+        assertTrue(sut.findByName(TEST_COMMAND).isPresent());
     }
 
     @Test
     public void shouldNotFindCommand() throws Exception {
-        assertFalse(sut.findCommand("bla").isPresent());
+        assertFalse(sut.findByName("bla").isPresent());
     }
 
     @Test
     public void shouldGetCommand() throws Exception {
-        assertNotNull(sut.getCommand(TEST_COMMAND));
+        assertNotNull(sut.getByName(TEST_COMMAND));
     }
 
     @Test(expected = CommandNotFound.class)
     public void shouldNotGetCommand() throws Exception {
-        sut.getCommand("foo");
+        sut.getByName("foo");
     }
 
     @Test
     public void shouldExecuteCommand() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        sut.getCommand(TEST_COMMAND)
+        sut.getByName(TEST_COMMAND)
                 .execute("foo", String.class)
                 .subscribe(testSubscriber);
 
@@ -108,7 +109,7 @@ public class CommandRepositoryTest {
     @Test
     public void shouldCallCommandAndReceiveMultipleEvents() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        sut.getCommand(TEST_COMMAND_MANY)
+        sut.getByName(TEST_COMMAND_MANY)
                 .execute("bar", String.class)
                 .subscribe(testSubscriber);
 
@@ -126,7 +127,7 @@ public class CommandRepositoryTest {
     @Test
     public void shouldMainFailAndNoFallbackAvailable() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        sut.getCommand(TEST_FAIL_COMMAND)
+        sut.getByName(TEST_FAIL_COMMAND)
                 .execute("foo", String.class)
                 .subscribe(testSubscriber);
 
@@ -142,7 +143,7 @@ public class CommandRepositoryTest {
     @Test
     public void shouldMainFailAndFallbackSucceed() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        sut.getCommand(TEST_FAIL_BUT_FALLBACK_COMMAND)
+        sut.getByName(TEST_FAIL_BUT_FALLBACK_COMMAND)
                 .execute("foo", String.class)
                 .subscribe(testSubscriber);
 
@@ -155,7 +156,7 @@ public class CommandRepositoryTest {
     @Test
     public void shouldFailWhenPayloadIsOfInvalidClass() throws Exception {
         TestSubscriber<Integer> testSubscriber = new TestSubscriber<>();
-        sut.getCommand(TEST_COMMAND)
+        sut.getByName(TEST_COMMAND)
                 .execute("foo", Integer.class)
                 .subscribe(testSubscriber);
 
@@ -168,7 +169,7 @@ public class CommandRepositoryTest {
     @Test
     public void shouldFailWhenCannotDeserializeObject() throws Exception {
         TestSubscriber<Foo> testSubscriber = new TestSubscriber<>();
-        sut.getCommand(TEST_COMMAND)
+        sut.getByName(TEST_COMMAND)
                 .execute("bar", Foo.class)
                 .subscribe(testSubscriber);
 
@@ -176,6 +177,29 @@ public class CommandRepositoryTest {
         testSubscriber.assertNotCompleted();
         testSubscriber.assertNoValues();
         testSubscriber.assertError(ClassCastException.class);
+    }
+
+    @Test
+    public void shouldComposeDifferentCommands() throws Exception {
+        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
+        sut.getByName(TEST_COMMAND)
+                .execute("foo", String.class)
+                .mergeWith(sut.getByName(TEST_COMMAND_MANY)
+                        .execute("bar", String.class)
+                )
+                .observeOn(Schedulers.computation())
+                .subscribeOn(Schedulers.computation())
+                .subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertCompleted();
+        testSubscriber.assertNoErrors();
+        List<String> onNextEvents = testSubscriber.getOnNextEvents();
+        assertEquals("Should be 4 elements", 4, onNextEvents.size());
+        assertTrue(onNextEvents.contains("1. Called command with arg: bar"));
+        assertTrue(onNextEvents.contains("2. Called command with arg: bar"));
+        assertTrue(onNextEvents.contains("3. Called command with arg: bar"));
+        assertTrue(onNextEvents.contains("Called command with arg: foo"));
     }
 
     private class Foo {

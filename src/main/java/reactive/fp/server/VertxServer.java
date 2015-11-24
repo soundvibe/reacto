@@ -11,6 +11,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import reactive.fp.types.Command;
 import reactive.fp.types.Event;
+import reactive.fp.utils.Factories;
 
 import static reactive.fp.mappers.Mappers.fromJsonToCommand;
 import static reactive.fp.mappers.Mappers.messageToJsonBytes;
@@ -24,13 +25,13 @@ public class VertxServer implements Server {
 
     private final WebServerConfig config;
     private final CommandRegistry commands;
-    public final Vertx vertx;
+    private final Vertx vertx;
     private final HttpServer httpServer;
 
     public VertxServer(WebServerConfig config, CommandRegistry commands) {
         this.config = config;
         this.commands = commands;
-        this.vertx = Vertx.vertx();
+        this.vertx = Factories.vertx();
         this.httpServer = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(config.port)
                 .setSsl(false)

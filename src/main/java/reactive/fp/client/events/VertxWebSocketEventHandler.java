@@ -7,6 +7,7 @@ import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.WebSocket;
 import reactive.fp.types.Command;
 import reactive.fp.types.Event;
+import reactive.fp.utils.Factories;
 import rx.Observable;
 import rx.subjects.ReplaySubject;
 import rx.subjects.SerializedSubject;
@@ -28,7 +29,7 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
 
     public VertxWebSocketEventHandler(URI wsUrl) {
         this.wsUrl = wsUrl;
-        this.vertx = Vertx.vertx();
+        this.vertx = Factories.vertx();
         this.subject = new SerializedSubject<>(ReplaySubject.create());
     }
 
