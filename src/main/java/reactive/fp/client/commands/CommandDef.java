@@ -9,14 +9,22 @@ import java.util.Optional;
 /**
  * @author OZY on 2015.11.13.
  */
-public class DistributedCommandDef {
+public class CommandDef {
 
     public final String name;
-    public final CommandNodes nodes;
+    private final CommandNodes nodes;
 
-    public DistributedCommandDef(String name, CommandNodes nodes) {
+    public CommandDef(String name, CommandNodes nodes) {
         this.name = name;
         this.nodes = nodes;
+    }
+
+    public static CommandDef ofMain(String commandName, String mainNode) {
+        return new CommandDef(commandName, new CommandNodes(mainNode, Optional.empty()));
+    }
+
+    public static CommandDef ofMainAndFallback(String commandName, String mainNode, String fallbackNode) {
+        return new CommandDef(commandName, new CommandNodes(mainNode, Optional.of(fallbackNode)));
     }
 
     public URI mainURI() {
@@ -33,7 +41,7 @@ public class DistributedCommandDef {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        DistributedCommandDef that = (DistributedCommandDef) o;
+        CommandDef that = (CommandDef) o;
         return Objects.equals(name, that.name);
     }
 
@@ -44,7 +52,7 @@ public class DistributedCommandDef {
 
     @Override
     public String toString() {
-        return "DistributedCommandDef{" +
+        return "CommandDef{" +
                 "name='" + name + '\'' +
                 ", nodes=" + nodes +
                 '}';

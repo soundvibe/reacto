@@ -11,7 +11,7 @@ import rx.Observable;
 /**
  * @author OZY on 2015.11.13.
  */
-public class HystrixDistributedObservableCommand<T> extends HystrixObservableCommand<Event<?>> {
+class HystrixDistributedObservableCommand<T> extends HystrixObservableCommand<Event<?>> {
 
     private final T arg;
     private final String commandName;

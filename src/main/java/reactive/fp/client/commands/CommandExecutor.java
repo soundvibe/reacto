@@ -12,7 +12,7 @@ public interface CommandExecutor<T> {
 
     default <U> Observable<U> execute(final T arg, Class<U> aClass) {
         return execute(arg)
-                .<Object>map(objectEvent -> objectEvent.payload)
+                .map(objectEvent -> objectEvent.payload)
                 .cast(aClass);
     }
 

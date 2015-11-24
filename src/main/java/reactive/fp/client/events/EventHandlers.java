@@ -16,7 +16,7 @@ public class EventHandlers<T> {
     }
 
     public EventHandlers<T> copy(EventHandler<T> fallbackNodeClient) {
-        return new EventHandlers<T>(mainNodeClient, Optional.ofNullable(fallbackNodeClient));
+        return new EventHandlers<>(mainNodeClient, Optional.ofNullable(fallbackNodeClient));
     }
 
     @Override

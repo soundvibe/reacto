@@ -10,7 +10,7 @@ import io.vertx.ext.web.RoutingContext;
  */
 public class HystrixEventStreamHandler implements Handler<RoutingContext> {
 
-    static int DEFAULT_DELAY = 1000;
+    static final int DEFAULT_DELAY = 1000;
     private final int delay;
 
     public HystrixEventStreamHandler() {

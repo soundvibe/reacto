@@ -28,7 +28,7 @@ public class HystrixEventStreamHandlerTest {
 
     @Before
     public void setUp() throws Exception {
-        vertxServer = new VertxServer(new WebServerConfig(8282, "test"), new CommandRegistry());
+        vertxServer = new VertxServer(new WebServerConfig(8282, "test"), CommandRegistry.of("bla", o -> Observable.empty()));
         vertxServer.start();
         lastData = new AtomicReference<>();
         httpClient = Factories.vertx().createHttpClient();

@@ -33,7 +33,7 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
         this.subject = new SerializedSubject<>(ReplaySubject.create());
     }
 
-    protected void checkForEvents(WebSocket webSocket) {
+    private void checkForEvents(WebSocket webSocket) {
         webSocket.handler(buffer -> {
                     final byte[] bytes = buffer.getBytes();
                     final Event<?> receivedEvent = fromJsonToEvent(bytes);

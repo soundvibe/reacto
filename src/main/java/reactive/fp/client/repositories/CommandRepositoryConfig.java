@@ -1,6 +1,6 @@
 package reactive.fp.client.repositories;
 
-import reactive.fp.client.commands.DistributedCommandDef;
+import reactive.fp.client.commands.CommandDef;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,21 +10,22 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class CommandRepositoryConfig {
 
-    private final Map<String, DistributedCommandDef> commands;
+    private final Map<String, CommandDef> commands;
 
-    public CommandRepositoryConfig(Map<String, DistributedCommandDef> commands) {
+    private CommandRepositoryConfig(Map<String, CommandDef> commands) {
         this.commands = commands;
     }
 
-    public static CommandRepositoryConfig create(DistributedCommandDef... entries) {
-        Map<String, DistributedCommandDef> commands = new ConcurrentHashMap<>(entries.length);
-        for (DistributedCommandDef entry: entries) {
+    public static CommandRepositoryConfig from(CommandDef... entries) {
+        Objects.requireNonNull(entries, "At least one entry should be provided");
+        Map<String, CommandDef> commands = new ConcurrentHashMap<>(entries.length);
+        for (CommandDef entry: entries) {
             commands.put(entry.name, entry);
         }
         return new CommandRepositoryConfig(commands);
     }
 
-    public Optional<DistributedCommandDef> findDistributedCommand(String key) {
+    public Optional<CommandDef> findDistributedCommand(String key) {
         return Optional.ofNullable(commands.get(key));
     }
 

@@ -9,13 +9,22 @@ import java.util.function.*;
 /**
  * @author Linas on 2015.11.12.
  */
-public class CommandRegistry {
+public final class CommandRegistry {
 
     private final Map<String, Function<Object, Observable<?>>> commands = new ConcurrentHashMap<>();
 
-    public CommandRegistry register(String commandName, Function<Object, Observable<?>> onInvoke) {
+    private CommandRegistry() {
+        //
+    }
+
+    public CommandRegistry and(String commandName, Function<Object, Observable<?>> onInvoke) {
+        Objects.requireNonNull(onInvoke, "onInvoke cannot be null");
         commands.put(commandName, onInvoke);
         return this;
+    }
+
+    public static CommandRegistry of(String commandName, Function<Object, Observable<?>> onInvoke) {
+        return new CommandRegistry().and(commandName, onInvoke);
     }
 
     public Optional<Function<Object, Observable<?>>> findCommand(String address) {

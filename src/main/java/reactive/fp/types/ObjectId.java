@@ -66,7 +66,7 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
      * @return whether the string could be an object id
      * @throws IllegalArgumentException if hexString is null
      */
-    public static boolean isValid(final String hexString) {
+    private static boolean isValid(final String hexString) {
         if (hexString == null) {
             throw new IllegalArgumentException();
         }
@@ -122,7 +122,7 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
     }
 
     /**
-     * <p>Creates an ObjectId using time, machine and inc values.  The Java driver used to create all ObjectIds this way, but it does not
+     * <p>Creates an ObjectId using time, machine and inc values.  The Java driver used to from all ObjectIds this way, but it does not
      * match the <a href="http://docs.mongodb.org/manual/reference/object-id/">ObjectId specification</a>, which requires four values, not
      * three. This major release of the Java driver conforms to the specification, but still supports clients that are relying on the
      * behavior of the previous major release by providing this explicit factory method that takes three parameters instead of four.</p>
@@ -145,11 +145,11 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
     /**
      * Create a new object id.
      */
-    public ObjectId() {
+    private ObjectId() {
         this(LocalDateTime.now());
     }
 
-    public ObjectId(LocalDateTime localDateTime) {
+    private ObjectId(LocalDateTime localDateTime) {
         this(localDateTimeToTimestampSeconds(localDateTime), MACHINE_IDENTIFIER, PROCESS_IDENTIFIER, NEXT_COUNTER.getAndIncrement(), false);
     }
 
@@ -196,7 +196,7 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
      * @param bytes the byte array
      * @throws IllegalArgumentException if array is null or not of length 12
      */
-    public ObjectId(final byte[] bytes) {
+    private ObjectId(final byte[] bytes) {
         if (bytes == null) {
             throw new IllegalArgumentException();
         }
@@ -217,7 +217,7 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
      * @param machineAndProcessIdentifier machine and process identifier
      * @param counter                     incremental value
      */
-    ObjectId(final int timestamp, final int machineAndProcessIdentifier, final int counter) {
+    private ObjectId(final int timestamp, final int machineAndProcessIdentifier, final int counter) {
         this(legacyToBytes(timestamp, machineAndProcessIdentifier, counter));
     }
 

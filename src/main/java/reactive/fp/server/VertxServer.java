@@ -49,7 +49,7 @@ public class VertxServer implements Server {
         httpServer.close();
     }
 
-    protected void setupRoutes() {
+    private void setupRoutes() {
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
         httpServer.websocketHandler(webSocketHandler());
@@ -58,7 +58,7 @@ public class VertxServer implements Server {
         httpServer.requestHandler(router::accept);
     }
 
-    protected Handler<ServerWebSocket> webSocketHandler() {
+    private Handler<ServerWebSocket> webSocketHandler() {
         return wsSocket ->
                 commands.findCommand(getCommandNameFrom(wsSocket.path())).ifPresent(command -> wsSocket.handler(buffer -> {
                     Command<?> receivedArgument = fromJsonToCommand(buffer.getBytes());
@@ -71,17 +71,17 @@ public class VertxServer implements Server {
                 }));
     }
 
-    public void send(ServerWebSocket ws, Event<?> event) {
+    private void send(ServerWebSocket ws, Event<?> event) {
         final byte[] bytes = messageToJsonBytes(event);
         ws.writeFrame(WebSocketFrame.binaryFrame(Buffer.buffer(bytes), true));
     }
 
-    protected String getCommandNameFrom(String path) {
+    private String getCommandNameFrom(String path) {
         return path.substring(path.lastIndexOf("/") + 1, path.length());
     }
 
 
-    protected String root() {
+    private String root() {
         return includeEndDelimiter(includeStartDelimiter(config.root));
     }
     }
