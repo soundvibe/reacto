@@ -19,16 +19,20 @@ class HystrixDistributedObservableCommand<T> extends HystrixObservableCommand<Ev
 
     public HystrixDistributedObservableCommand(final T arg, String commandName, EventHandlers<T> eventHandlers,
                                                boolean useExecutionTimeout, int executionTimeoutInMs) {
-        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("DistributedCommandsRegistry"))
+        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group: " + commandName))
                 .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
                         .withFallbackEnabled(eventHandlers.fallbackNodeClient.isPresent())
                         .withExecutionTimeoutEnabled(useExecutionTimeout)
                         .withExecutionTimeoutInMilliseconds(executionTimeoutInMs)
                 )
-                .andCommandKey(HystrixCommandKey.Factory.asKey(commandName)));
+                .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(commandName, useExecutionTimeout))));
         this.arg = arg;
         this.commandName = commandName;
         this.eventHandlers = eventHandlers;
+    }
+
+    protected static String resolveCommandName(String name, boolean useExecutionTimeout) {
+        return useExecutionTimeout ? name : name + "$";
     }
 
     @Override

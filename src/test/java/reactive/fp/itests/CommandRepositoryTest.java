@@ -50,7 +50,7 @@ public class CommandRepositoryTest {
     public static void setUp() throws Exception {
         WebServerConfig webServerConfig = new WebServerConfig(8282, "dist/");
         CommandRegistry webCommandRegistry = CommandRegistry.of(TEST_COMMAND, o -> Observable.just("Called command with arg: " + o))
-                .and(TEST_COMMAND_MANY, o -> Observable.just(
+                .and(TEST_COMMAND_MANY, (String o) -> Observable.just(
                         "1. Called command with arg: " + o,
                         "2. Called command with arg: " + o,
                         "3. Called command with arg: " + o
@@ -145,7 +145,7 @@ public class CommandRepositoryTest {
         List<Throwable> errors = testSubscriber.getOnErrorEvents();
         assertEquals("Should be one error", 1, errors.size());
         Throwable throwable = errors.get(0);
-        assertEquals("Error message should be failed", "testFail failed and fallback disabled.", throwable.getMessage());
+        assertEquals("Error message should be failed", "testFail$ failed and fallback disabled.", throwable.getMessage());
         assertEquals("Should be HystrixRuntimeException", HystrixRuntimeException.class, throwable.getClass());
     }
 
@@ -215,13 +215,29 @@ public class CommandRepositoryTest {
     public void shouldFailAfterHystrixTimeout() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
         sut.getByName(LONG_TASK)
-                .observe(300000, String.class)
+                .observe(5000, String.class)
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNotCompleted();
         testSubscriber.assertNoValues();
         testSubscriber.assertError(HystrixRuntimeException.class);
+    }
+
+    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
+    @Test
+    public void shouldFailWhenCommandIsInvokedWithInvalidArgument() throws Exception {
+        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
+        sut.getByName(LONG_TASK)
+                .execute("foo", String.class)
+                .subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNotCompleted();
+        testSubscriber.assertNoValues();
+        testSubscriber.assertError(HystrixRuntimeException.class);
+        final Throwable actualError = testSubscriber.getOnErrorEvents().get(0).getCause();
+        assertEquals(ClassCastException.class, actualError.getClass());
     }
 
     private class Foo {

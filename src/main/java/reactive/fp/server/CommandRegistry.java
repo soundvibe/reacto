@@ -24,7 +24,7 @@ public final class CommandRegistry {
         return this;
     }
 
-    public static CommandRegistry of(String commandName, Function<Object, Observable<?>> onInvoke) {
+    public static <T> CommandRegistry of(String commandName, Function<T, Observable<?>> onInvoke) {
         return new CommandRegistry().and(commandName, onInvoke);
     }
 

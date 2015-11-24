@@ -16,7 +16,7 @@ public interface CommandExecutor<T> {
     Observable<Event<?>> execute(final T arg);
 
     /**
-     * Executes command with execution timeout of 5 seconds
+     * Executes command with execution timeout of 1 second
      * @param arg command argument
      * @return event observable
      */

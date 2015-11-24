@@ -62,14 +62,18 @@ public class VertxServer implements Server {
     private Handler<ServerWebSocket> webSocketHandler() {
         return wsSocket ->
                 commands.findCommand(getCommandNameFrom(wsSocket.path())).ifPresent(command -> wsSocket.handler(buffer -> {
-                    Command<?> receivedArgument = fromJsonToCommand(buffer.getBytes());
-                    command.apply(receivedArgument.payload)
-                            .subscribeOn(Schedulers.computation())
-                            .subscribe(
-                                    payload -> send(wsSocket, Event.onNext(payload)),
-                                    throwable -> send(wsSocket, Event.onError(throwable)),
-                                    () -> send(wsSocket, Event.onCompleted("Completed")))
-                    ;
+                    try {
+                        Command<?> receivedArgument = fromJsonToCommand(buffer.getBytes());
+                        command.apply(receivedArgument.payload)
+                                .subscribeOn(Schedulers.computation())
+                                .subscribe(
+                                        payload -> send(wsSocket, Event.onNext(payload)),
+                                        throwable -> send(wsSocket, Event.onError(throwable)),
+                                        () -> send(wsSocket, Event.onCompleted("Completed")))
+                        ;
+                    } catch (Throwable e) {
+                        send(wsSocket, Event.onError(e));
+                    }
                 }));
     }
 
