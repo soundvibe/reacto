@@ -33,6 +33,12 @@ public class HystrixCommandExecutor<T> implements CommandExecutor<T> {
     }
 
     @Override
+    public Observable<Event<?>> observe(T arg, int executionTimeoutInMs) {
+        return new HystrixDistributedObservableCommand<>(arg, commandName, eventHandlers, true, executionTimeoutInMs)
+                .toObservable();
+    }
+
+    @Override
     public String toString() {
         return "HystrixCommandExecutor{" +
                 "commandName='" + commandName + '\'' +

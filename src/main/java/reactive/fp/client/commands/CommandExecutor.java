@@ -22,6 +22,13 @@ public interface CommandExecutor<T> {
      */
     Observable<Event<?>> observe(final T arg);
 
+    /**
+     * Executes command  given execution timeout
+     * @param arg command argument
+     * @return event observable
+     */
+    Observable<Event<?>> observe(final T arg, int executionTimeoutInMs);
+
     default <U> Observable<U> execute(final T arg, Class<U> aClass) {
         return execute(arg)
                 .map(objectEvent -> objectEvent.payload)
@@ -30,6 +37,12 @@ public interface CommandExecutor<T> {
 
     default <U> Observable<U> observe(final T arg, Class<U> aClass) {
         return observe(arg)
+                .map(objectEvent -> objectEvent.payload)
+                .cast(aClass);
+    }
+
+    default <U> Observable<U> observe(final T arg, Class<U> aClass, int executionTimeoutInMs) {
+        return observe(arg, executionTimeoutInMs)
                 .map(objectEvent -> objectEvent.payload)
                 .cast(aClass);
     }
