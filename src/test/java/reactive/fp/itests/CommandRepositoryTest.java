@@ -28,13 +28,18 @@ public class CommandRepositoryTest {
     public static final String TEST_COMMAND_MANY = "testMany";
     public static final String TEST_FAIL_COMMAND = "testFail";
     public static final String TEST_FAIL_BUT_FALLBACK_COMMAND = "testFailFallback";
+    public static final String LONG_TASK = "longTask";
+    public static final String MAIN_NODE = "http://localhost:8282/dist/";
+    public static final String FALLBACK_NODE = "http://localhost:8383/distFallback/";
 
     private static final CommandRepositoryConfig config = CommandRepositoryConfig.from(
-           CommandDef.ofMain(TEST_COMMAND, "http://localhost:8282/dist/"),
-           CommandDef.ofMain(TEST_COMMAND_MANY, "http://localhost:8282/dist/"),
-           CommandDef.ofMain(TEST_FAIL_COMMAND, "http://localhost:8282/dist/"),
-           CommandDef.ofMainAndFallback(TEST_FAIL_BUT_FALLBACK_COMMAND, "http://localhost:8282/dist/", "http://localhost:8383/distFallback/")
+           CommandDef.ofMain(TEST_COMMAND, MAIN_NODE),
+           CommandDef.ofMain(TEST_COMMAND_MANY, MAIN_NODE),
+           CommandDef.ofMain(TEST_FAIL_COMMAND, MAIN_NODE),
+           CommandDef.ofMain(LONG_TASK, MAIN_NODE),
+           CommandDef.ofMainAndFallback(TEST_FAIL_BUT_FALLBACK_COMMAND, MAIN_NODE, FALLBACK_NODE)
     );
+
 
     private final CommandRepository sut = new CommandRepository(config);
 
@@ -51,7 +56,17 @@ public class CommandRepositoryTest {
                         "3. Called command with arg: " + o
                 ))
                 .and(TEST_FAIL_COMMAND, o -> Observable.error(new RuntimeException("failed")))
-                .and(TEST_FAIL_BUT_FALLBACK_COMMAND, o -> Observable.error(new RuntimeException("failed")));
+                .and(TEST_FAIL_BUT_FALLBACK_COMMAND, o -> Observable.error(new RuntimeException("failed")))
+                .and(LONG_TASK, (Integer interval) -> Observable.create(subscriber -> {
+                    try {
+                        Thread.sleep(interval);
+                        subscriber.onNext("ok");
+                        subscriber.onCompleted();
+                    } catch (InterruptedException e) {
+                        subscriber.onError(e);
+                    }
+                }))
+                ;
 
 
         WebServerConfig distributedFallbackCommandsConfig = new WebServerConfig(8383, "distFallback/");
@@ -130,7 +145,7 @@ public class CommandRepositoryTest {
         List<Throwable> errors = testSubscriber.getOnErrorEvents();
         assertEquals("Should be one error", 1, errors.size());
         Throwable throwable = errors.get(0);
-        assertEquals("Error message should be failed", "testFail failed and no fallback available.", throwable.getMessage());
+        assertEquals("Error message should be failed", "testFail failed and fallback disabled.", throwable.getMessage());
         assertEquals("Should be HystrixRuntimeException", HystrixRuntimeException.class, throwable.getClass());
     }
 
@@ -194,6 +209,19 @@ public class CommandRepositoryTest {
         assertTrue(onNextEvents.contains("2. Called command with arg: bar"));
         assertTrue(onNextEvents.contains("3. Called command with arg: bar"));
         assertTrue(onNextEvents.contains("Called command with arg: foo"));
+    }
+
+    @Test
+    public void shouldFailAfterHystrixTimeout() throws Exception {
+        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
+        sut.getByName(LONG_TASK)
+                .observe(300000, String.class)
+                .subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNotCompleted();
+        testSubscriber.assertNoValues();
+        testSubscriber.assertError(HystrixRuntimeException.class);
     }
 
     private class Foo {

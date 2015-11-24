@@ -17,11 +17,13 @@ class HystrixDistributedObservableCommand<T> extends HystrixObservableCommand<Ev
     private final String commandName;
     private final EventHandlers<T> eventHandlers;
 
-    public HystrixDistributedObservableCommand(final T arg, String commandName, EventHandlers<T> eventHandlers) {
+    public HystrixDistributedObservableCommand(final T arg, String commandName, EventHandlers<T> eventHandlers,
+                                               boolean useExecutionTimeout, int executionTimeoutInMs) {
         super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("DistributedCommandsRegistry"))
                 .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
-                        .withFallbackEnabled(true)
-                        .withExecutionTimeoutInMilliseconds(5000)
+                        .withFallbackEnabled(eventHandlers.fallbackNodeClient.isPresent())
+                        .withExecutionTimeoutEnabled(useExecutionTimeout)
+                        .withExecutionTimeoutInMilliseconds(executionTimeoutInMs)
                 )
                 .andCommandKey(HystrixCommandKey.Factory.asKey(commandName)));
         this.arg = arg;

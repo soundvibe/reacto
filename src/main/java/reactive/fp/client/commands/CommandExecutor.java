@@ -8,10 +8,28 @@ import rx.Observable;
  */
 public interface CommandExecutor<T> {
 
+    /**
+     * Executes command without execution timeout
+     * @param arg command argument
+     * @return event observable
+     */
     Observable<Event<?>> execute(final T arg);
+
+    /**
+     * Executes command with execution timeout of 5 seconds
+     * @param arg command argument
+     * @return event observable
+     */
+    Observable<Event<?>> observe(final T arg);
 
     default <U> Observable<U> execute(final T arg, Class<U> aClass) {
         return execute(arg)
+                .map(objectEvent -> objectEvent.payload)
+                .cast(aClass);
+    }
+
+    default <U> Observable<U> observe(final T arg, Class<U> aClass) {
+        return observe(arg)
                 .map(objectEvent -> objectEvent.payload)
                 .cast(aClass);
     }

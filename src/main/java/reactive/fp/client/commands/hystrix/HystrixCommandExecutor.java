@@ -10,6 +10,8 @@ import rx.Observable;
  */
 public class HystrixCommandExecutor<T> implements CommandExecutor<T> {
 
+    public static int DEFAULT_EXECUTION_TIMEOUT = 1000;
+
     private final String commandName;
     private final EventHandlers<T> eventHandlers;
 
@@ -20,7 +22,14 @@ public class HystrixCommandExecutor<T> implements CommandExecutor<T> {
 
     @Override
     public Observable<Event<?>> execute(T arg) {
-        return new HystrixDistributedObservableCommand<>(arg, commandName, eventHandlers).toObservable();
+        return new HystrixDistributedObservableCommand<>(arg, commandName, eventHandlers, false, DEFAULT_EXECUTION_TIMEOUT)
+                .toObservable();
+    }
+
+    @Override
+    public Observable<Event<?>> observe(T arg) {
+        return new HystrixDistributedObservableCommand<>(arg, commandName, eventHandlers, true, DEFAULT_EXECUTION_TIMEOUT)
+                .toObservable();
     }
 
     @Override

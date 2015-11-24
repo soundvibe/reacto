@@ -12,6 +12,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 import reactive.fp.types.Command;
 import reactive.fp.types.Event;
 import reactive.fp.utils.Factories;
+import rx.schedulers.Schedulers;
 
 import static reactive.fp.mappers.Mappers.fromJsonToCommand;
 import static reactive.fp.mappers.Mappers.messageToJsonBytes;
@@ -63,6 +64,7 @@ public class VertxServer implements Server {
                 commands.findCommand(getCommandNameFrom(wsSocket.path())).ifPresent(command -> wsSocket.handler(buffer -> {
                     Command<?> receivedArgument = fromJsonToCommand(buffer.getBytes());
                     command.apply(receivedArgument.payload)
+                            .subscribeOn(Schedulers.computation())
                             .subscribe(
                                     payload -> send(wsSocket, Event.onNext(payload)),
                                     throwable -> send(wsSocket, Event.onError(throwable)),
