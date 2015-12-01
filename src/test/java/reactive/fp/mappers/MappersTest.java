@@ -19,7 +19,7 @@ public class MappersTest {
     @Test
     public void shouldBeBothMainAndFallbackSet() throws Exception {
         final Optional<EventHandlers<String>> actual = Mappers.mapToEventHandlers(
-                new CommandDef("foo", new CommandNodes("localhost", Optional.of("www.google.com"))),
+                new CommandDef("foo", String.class, new CommandNodes("localhost", Optional.of("www.google.com"))),
                 uri -> (commandName, arg) -> Observable.just(Event.onNext("foo " + arg)));
 
         assertTrue("Mapping should be successful",actual.isPresent());
@@ -31,7 +31,7 @@ public class MappersTest {
     @Test
     public void shouldBeOnlyMainSet() throws Exception {
         final Optional<EventHandlers<String>> actual = Mappers.mapToEventHandlers(
-                new CommandDef("foo", new CommandNodes("localhost", Optional.empty())),
+                new CommandDef("foo", String.class, new CommandNodes("localhost", Optional.empty())),
                 uri -> (commandName, arg) -> Observable.just(Event.onNext("foo " + arg)));
 
         assertTrue("Mapping should be successful",actual.isPresent());

@@ -8,6 +8,6 @@ import rx.Observable;
  */
 public interface EventHandler<T> {
 
-    Observable<Event<?>> toObservable(String commandName, T arg);
+    Observable<Event<T>> toObservable(String commandName, Object arg);
 
 }

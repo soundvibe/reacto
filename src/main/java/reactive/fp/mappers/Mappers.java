@@ -1,16 +1,20 @@
 package reactive.fp.mappers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.RuntimeJsonMappingException;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import reactive.fp.client.commands.CommandDef;
 import reactive.fp.client.events.EventHandler;
 import reactive.fp.client.events.EventHandlers;
-import reactive.fp.types.*;
+import reactive.fp.types.Command;
+import reactive.fp.types.Event;
+
 import java.io.IOException;
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -55,7 +59,7 @@ public interface Mappers {
         try {
             return Mappers.jsonMapper.readValue(bytes, Event.class);
         } catch (IOException e) {
-            throw new RuntimeJsonMappingException("Cannot deserialize event from json: " + Arrays.toString(bytes));
+            throw new RuntimeJsonMappingException("Cannot deserialize event from json: " + new String(bytes));
         }
     }
 
@@ -63,7 +67,7 @@ public interface Mappers {
         try {
             return Mappers.jsonMapper.readValue(bytes, Command.class);
         } catch (IOException e) {
-            throw new RuntimeJsonMappingException("Cannot deserialize command from json: " + Arrays.toString(bytes));
+            throw new RuntimeJsonMappingException("Cannot deserialize command from json: " + new String(bytes));
         }
     }
 

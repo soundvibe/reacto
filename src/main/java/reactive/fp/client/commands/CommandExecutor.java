@@ -1,6 +1,5 @@
 package reactive.fp.client.commands;
 
-import reactive.fp.types.Event;
 import rx.Observable;
 
 /**
@@ -8,43 +7,28 @@ import rx.Observable;
  */
 public interface CommandExecutor<T> {
 
+    int DEFAULT_EXECUTION_TIMEOUT = 1000;
+
     /**
      * Executes command without execution timeout
      * @param arg command argument
      * @return event observable
      */
-    Observable<Event<?>> execute(final T arg);
+    Observable<T> execute(final Object arg);
 
     /**
      * Executes command with execution timeout of 1 second
      * @param arg command argument
      * @return event observable
      */
-    Observable<Event<?>> observe(final T arg);
+    default Observable<T> observe(final Object arg) {
+        return observe(arg, DEFAULT_EXECUTION_TIMEOUT);
+    }
 
     /**
      * Executes command  given execution timeout
      * @param arg command argument
      * @return event observable
      */
-    Observable<Event<?>> observe(final T arg, int executionTimeoutInMs);
-
-    default <U> Observable<U> execute(final T arg, Class<U> aClass) {
-        return execute(arg)
-                .map(objectEvent -> objectEvent.payload)
-                .cast(aClass);
-    }
-
-    default <U> Observable<U> observe(final T arg, Class<U> aClass) {
-        return observe(arg)
-                .map(objectEvent -> objectEvent.payload)
-                .cast(aClass);
-    }
-
-    default <U> Observable<U> observe(final T arg, Class<U> aClass, int executionTimeoutInMs) {
-        return observe(arg, executionTimeoutInMs)
-                .map(objectEvent -> objectEvent.payload)
-                .cast(aClass);
-    }
-
+    Observable<T> observe(final Object arg, int executionTimeoutInMs);
 }

@@ -24,53 +24,71 @@ import static reactive.fp.mappers.Mappers.messageToJsonBytes;
 public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
 
     private final URI wsUrl;
-    private final Subject<Event<?>, Event<?>> subject;
+    private final Subject<Event<T>, Event<T>> subject;
     private final Vertx vertx;
+    private final Class<?> aClass;
 
-    public VertxWebSocketEventHandler(URI wsUrl) {
+    public VertxWebSocketEventHandler(URI wsUrl, Class<?> aClass) {
         this.wsUrl = wsUrl;
+        this.aClass = aClass;
         this.vertx = Factories.vertx();
         this.subject = new SerializedSubject<>(ReplaySubject.create());
     }
 
+    @SuppressWarnings("unchecked")
     private void checkForEvents(WebSocket webSocket) {
         webSocket.handler(buffer -> {
-                    final byte[] bytes = buffer.getBytes();
-                    final Event<?> receivedEvent = fromJsonToEvent(bytes);
-                    switch (receivedEvent.eventType) {
-                        case NEXT: {
-                            subject.onNext(receivedEvent);
-                            break;
+            try {
+                final byte[] bytes = buffer.getBytes();
+                final Event<?> receivedEvent = fromJsonToEvent(bytes);
+                switch (receivedEvent.eventType) {
+                    case NEXT: {
+                        if (receivedEvent.payload == null) {
+                            subject.onError(new NullPointerException("Payload was null for event: " + receivedEvent));
+                        } else if (aClass.isAssignableFrom(receivedEvent.payload.getClass())) {
+                            subject.onNext((Event<T>) receivedEvent);
+                        } else {
+                            subject.onError(new ClassCastException("Invalid event payload type. Received " +
+                                    receivedEvent.payload.getClass() + " but expected " + aClass));
                         }
-                        case ERROR: {
-                            subject.onError((Throwable) receivedEvent.payload);
-                            break;
-                        }
-                        case COMPLETED: {
-                            subject.onCompleted();
-                            break;
-                        }
+                        break;
+                    }
+                    case ERROR: {
+                        subject.onError((Throwable) receivedEvent.payload);
+                        break;
+                    }
+                    case COMPLETED: {
+                        subject.onCompleted();
+                        break;
                     }
                 }
+            } catch (Throwable e) {
+                subject.onError(e);
+            }
+        }
         );
     }
 
-    public Observable<Event<?>> toObservable(String commandName, T arg) {
+    public Observable<Event<T>> toObservable(String commandName, Object arg) {
         final HttpClient httpClient = vertx.createHttpClient(new HttpClientOptions());
         return Observable.using(() -> httpClient.websocketStream(wsUrl.getPort() == -1 ?
                 80:
                 wsUrl.getPort(), wsUrl.getHost(), wsUrl.getPath()),
                 webSocketStream -> {
                     webSocketStream.handler(webSocket -> {
-                        startCommand(commandName, arg, webSocket);
-                        checkForEvents(webSocket);
+                        try {
+                            startCommand(commandName, arg, webSocket);
+                            checkForEvents(webSocket);
+                        } catch (Throwable e) {
+                            subject.onError(e);
+                        }
                     });
                     return subject;
                 }, webSocketStream -> { webSocketStream.pause(); httpClient.close(); });
     }
 
-    private void startCommand(String commandName, T arg, WebSocket webSocket) {
-        final Command<T> command = Command.create(commandName, arg);
+    private void startCommand(String commandName, Object arg, WebSocket webSocket) {
+        final Command<?> command = Command.create(commandName, arg);
         final byte[] messageJson = messageToJsonBytes(command);
         webSocket.writeFinalBinaryFrame(Buffer.buffer(messageJson));
     }
