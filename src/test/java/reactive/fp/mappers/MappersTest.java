@@ -2,7 +2,6 @@ package reactive.fp.mappers;
 
 import org.junit.Test;
 import reactive.fp.client.commands.CommandDef;
-import reactive.fp.client.commands.CommandNodes;
 import reactive.fp.types.Event;
 import reactive.fp.client.events.EventHandlers;
 import rx.Observable;
@@ -19,7 +18,7 @@ public class MappersTest {
     @Test
     public void shouldBeBothMainAndFallbackSet() throws Exception {
         final Optional<EventHandlers<String>> actual = Mappers.mapToEventHandlers(
-                new CommandDef("foo", String.class, new CommandNodes("localhost", Optional.of("www.google.com"))),
+                CommandDef.ofMainAndFallback("foo", "localhost", "www.google.com", String.class),
                 uri -> (commandName, arg) -> Observable.just(Event.onNext("foo " + arg)));
 
         assertTrue("Mapping should be successful",actual.isPresent());
@@ -31,7 +30,7 @@ public class MappersTest {
     @Test
     public void shouldBeOnlyMainSet() throws Exception {
         final Optional<EventHandlers<String>> actual = Mappers.mapToEventHandlers(
-                new CommandDef("foo", String.class, new CommandNodes("localhost", Optional.empty())),
+                CommandDef.ofMain("foo", "localhost", String.class),
                 uri -> (commandName, arg) -> Observable.just(Event.onNext("foo " + arg)));
 
         assertTrue("Mapping should be successful",actual.isPresent());

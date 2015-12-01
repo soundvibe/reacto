@@ -19,6 +19,7 @@ public final class CommandRegistry {
 
     @SuppressWarnings("unchecked")
     public <T> CommandRegistry and(String commandName, Function<T, Observable<?>> onInvoke) {
+        Objects.requireNonNull(commandName, "Command name cannot be null");
         Objects.requireNonNull(onInvoke, "onInvoke cannot be null");
         commands.put(commandName, onInvoke.compose(o -> (T) o));
         return this;

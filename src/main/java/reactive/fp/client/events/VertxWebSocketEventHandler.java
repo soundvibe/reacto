@@ -14,6 +14,7 @@ import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
 import java.net.URI;
+import java.util.Objects;
 
 import static reactive.fp.mappers.Mappers.fromJsonToEvent;
 import static reactive.fp.mappers.Mappers.messageToJsonBytes;
@@ -28,9 +29,11 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
     private final Vertx vertx;
     private final Class<?> aClass;
 
-    public VertxWebSocketEventHandler(URI wsUrl, Class<?> aClass) {
+    public VertxWebSocketEventHandler(URI wsUrl, Class<?> eventClass) {
+        Objects.requireNonNull(wsUrl, "WebSocket URI cannot be null");
+        Objects.requireNonNull(eventClass, "Event class cannot be null");
         this.wsUrl = wsUrl;
-        this.aClass = aClass;
+        this.aClass = eventClass;
         this.vertx = Factories.vertx();
         this.subject = new SerializedSubject<>(ReplaySubject.create());
     }

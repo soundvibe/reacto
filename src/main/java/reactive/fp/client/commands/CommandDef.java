@@ -15,7 +15,9 @@ public class CommandDef {
     public final Class<?> eventClass;
     private final CommandNodes nodes;
 
-    public CommandDef(String name, Class<?> eventClass, CommandNodes nodes) {
+    private CommandDef(String name, Class<?> eventClass, CommandNodes nodes) {
+        Objects.requireNonNull(name, "Command name cannot be null");
+        Objects.requireNonNull(eventClass, "Event class cannot be null");
         this.name = name;
         this.eventClass = eventClass;
         this.nodes = nodes;

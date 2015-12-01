@@ -15,6 +15,8 @@ import reactive.fp.utils.Factories;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
+import java.util.Objects;
+
 import static reactive.fp.mappers.Mappers.fromJsonToCommand;
 import static reactive.fp.mappers.Mappers.messageToJsonBytes;
 import static reactive.fp.utils.WebUtils.includeEndDelimiter;
@@ -31,6 +33,8 @@ public class VertxServer implements Server {
     private final HttpServer httpServer;
 
     public VertxServer(WebServerConfig config, CommandRegistry commands) {
+        Objects.requireNonNull(config, "WebServerConfig cannot be null");
+        Objects.requireNonNull(commands, "CommandRegistry cannot be null");
         this.config = config;
         this.commands = commands;
         this.vertx = Factories.vertx();

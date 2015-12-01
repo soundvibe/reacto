@@ -5,7 +5,7 @@ import java.util.Optional;
 /**
  * @author OZY on 2015.11.13.
  */
-public class CommandNodes {
+class CommandNodes {
 
     public final String mainNode;
     public final Optional<String> fallbackNode;
