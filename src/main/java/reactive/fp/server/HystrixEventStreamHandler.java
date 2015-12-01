@@ -33,6 +33,8 @@ public class HystrixEventStreamHandler implements Handler<RoutingContext> {
         response.setChunked(true);
         final HystrixMetricsPoller hystrixMetricsPoller = new HystrixMetricsPoller(
                 json -> writeJsonData(response, json), delay);
+
+        response.closeHandler(event -> hystrixMetricsPoller.shutdown());
         hystrixMetricsPoller.start();
     }
 
