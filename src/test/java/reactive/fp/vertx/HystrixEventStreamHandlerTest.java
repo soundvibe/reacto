@@ -2,13 +2,15 @@ package reactive.fp.vertx;
 
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixObservableCommand;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpServerOptions;
+import io.vertx.ext.web.Router;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import reactive.fp.server.CommandRegistry;
 import reactive.fp.server.VertxServer;
-import reactive.fp.server.WebServerConfig;
 import reactive.fp.utils.Factories;
 import rx.Observable;
 import rx.observers.TestSubscriber;
@@ -28,10 +30,12 @@ public class HystrixEventStreamHandlerTest {
 
     @Before
     public void setUp() throws Exception {
-        vertxServer = new VertxServer(new WebServerConfig(8282, "test"), CommandRegistry.of("bla", o -> Observable.empty()));
+        Vertx vertx = Factories.vertx();
+        vertxServer = new VertxServer(Router.router(vertx), vertx.createHttpServer(new HttpServerOptions().setPort(8282)), "test",
+               CommandRegistry.of("bla", o -> Observable.empty()));
         vertxServer.start();
         lastData = new AtomicReference<>();
-        httpClient = Factories.vertx().createHttpClient();
+        httpClient = vertx.createHttpClient();
     }
 
     @After

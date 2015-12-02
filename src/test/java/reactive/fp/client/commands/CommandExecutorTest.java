@@ -1,6 +1,10 @@
 package reactive.fp.client.commands;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
+import io.vertx.ext.web.Router;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -9,7 +13,7 @@ import reactive.TestUtils.models.FooBar;
 import reactive.TestUtils.models.NotDeserializable;
 import reactive.fp.server.CommandRegistry;
 import reactive.fp.server.VertxServer;
-import reactive.fp.server.WebServerConfig;
+import reactive.fp.utils.Factories;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
@@ -44,7 +48,6 @@ public class CommandExecutorTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        WebServerConfig mainServerConfig = new WebServerConfig(8282, "dist/");
         CommandRegistry mainCommands = CommandRegistry.of(TEST_COMMAND, o -> Observable.just("Called command with arg: " + o))
                 .and(TEST_COMMAND_MANY, (String o) -> Observable.just(
                         "1. Called command with arg: " + o,
@@ -68,12 +71,20 @@ public class CommandExecutorTest {
                 }))
                 ;
 
-
-        WebServerConfig fallbackServerConfig = new WebServerConfig(8383, "distFallback/");
         CommandRegistry fallbackCommands = CommandRegistry.of(TEST_FAIL_BUT_FALLBACK_COMMAND, o -> Observable.just("Recovered: " + o));
 
-        vertxServer = new VertxServer(mainServerConfig, mainCommands);
-        fallbackVertxServer = new VertxServer(fallbackServerConfig, fallbackCommands);
+        Vertx vertx = Factories.vertx();
+        HttpServer mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
+                .setPort(8282)
+                .setSsl(false)
+                .setReuseAddress(true));
+
+        HttpServer fallbackHttpServer = vertx.createHttpServer(new HttpServerOptions()
+                .setPort(8383)
+                .setSsl(false)
+                .setReuseAddress(true));
+        vertxServer = new VertxServer(Router.router(vertx), mainHttpServer, "dist/", mainCommands);
+        fallbackVertxServer = new VertxServer(Router.router(vertx), fallbackHttpServer, "distFallback/", fallbackCommands);
         fallbackVertxServer.start();
         vertxServer.start();
     }

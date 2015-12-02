@@ -1,17 +1,14 @@
 package reactive.fp.server;
 
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServer;
-import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.http.WebSocketFrame;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import reactive.fp.types.Command;
 import reactive.fp.types.Event;
-import reactive.fp.utils.Factories;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
@@ -27,27 +24,26 @@ import static reactive.fp.utils.WebUtils.includeStartDelimiter;
  */
 public class VertxServer implements Server {
 
-    private final WebServerConfig config;
+    private final String root;
     private final CommandRegistry commands;
-    private final Vertx vertx;
     private final HttpServer httpServer;
+    private final Router router;
 
-    public VertxServer(WebServerConfig config, CommandRegistry commands) {
-        Objects.requireNonNull(config, "WebServerConfig cannot be null");
+    public VertxServer(Router router, HttpServer httpServer, String root, CommandRegistry commands) {
+        Objects.requireNonNull(router, "Router cannot be null");
+        Objects.requireNonNull(httpServer, "HttpServer cannot be null");
+        Objects.requireNonNull(root, "Root cannot be null");
         Objects.requireNonNull(commands, "CommandRegistry cannot be null");
-        this.config = config;
+        this.router = router;
+        this.httpServer = httpServer;
+        this.root = root;
         this.commands = commands;
-        this.vertx = Factories.vertx();
-        this.httpServer = vertx.createHttpServer(new HttpServerOptions()
-                .setPort(config.port)
-                .setSsl(false)
-                .setReuseAddress(true));
     }
 
     @Override
     public void start() {
         setupRoutes();
-        httpServer.listen(config.port);
+        httpServer.listen();
     }
 
     @Override
@@ -56,7 +52,6 @@ public class VertxServer implements Server {
     }
 
     private void setupRoutes() {
-        Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
         httpServer.websocketHandler(webSocketHandler());
         router.route(root() + "hystrix.stream")
@@ -93,6 +88,6 @@ public class VertxServer implements Server {
 
 
     private String root() {
-        return includeEndDelimiter(includeStartDelimiter(config.root));
+        return includeEndDelimiter(includeStartDelimiter(root));
     }
     }
