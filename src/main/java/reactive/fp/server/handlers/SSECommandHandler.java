@@ -1,0 +1,49 @@
+package reactive.fp.server.handlers;
+
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.RoutingContext;
+import reactive.fp.server.CommandRegistry;
+import reactive.fp.types.Command;
+import reactive.fp.types.Event;
+import rx.Subscription;
+import rx.schedulers.Schedulers;
+
+import static reactive.fp.mappers.Mappers.fromJsonToCommand;
+
+/**
+ * @author Linas on 2015.12.03.
+ */
+public class SSECommandHandler implements Handler<RoutingContext> {
+
+    private final SSEHandler sseHandler;
+    private final CommandRegistry commands;
+
+    public SSECommandHandler(SSEHandler sseHandler, CommandRegistry commands) {
+        this.sseHandler = sseHandler;
+        this.commands = commands;
+    }
+
+    @Override
+    public void handle(RoutingContext routingContext) {
+        commands.findCommand(getCommandNameFrom(routingContext.request())).ifPresent(command -> routingContext.request().bodyHandler(buffer -> {
+            try {
+                Command<?> receivedArgument = fromJsonToCommand(buffer.getBytes());
+                final Subscription subscription = command.apply(receivedArgument.payload)
+                        .subscribeOn(Schedulers.computation())
+                        .subscribe(
+                                payload -> sseHandler.writeEvent(Event.onNext(payload)),
+                                throwable -> sseHandler.writeEvent(Event.onError(throwable)),
+                                () -> sseHandler.writeEvent(Event.onCompleted("Completed")));
+            } catch (Throwable e) {
+                sseHandler.writeEvent(Event.onError(e));
+            }
+        }));
+        routingContext.response().end();
+    }
+
+    private String getCommandNameFrom(HttpServerRequest request) {
+        return request.getHeader("command");
+    }
+
+}
