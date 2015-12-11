@@ -8,10 +8,10 @@ import io.vertx.ext.web.Router;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import reactive.TestUtils.models.CustomError;
 import reactive.TestUtils.models.Foo;
 import reactive.TestUtils.models.FooBar;
 import reactive.TestUtils.models.NotDeserializable;
-import reactive.fp.client.errors.CommandError;
 import reactive.fp.server.CommandRegistry;
 import reactive.fp.server.VertxServer;
 import reactive.fp.utils.Factories;
@@ -39,6 +39,7 @@ public class CommandExecutorTest {
     public static final String COMMAND_WITHOUT_ARGS = "argLessCommand";
     public static final String COMMAND_OO = "commandOO";
     public static final String COMMAND_NOT_DESERIALIZABLE = "commandNotDeserializable";
+    public static final String COMMAND_CUSTOM_ERROR = "commandCustomError";
 
     public static final String MAIN_NODE = "http://localhost:8282/dist/";
     public static final String FALLBACK_NODE = "http://localhost:8383/distFallback/";
@@ -60,6 +61,7 @@ public class CommandExecutorTest {
                 .and(COMMAND_WITHOUT_ARGS, o -> Observable.just("ok"))
                 .and(COMMAND_OO, (String o) -> Observable.just(new FooBar(o, o)))
                 .and(COMMAND_NOT_DESERIALIZABLE, (String o) -> Observable.just(new NotDeserializable(o)))
+                .and(COMMAND_CUSTOM_ERROR, (String o) -> Observable.error(new CustomError(o)))
                 .and(LONG_TASK, (Integer interval) -> Observable.create(subscriber -> {
                     try {
                         Thread.sleep(interval);
@@ -244,8 +246,25 @@ public class CommandExecutorTest {
         testSubscriber.assertNoValues();
         testSubscriber.assertError(HystrixRuntimeException.class);
         final Throwable actualError = testSubscriber.getOnErrorEvents().get(0).getCause();
-        assertEquals(CommandError.class, actualError.getClass());
+        assertEquals(ClassCastException.class, actualError.getClass());
     }
+
+    @Test
+    public void shouldFailAndReceiveCustomExceptionFromCommand() throws Exception {
+        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
+        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(COMMAND_CUSTOM_ERROR, MAIN_NODE, String.class));
+        sut.execute("foo")
+                .subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNotCompleted();
+        testSubscriber.assertNoValues();
+        testSubscriber.assertError(HystrixRuntimeException.class);
+        final Throwable actualError = testSubscriber.getOnErrorEvents().get(0).getCause();
+        assertEquals(CustomError.class, actualError.getClass());
+        assertEquals("foo", ((CustomError) actualError).data);
+    }
+
 
     @Test
     public void shouldCallCommandWithoutArgs() throws Exception {

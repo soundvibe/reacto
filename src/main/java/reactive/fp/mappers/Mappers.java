@@ -85,13 +85,14 @@ public interface Mappers {
     }
 
     static Throwable mapToThrowable(Object error) {
-        String message = "Unknown Error";
-        if (error instanceof Map) {
-            message = ((Map<String, String>) error).get("message");
+        if (error instanceof Throwable) {
+            return (Throwable) error;
+        } else if (error instanceof Map) {
+            return new CommandError(((Map<String, String>) error).get("message"));
         } else if (error instanceof String) {
-            message = (String) error;
+            return new CommandError((String) error);
         }
-        return new CommandError(message);
+        return new CommandError("Unknown Error");
     }
 
 }
