@@ -30,8 +30,8 @@ public class Event<T> implements Serializable, Message<T> {
         return new Event<>(payload, EventType.NEXT);
     }
 
-    public static <T> Event<T> onError(T payload) {
-        return new Event<>(payload, EventType.ERROR);
+    public static Event<String> onError(Throwable throwable) {
+        return new Event<>(throwable.toString(), EventType.ERROR);
     }
 
     public static <T> Event<T> onCompleted(T payload) {

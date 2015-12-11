@@ -5,6 +5,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.WebSocket;
+import reactive.fp.mappers.Mappers;
 import reactive.fp.types.Command;
 import reactive.fp.types.Event;
 import reactive.fp.utils.Factories;
@@ -57,7 +58,7 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
                         break;
                     }
                     case ERROR: {
-                        subject.onError((Throwable) receivedEvent.payload);
+                        subject.onError(Mappers.mapToThrowable(receivedEvent.payload));
                         break;
                     }
                     case COMPLETED: {

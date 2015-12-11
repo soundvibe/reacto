@@ -11,6 +11,7 @@ import org.junit.Test;
 import reactive.TestUtils.models.Foo;
 import reactive.TestUtils.models.FooBar;
 import reactive.TestUtils.models.NotDeserializable;
+import reactive.fp.client.errors.CommandError;
 import reactive.fp.server.CommandRegistry;
 import reactive.fp.server.VertxServer;
 import reactive.fp.utils.Factories;
@@ -243,7 +244,7 @@ public class CommandExecutorTest {
         testSubscriber.assertNoValues();
         testSubscriber.assertError(HystrixRuntimeException.class);
         final Throwable actualError = testSubscriber.getOnErrorEvents().get(0).getCause();
-        assertEquals(ClassCastException.class, actualError.getClass());
+        assertEquals(CommandError.class, actualError.getClass());
     }
 
     @Test

@@ -11,10 +11,12 @@ import reactive.fp.client.commands.CommandDef;
 import reactive.fp.client.events.EventHandler;
 import reactive.fp.client.events.EventHandlers;
 import reactive.fp.types.Command;
+import reactive.fp.client.errors.CommandError;
 import reactive.fp.types.Event;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -80,6 +82,16 @@ public interface Mappers {
                         .map(eventHandlerFactory::apply)
                         .map(eventHandlers::copy)
                         .orElse(eventHandlers));
+    }
+
+    static Throwable mapToThrowable(Object error) {
+        String message = "Unknown Error";
+        if (error instanceof Map) {
+            message = ((Map<String, String>) error).get("message");
+        } else if (error instanceof String) {
+            message = (String) error;
+        }
+        return new CommandError(message);
     }
 
 }
