@@ -61,7 +61,7 @@ public interface Mappers {
 
     static Event<?> fromJsonToEvent(byte[] bytes) {
         try {
-            return Mappers.jsonMapper.readValue(bytes, Event.class);
+            return jsonMapper.readValue(bytes, Event.class);
         } catch (IOException e) {
             throw new RuntimeJsonMappingException("Cannot deserialize event from json: " + new String(bytes));
         }
@@ -69,7 +69,7 @@ public interface Mappers {
 
     static Command<?> fromJsonToCommand(byte[] bytes) {
         try {
-            return Mappers.jsonMapper.readValue(bytes, Command.class);
+            return jsonMapper.readValue(bytes, Command.class);
         } catch (IOException e) {
             throw new RuntimeJsonMappingException("Cannot deserialize command from json: " + new String(bytes));
         }
