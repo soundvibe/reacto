@@ -26,7 +26,6 @@ import static reactive.fp.mappers.Mappers.messageToJsonBytes;
 public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
 
     private final URI wsUrl;
-    private final Subject<Event<T>, Event<T>> subject;
     private final Vertx vertx;
     private final Class<?> aClass;
 
@@ -36,11 +35,10 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
         this.wsUrl = wsUrl;
         this.aClass = eventClass;
         this.vertx = Factories.vertx();
-        this.subject = new SerializedSubject<>(ReplaySubject.create());
     }
 
     @SuppressWarnings("unchecked")
-    private void checkForEvents(WebSocket webSocket) {
+    private void checkForEvents(WebSocket webSocket, Subject<Event<T>, Event<T>> subject) {
         webSocket.handler(buffer -> {
             try {
                 final byte[] bytes = buffer.getBytes();
@@ -74,6 +72,7 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
     }
 
     public Observable<Event<T>> toObservable(String commandName, Object arg) {
+        final Subject<Event<T>, Event<T>> subject = new SerializedSubject<>(ReplaySubject.create());
         final HttpClient httpClient = vertx.createHttpClient(new HttpClientOptions());
         return Observable.using(() -> httpClient.websocketStream(wsUrl.getPort() == -1 ?
                 80:
@@ -82,7 +81,7 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
                     webSocketStream.handler(webSocket -> {
                         try {
                             startCommand(commandName, arg, webSocket);
-                            checkForEvents(webSocket);
+                            checkForEvents(webSocket, subject);
                         } catch (Throwable e) {
                             subject.onError(e);
                         }
