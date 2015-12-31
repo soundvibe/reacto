@@ -31,6 +31,7 @@ public class HystrixObservableCommandWrapper<T> extends HystrixObservableCommand
         return useExecutionTimeout ? name : name + "$";
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected Observable<T> construct() {
         return (Observable<T>) f.apply(arg);

@@ -249,6 +249,7 @@ public class CommandExecutorTest {
         assertEquals(ClassCastException.class, actualError.getClass());
     }
 
+    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldFailAndReceiveCustomExceptionFromCommand() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();

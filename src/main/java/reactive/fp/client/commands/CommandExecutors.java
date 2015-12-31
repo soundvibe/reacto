@@ -14,7 +14,7 @@ public interface CommandExecutors {
 
     static <T> CommandExecutor<T> webSocket(CommandDef commandDef) {
         return Mappers.<T>mapToEventHandlers(commandDef, uri -> new VertxWebSocketEventHandler<>(uri, commandDef.eventClass))
-                .map(eventHandlers -> new HystrixCommandExecutor<T>(commandDef.name, eventHandlers))
+                .map(eventHandlers -> new HystrixCommandExecutor<>(commandDef.name, eventHandlers))
                 .orElseThrow(() -> new CommandNotFound(commandDef.name));
     }
 

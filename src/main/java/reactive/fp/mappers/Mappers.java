@@ -86,6 +86,7 @@ public interface Mappers {
                         .orElse(eventHandlers));
     }
 
+    @SuppressWarnings("unchecked")
     static Throwable mapToThrowable(Object error) {
         if (error instanceof Throwable) {
             return (Throwable) error;
