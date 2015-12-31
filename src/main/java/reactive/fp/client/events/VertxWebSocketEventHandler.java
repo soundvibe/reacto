@@ -36,40 +36,6 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
         this.vertx = Factories.vertx();
     }
 
-    @SuppressWarnings("unchecked")
-    private void checkForEvents(WebSocket webSocket, Subscriber<? super Event<T>> subscriber) {
-        webSocket.handler(buffer -> {
-            try {
-                if (subscriber.isUnsubscribed()) return;
-                final byte[] bytes = buffer.getBytes();
-                final Event<?> receivedEvent = fromJsonToEvent(bytes);
-                switch (receivedEvent.eventType) {
-                    case NEXT: {
-                        if (receivedEvent.payload == null) {
-                            subscriber.onError(new NullPointerException("Payload was null for event: " + receivedEvent));
-                        } else if (aClass.isAssignableFrom(receivedEvent.payload.getClass())) {
-                            subscriber.onNext((Event<T>) receivedEvent);
-                        } else {
-                            subscriber.onError(new ClassCastException("Invalid event payload type. Received " +
-                                    receivedEvent.payload.getClass() + " but expected " + aClass));
-                        }
-                        break;
-                    }
-                    case ERROR: {
-                        subscriber.onError(Mappers.mapToThrowable(receivedEvent.payload));
-                        break;
-                    }
-                    case COMPLETED: {
-                        subscriber.onCompleted();
-                        break;
-                    }
-                }
-            } catch (Throwable e) {
-                subscriber.onError(e);
-            }
-        });
-    }
-
     @Override
     public Observable<Event<T>> toObservable(String commandName, Object arg) {
         return Observable.using(() -> vertx.createHttpClient(new HttpClientOptions()),
@@ -101,6 +67,43 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
                 subscriber.onError(e);
             }
         });
+    }
+
+    private void checkForEvents(WebSocket webSocket, Subscriber<? super Event<T>> subscriber) {
+        webSocket.handler(buffer -> {
+            try {
+                if (!subscriber.isUnsubscribed()) {
+                    handleEvent(fromJsonToEvent(buffer.getBytes()), subscriber);
+                }
+            } catch (Throwable e) {
+                subscriber.onError(e);
+            }
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleEvent(Event<?> event, Subscriber<? super Event<T>> subscriber) {
+        switch (event.eventType) {
+            case NEXT: {
+                if (event.payload == null) {
+                    subscriber.onError(new NullPointerException("Payload was null for event: " + event));
+                } else if (aClass.isAssignableFrom(event.payload.getClass())) {
+                    subscriber.onNext((Event<T>) event);
+                } else {
+                    subscriber.onError(new ClassCastException("Invalid event payload type. Received " +
+                            event.payload.getClass() + " but expected " + aClass));
+                }
+                break;
+            }
+            case ERROR: {
+                subscriber.onError(Mappers.mapToThrowable(event.payload));
+                break;
+            }
+            case COMPLETED: {
+                subscriber.onCompleted();
+                break;
+            }
+        }
     }
 
     private int getPortFromURI(URI uri) {

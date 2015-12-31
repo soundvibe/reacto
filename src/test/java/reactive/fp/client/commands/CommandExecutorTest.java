@@ -120,12 +120,12 @@ public class CommandExecutorTest {
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
+        testSubscriber.assertCompleted();
         testSubscriber.assertValues(
                 "1. Called command with arg: bar",
                 "2. Called command with arg: bar",
                 "3. Called command with arg: bar"
         );
-
     }
 
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
