@@ -55,14 +55,16 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
     private Observable<Event<T>> observe(WebSocketStream webSocketStream, String commandName, Object arg) {
         return Observable.create(subscriber -> {
             try {
-                webSocketStream.handler(webSocket -> {
-                    try {
-                        executeCommand(commandName, arg, webSocket);
-                        checkForEvents(webSocket, subscriber);
-                    } catch (Throwable e) {
-                        subscriber.onError(e);
-                    }
-                }).exceptionHandler(subscriber::onError).endHandler(e -> subscriber.onCompleted());
+                webSocketStream
+                        .exceptionHandler(subscriber::onError)
+                        .handler(webSocket -> {
+                            try {
+                                executeCommand(commandName, arg, webSocket);
+                                checkForEvents(webSocket, subscriber);
+                            } catch (Throwable e) {
+                                subscriber.onError(e);
+                            }
+                        });
             } catch (Throwable e) {
                 subscriber.onError(e);
             }

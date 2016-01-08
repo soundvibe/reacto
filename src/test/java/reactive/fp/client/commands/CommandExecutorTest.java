@@ -19,6 +19,7 @@ import rx.Observable;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
+import java.net.ConnectException;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -278,5 +279,21 @@ public class CommandExecutorTest {
         testSubscriber.assertCompleted();
         testSubscriber.assertNoErrors();
         testSubscriber.assertValue("ok");
+    }
+
+    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
+    @Test
+    public void shouldFailWhenCommandExecutorIsInaccessible() throws Exception {
+        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
+        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, "http://localhost:45689/foo/", String.class));
+        sut.execute("foo")
+            .subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        List<Throwable> onErrorEvents = testSubscriber.getOnErrorEvents();
+        assertEquals(ConnectException.class, onErrorEvents.get(0).getCause().getClass());
+        testSubscriber.assertNotCompleted();
+        testSubscriber.assertNoValues();
+        testSubscriber.assertError(HystrixRuntimeException.class);
     }
 }
