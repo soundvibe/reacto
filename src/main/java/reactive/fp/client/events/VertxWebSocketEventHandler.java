@@ -7,6 +7,7 @@ import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.WebSocket;
 import io.vertx.core.http.WebSocketStream;
 import reactive.fp.mappers.Mappers;
+import reactive.fp.server.handlers.WebSocketFrameHandler;
 import reactive.fp.types.Command;
 import reactive.fp.types.Event;
 import reactive.fp.utils.Factories;
@@ -59,7 +60,8 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
                         .exceptionHandler(subscriber::onError)
                         .handler(webSocket -> {
                             try {
-                                executeCommand(commandName, arg, webSocket);
+                                webSocket.setWriteQueueMaxSize(Integer.MAX_VALUE);
+                                sendCommandToExecutor(commandName, arg, webSocket);
                                 checkForEvents(webSocket, subscriber);
                             } catch (Throwable e) {
                                 subscriber.onError(e);
@@ -72,15 +74,16 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
     }
 
     private void checkForEvents(WebSocket webSocket, Subscriber<? super Event<T>> subscriber) {
-        webSocket.handler(buffer -> {
-            try {
-                if (!subscriber.isUnsubscribed()) {
-                    handleEvent(fromJsonToEvent(buffer.getBytes()), subscriber);
-                }
-            } catch (Throwable e) {
-                subscriber.onError(e);
-            }
-        });
+        webSocket
+                .frameHandler(new WebSocketFrameHandler(buffer -> {
+                    try {
+                        if (!subscriber.isUnsubscribed()) {
+                            handleEvent(fromJsonToEvent(buffer.getBytes()), subscriber);
+                        }
+                    } catch (Throwable e) {
+                        subscriber.onError(e);
+                    }
+                }));
     }
 
     @SuppressWarnings("unchecked")
@@ -114,10 +117,9 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
                 uri.getPort();
     }
 
-    private void executeCommand(String commandName, Object arg, WebSocket webSocket) {
+    private void sendCommandToExecutor(String commandName, Object arg, WebSocket webSocket) {
         final Command<?> command = Command.create(commandName, arg);
         final byte[] messageJson = messageToJsonBytes(command);
-        webSocket.writeFinalBinaryFrame(Buffer.buffer(messageJson));
+        webSocket.writeBinaryMessage(Buffer.buffer(messageJson));
     }
-
 }

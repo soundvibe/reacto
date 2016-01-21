@@ -296,4 +296,27 @@ public class CommandExecutorTest {
         testSubscriber.assertNoValues();
         testSubscriber.assertError(HystrixRuntimeException.class);
     }
+
+    @Test
+    public void shouldExecuteHugeCommandEntity() throws Exception {
+        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
+        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, MAIN_NODE, String.class));
+
+        String commandWithHugePayload = createDataSize(100_000);
+
+        sut.execute(commandWithHugePayload)
+                .subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertValue("Called command with arg: " + commandWithHugePayload);
+    }
+
+    private static String createDataSize(int msgSize) {
+        StringBuilder sb = new StringBuilder(msgSize);
+        for (int i=0; i<msgSize; i++) {
+            sb.append('a');
+        }
+        return sb.toString();
+    }
 }
