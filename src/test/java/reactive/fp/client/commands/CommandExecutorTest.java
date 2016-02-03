@@ -26,6 +26,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static reactive.fp.client.commands.CommandDef.ofMain;
 import static reactive.fp.client.commands.CommandDef.ofMainAndFallback;
+import static reactive.fp.client.commands.CommandExecutors.DEFAULT_EXECUTION_TIMEOUT;
 
 /**
  * @author Cipolinas on 2015.12.01.
@@ -224,8 +225,8 @@ public class CommandExecutorTest {
     @Test
     public void shouldFailAfterHystrixTimeout() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(LONG_TASK, MAIN_NODE, String.class));
-        sut.observe(5000)
+        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(LONG_TASK, MAIN_NODE, String.class), DEFAULT_EXECUTION_TIMEOUT);
+        sut.execute(5000)
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();

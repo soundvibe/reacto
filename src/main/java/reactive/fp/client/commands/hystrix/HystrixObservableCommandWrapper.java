@@ -11,10 +11,10 @@ import java.util.function.Function;
 public class HystrixObservableCommandWrapper<T> extends HystrixObservableCommand<T> {
 
     private final String commandName;
-    private final Function<Object, Observable<?>> f;
+    private final Function<Object, Observable<T>> f;
     private final Object arg;
 
-    public HystrixObservableCommandWrapper(String commandName, Function<Object, Observable<?>> f, Object arg, int executionTimeoutInMs) {
+    public HystrixObservableCommandWrapper(String commandName, Function<Object, Observable<T>> f, Object arg, int executionTimeoutInMs) {
         super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group: " + commandName))
                 .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
                         .withFallbackEnabled(false)
@@ -31,10 +31,9 @@ public class HystrixObservableCommandWrapper<T> extends HystrixObservableCommand
         return useExecutionTimeout ? name : name + "$";
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     protected Observable<T> construct() {
-        return (Observable<T>) f.apply(arg);
+        return f.apply(arg);
     }
 
     @Override

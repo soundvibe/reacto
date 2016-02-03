@@ -4,7 +4,6 @@ import com.netflix.hystrix.exception.HystrixRuntimeException;
 import org.junit.Test;
 import reactive.fp.client.commands.CommandExecutor;
 import reactive.fp.client.commands.CommandExecutors;
-import reactive.fp.server.CommandRegistry;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 
@@ -16,8 +15,7 @@ public class HystrixInMemoryCommandExecutorTest {
     @Test
     public void shouldExecuteCommand() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.inMemory("foo", CommandRegistry.of("foo",
-                Observable::just));
+        CommandExecutor<String> sut = CommandExecutors.inMemory("foo", o -> Observable.just((String) o));
 
         sut.execute("bar")
                 .subscribe(testSubscriber);
@@ -31,8 +29,7 @@ public class HystrixInMemoryCommandExecutorTest {
     @Test
     public void shouldGetError() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.inMemory("foo", CommandRegistry.of("foo",
-                o -> Observable.error(new IllegalArgumentException("error"))));
+        CommandExecutor<String> sut = CommandExecutors.inMemory("foo", o -> Observable.error(new IllegalArgumentException("error")));
 
         sut.execute("bar")
                 .subscribe(testSubscriber);

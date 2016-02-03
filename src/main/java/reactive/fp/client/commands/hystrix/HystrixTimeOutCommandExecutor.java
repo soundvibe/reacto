@@ -7,19 +7,21 @@ import rx.Observable;
 /**
  * @author OZY on 2015.11.13.
  */
-public class HystrixCommandExecutor<T> implements CommandExecutor<T> {
+public class HystrixTimeOutCommandExecutor<T> implements CommandExecutor<T> {
 
     private final String commandName;
     private final EventHandlers<T> eventHandlers;
+    private final int executionTimeOutInMs;
 
-    public HystrixCommandExecutor(String commandName, EventHandlers<T> eventHandlers) {
+    public HystrixTimeOutCommandExecutor(String commandName, EventHandlers<T> eventHandlers, int executionTimeOutInMs) {
         this.commandName = commandName;
         this.eventHandlers = eventHandlers;
+        this.executionTimeOutInMs = executionTimeOutInMs;
     }
 
     @Override
     public Observable<T> execute(Object arg) {
-        return new HystrixDistributedObservableCommand<>(arg, commandName, eventHandlers, false, 0)
+        return new HystrixDistributedObservableCommand<>(arg, commandName, eventHandlers, true, executionTimeOutInMs)
                 .toObservable()
                 .map(event -> event.payload)
                 ;
@@ -27,9 +29,10 @@ public class HystrixCommandExecutor<T> implements CommandExecutor<T> {
 
     @Override
     public String toString() {
-        return "HystrixCommandExecutor{" +
+        return "HystrixTimeOutCommandExecutor{" +
                 "commandName='" + commandName + '\'' +
                 ", eventHandlers=" + eventHandlers +
+                ", executionTimeOutInMs=" + executionTimeOutInMs +
                 '}';
     }
 
