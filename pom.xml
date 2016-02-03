@@ -38,7 +38,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <vertx.version>3.1.0</vertx.version>
         <jackson.version>2.6.3</jackson.version>
-        <hystrix.version>1.4.21</hystrix.version>
+        <hystrix.version>1.4.23</hystrix.version>
+        <rxjava.version>1.1.0</rxjava.version>
     </properties>
 
       <dependencies>
@@ -46,7 +47,7 @@
           <dependency>
               <groupId>io.reactivex</groupId>
               <artifactId>rxjava</artifactId>
-              <version>1.1.0</version>
+              <version>${rxjava.version}</version>
           </dependency>
 
           <dependency>
