@@ -103,7 +103,7 @@ public class CommandExecutorTest {
     @Test
     public void shouldExecuteCommand() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, MAIN_NODE, String.class));
+        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, MAIN_NODE, String.class));
         sut.execute("foo")
                 .subscribe(testSubscriber);
 
@@ -116,7 +116,7 @@ public class CommandExecutorTest {
     @Test
     public void shouldCallCommandAndReceiveMultipleEvents() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND_MANY, MAIN_NODE, String.class));
+        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND_MANY, MAIN_NODE, String.class));
         sut.execute("bar")
                 .subscribe(testSubscriber);
 
@@ -134,7 +134,7 @@ public class CommandExecutorTest {
     @Test
     public void shouldMainFailAndNoFallbackAvailable() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(TEST_FAIL_COMMAND, MAIN_NODE, String.class));
+        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(TEST_FAIL_COMMAND, MAIN_NODE, String.class));
         sut.execute("foo")
                 .subscribe(testSubscriber);
 
@@ -150,7 +150,7 @@ public class CommandExecutorTest {
     @Test
     public void shouldMainFailAndFallbackSucceed() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMainAndFallback(TEST_FAIL_BUT_FALLBACK_COMMAND, MAIN_NODE, FALLBACK_NODE, String.class));
+        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMainAndFallback(TEST_FAIL_BUT_FALLBACK_COMMAND, MAIN_NODE, FALLBACK_NODE, String.class));
         sut.execute("foo")
                 .subscribe(testSubscriber);
 
@@ -164,7 +164,7 @@ public class CommandExecutorTest {
     @Test
     public void shouldFailWhenPayloadIsOfInvalidClass() throws Exception {
         TestSubscriber<Integer> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<Integer> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, MAIN_NODE, Integer.class));
+        CommandExecutor<String,Integer> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, MAIN_NODE, Integer.class));
         sut.execute("foo")
                 .subscribe(testSubscriber);
 
@@ -178,7 +178,7 @@ public class CommandExecutorTest {
     @Test
     public void shouldFailWhenCannotDeserializeReceivedEvent() throws Exception {
         TestSubscriber<NotDeserializable> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<NotDeserializable> sut = CommandExecutors.webSocket(ofMain(COMMAND_NOT_DESERIALIZABLE, MAIN_NODE, NotDeserializable.class));
+        CommandExecutor<String, NotDeserializable> sut = CommandExecutors.webSocket(ofMain(COMMAND_NOT_DESERIALIZABLE, MAIN_NODE, NotDeserializable.class));
         sut.execute("bar")
                 .subscribe(testSubscriber);
 
@@ -191,7 +191,7 @@ public class CommandExecutorTest {
     @Test
     public void shouldReceiveEventsAsSubTypeOfTheTypeCommandIsEmitting() throws Exception {
         TestSubscriber<Foo> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<Foo> sut = CommandExecutors.webSocket(ofMain(COMMAND_OO, MAIN_NODE, Foo.class));
+        CommandExecutor<String, Foo> sut = CommandExecutors.webSocket(ofMain(COMMAND_OO, MAIN_NODE, Foo.class));
         sut.execute("bar")
                 .subscribe(testSubscriber);
 
@@ -203,8 +203,8 @@ public class CommandExecutorTest {
     @Test
     public void shouldComposeDifferentCommands() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut1 = CommandExecutors.webSocket(ofMain(TEST_COMMAND, MAIN_NODE, String.class));
-        CommandExecutor<String> sut2 = CommandExecutors.webSocket(ofMain(TEST_COMMAND_MANY, MAIN_NODE, String.class));
+        CommandExecutor<String, String> sut1 = CommandExecutors.webSocket(ofMain(TEST_COMMAND, MAIN_NODE, String.class));
+        CommandExecutor<String, String> sut2 = CommandExecutors.webSocket(ofMain(TEST_COMMAND_MANY, MAIN_NODE, String.class));
         sut1.execute("foo")
                 .mergeWith(sut2.execute("bar"))
                 .observeOn(Schedulers.computation())
@@ -225,7 +225,7 @@ public class CommandExecutorTest {
     @Test
     public void shouldFailAfterHystrixTimeout() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(LONG_TASK, MAIN_NODE, String.class), DEFAULT_EXECUTION_TIMEOUT);
+        CommandExecutor<Integer, String> sut = CommandExecutors.webSocket(ofMain(LONG_TASK, MAIN_NODE, String.class), DEFAULT_EXECUTION_TIMEOUT);
         sut.execute(5000)
                 .subscribe(testSubscriber);
 
@@ -239,7 +239,7 @@ public class CommandExecutorTest {
     @Test
     public void shouldFailWhenCommandIsInvokedWithInvalidArgument() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(LONG_TASK, MAIN_NODE, String.class));
+        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(LONG_TASK, MAIN_NODE, String.class));
         sut.execute("foo")
                 .subscribe(testSubscriber);
 
@@ -255,7 +255,7 @@ public class CommandExecutorTest {
     @Test
     public void shouldFailAndReceiveCustomExceptionFromCommand() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(COMMAND_CUSTOM_ERROR, MAIN_NODE, String.class));
+        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(COMMAND_CUSTOM_ERROR, MAIN_NODE, String.class));
         sut.execute("foo")
                 .subscribe(testSubscriber);
 
@@ -271,7 +271,7 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldCallCommandWithoutArgs() throws Exception {
-        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(COMMAND_WITHOUT_ARGS, MAIN_NODE, String.class));
+        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(COMMAND_WITHOUT_ARGS, MAIN_NODE, String.class));
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
         sut.execute(null)
                 .subscribe(testSubscriber);
@@ -286,7 +286,7 @@ public class CommandExecutorTest {
     @Test
     public void shouldFailWhenCommandExecutorIsInaccessible() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, "http://localhost:45689/foo/", String.class));
+        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, "http://localhost:45689/foo/", String.class));
         sut.execute("foo")
             .subscribe(testSubscriber);
 
@@ -301,7 +301,7 @@ public class CommandExecutorTest {
     @Test
     public void shouldExecuteHugeCommandEntity() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, MAIN_NODE, String.class));
+        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, MAIN_NODE, String.class));
 
         String commandWithHugePayload = createDataSize(100_000);
 

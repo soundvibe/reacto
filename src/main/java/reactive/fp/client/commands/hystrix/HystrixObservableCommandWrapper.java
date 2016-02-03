@@ -8,13 +8,13 @@ import java.util.function.Function;
 /**
  * @author Cipolinas on 2015.12.01.
  */
-public class HystrixObservableCommandWrapper<T> extends HystrixObservableCommand<T> {
+public class HystrixObservableCommandWrapper<T, U> extends HystrixObservableCommand<U> {
 
     private final String commandName;
-    private final Function<Object, Observable<T>> f;
-    private final Object arg;
+    private final Function<T, Observable<U>> f;
+    private final T arg;
 
-    public HystrixObservableCommandWrapper(String commandName, Function<Object, Observable<T>> f, Object arg, int executionTimeoutInMs) {
+    public HystrixObservableCommandWrapper(String commandName, Function<T, Observable<U>> f, T arg, int executionTimeoutInMs) {
         super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group: " + commandName))
                 .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
                         .withFallbackEnabled(false)
@@ -32,7 +32,7 @@ public class HystrixObservableCommandWrapper<T> extends HystrixObservableCommand
     }
 
     @Override
-    protected Observable<T> construct() {
+    protected Observable<U> construct() {
         return f.apply(arg);
     }
 

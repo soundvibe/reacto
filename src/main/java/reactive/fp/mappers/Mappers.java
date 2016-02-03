@@ -78,8 +78,8 @@ public interface Mappers {
         }
     }
 
-    static <T> Optional<EventHandlers<T>> mapToEventHandlers(CommandDef commandDef,
-                                                             Function<URI, EventHandler<T>> eventHandlerFactory) {
+    static <T,U> Optional<EventHandlers<T,U>> mapToEventHandlers(CommandDef<U> commandDef,
+                                                             Function<URI, EventHandler<T,U>> eventHandlerFactory) {
         return Optional.ofNullable(commandDef.mainURI())
                 .map(eventHandlerFactory::apply)
                 .map(mainEventHandler -> new EventHandlers<>(mainEventHandler, Optional.empty()))

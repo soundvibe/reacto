@@ -17,23 +17,23 @@ public interface CommandExecutors {
 
     int DEFAULT_EXECUTION_TIMEOUT = 1000;
 
-    static <T> CommandExecutor<T> webSocket(CommandDef commandDef) {
-        return Mappers.<T>mapToEventHandlers(commandDef, uri -> new VertxWebSocketEventHandler<>(uri, commandDef.eventClass))
+    static <T, U> CommandExecutor<T, U> webSocket(CommandDef<U> commandDef) {
+        return Mappers.<T,U>mapToEventHandlers(commandDef, uri -> new VertxWebSocketEventHandler<>(uri, commandDef.eventClass))
                 .map(eventHandlers -> new HystrixCommandExecutor<>(commandDef.name, eventHandlers))
                 .orElseThrow(() -> new CommandNotFound(commandDef.name));
     }
 
-    static <T> CommandExecutor<T> webSocket(CommandDef commandDef, int executionTimeoutInMs) {
-        return Mappers.<T>mapToEventHandlers(commandDef, uri -> new VertxWebSocketEventHandler<>(uri, commandDef.eventClass))
+    static <T, U> CommandExecutor<T, U> webSocket(CommandDef<U> commandDef, int executionTimeoutInMs) {
+        return Mappers.<T,U>mapToEventHandlers(commandDef, uri -> new VertxWebSocketEventHandler<>(uri, commandDef.eventClass))
                 .map(eventHandlers -> new HystrixTimeOutCommandExecutor<>(commandDef.name, eventHandlers, executionTimeoutInMs))
                 .orElseThrow(() -> new CommandNotFound(commandDef.name));
     }
 
-    static <T> CommandExecutor<T> inMemory(String commandName, Function<Object, Observable<T>> commandExecutor) {
+    static <T, U> CommandExecutor<T, U> inMemory(String commandName, Function<T, Observable<U>> commandExecutor) {
         return arg -> new HystrixObservableCommandWrapper<>(commandName, commandExecutor, arg, 0).toObservable();
     }
 
-    static <T> CommandExecutor<T> inMemory(String commandName, Function<Object, Observable<T>> commandExecutor, int executionTimeoutInMs) {
+    static <T, U> CommandExecutor<T, U> inMemory(String commandName, Function<T, Observable<U>> commandExecutor, int executionTimeoutInMs) {
         return arg -> new HystrixObservableCommandWrapper<>(commandName, commandExecutor, arg, executionTimeoutInMs).toObservable();
     }
 

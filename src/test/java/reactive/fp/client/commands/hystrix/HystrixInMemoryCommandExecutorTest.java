@@ -15,7 +15,7 @@ public class HystrixInMemoryCommandExecutorTest {
     @Test
     public void shouldExecuteCommand() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.inMemory("foo", o -> Observable.just((String) o));
+        CommandExecutor<String, String> sut = CommandExecutors.inMemory("foo", o -> Observable.just((String) o));
 
         sut.execute("bar")
                 .subscribe(testSubscriber);
@@ -29,7 +29,7 @@ public class HystrixInMemoryCommandExecutorTest {
     @Test
     public void shouldGetError() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String> sut = CommandExecutors.inMemory("foo", o -> Observable.error(new IllegalArgumentException("error")));
+        CommandExecutor<String, String> sut = CommandExecutors.inMemory("foo", o -> Observable.error(new IllegalArgumentException("error")));
 
         sut.execute("bar")
                 .subscribe(testSubscriber);

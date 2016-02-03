@@ -11,13 +11,13 @@ import rx.Observable;
 /**
  * @author OZY on 2015.11.13.
  */
-class HystrixDistributedObservableCommand<T> extends HystrixObservableCommand<Event<T>> {
+class HystrixDistributedObservableCommand<T, U> extends HystrixObservableCommand<Event<U>> {
 
-    private final Object arg;
+    private final T arg;
     private final String commandName;
-    private final EventHandlers<T> eventHandlers;
+    private final EventHandlers<T,U> eventHandlers;
 
-    public HystrixDistributedObservableCommand(final Object arg, String commandName, EventHandlers<T> eventHandlers,
+    public HystrixDistributedObservableCommand(final T arg, String commandName, EventHandlers<T,U> eventHandlers,
                                                boolean useExecutionTimeout, int executionTimeoutInMs) {
         super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group: " + commandName))
                 .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
@@ -36,12 +36,12 @@ class HystrixDistributedObservableCommand<T> extends HystrixObservableCommand<Ev
     }
 
     @Override
-    protected Observable<Event<T>> construct() {
+    protected Observable<Event<U>> construct() {
         return eventHandlers.mainNodeClient.toObservable(commandName, arg);
     }
 
     @Override
-    protected Observable<Event<T>> resumeWithFallback() {
+    protected Observable<Event<U>> resumeWithFallback() {
         return eventHandlers.fallbackNodeClient
                 .map(socketClient -> socketClient.toObservable(commandName, arg))
                 .orElseGet(() -> super.resumeWithFallback());

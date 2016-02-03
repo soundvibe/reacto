@@ -9,13 +9,13 @@ import java.util.Optional;
 /**
  * @author OZY on 2015.11.13.
  */
-public class CommandDef {
+public class CommandDef<U> {
 
     public final String name;
-    public final Class<?> eventClass;
+    public final Class<U> eventClass;
     private final CommandNodes nodes;
 
-    private CommandDef(String name, Class<?> eventClass, CommandNodes nodes) {
+    private CommandDef(String name, Class<U> eventClass, CommandNodes nodes) {
         Objects.requireNonNull(name, "Command name cannot be null");
         Objects.requireNonNull(eventClass, "Event class cannot be null");
         this.name = name;
@@ -23,12 +23,12 @@ public class CommandDef {
         this.nodes = nodes;
     }
 
-    public static CommandDef ofMain(String commandName, String mainNode, Class<?> eventClass) {
-        return new CommandDef(commandName, eventClass, new CommandNodes(mainNode, Optional.empty()));
+    public static <U> CommandDef<U> ofMain(String commandName, String mainNode, Class<U> eventClass) {
+        return new CommandDef<>(commandName, eventClass, new CommandNodes(mainNode, Optional.empty()));
     }
 
-    public static CommandDef ofMainAndFallback(String commandName, String mainNode, String fallbackNode, Class<?> eventClass) {
-        return new CommandDef(commandName, eventClass, new CommandNodes(mainNode, Optional.of(fallbackNode)));
+    public static <U> CommandDef<U> ofMainAndFallback(String commandName, String mainNode, String fallbackNode, Class<U> eventClass) {
+        return new CommandDef<>(commandName, eventClass, new CommandNodes(mainNode, Optional.of(fallbackNode)));
     }
 
     public URI mainURI() {

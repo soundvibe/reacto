@@ -23,13 +23,13 @@ import static reactive.fp.mappers.Mappers.messageToJsonBytes;
 /**
  * @author OZY on 2015.11.23.
  */
-public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
+public class VertxWebSocketEventHandler<T,U> implements EventHandler<T,U> {
 
     private final URI wsUrl;
     private final Vertx vertx;
-    private final Class<?> aClass;
+    private final Class<U> aClass;
 
-    public VertxWebSocketEventHandler(URI wsUrl, Class<?> eventClass) {
+    public VertxWebSocketEventHandler(URI wsUrl, Class<U> eventClass) {
         Objects.requireNonNull(wsUrl, "WebSocket URI cannot be null");
         Objects.requireNonNull(eventClass, "Event class cannot be null");
         this.wsUrl = wsUrl;
@@ -38,13 +38,13 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
     }
 
     @Override
-    public Observable<Event<T>> toObservable(String commandName, Object arg) {
+    public Observable<Event<U>> toObservable(String commandName, T arg) {
         return Observable.using(() -> vertx.createHttpClient(new HttpClientOptions()),
                 httpClient -> webSocketStreamObservable(httpClient, commandName, arg),
                 HttpClient::close);
     }
 
-    private Observable<Event<T>> webSocketStreamObservable(HttpClient httpClient, String commandName, Object arg) {
+    private Observable<Event<U>> webSocketStreamObservable(HttpClient httpClient, String commandName, T arg) {
         try {
             final WebSocketStream webSocketStream = httpClient.websocketStream(getPortFromURI(wsUrl), wsUrl.getHost(), wsUrl.getPath());
             return observe(webSocketStream, commandName, arg);
@@ -53,7 +53,7 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
         }
     }
 
-    private Observable<Event<T>> observe(WebSocketStream webSocketStream, String commandName, Object arg) {
+    private Observable<Event<U>> observe(WebSocketStream webSocketStream, String commandName, T arg) {
         return Observable.create(subscriber -> {
             try {
                 webSocketStream
@@ -73,7 +73,7 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
         });
     }
 
-    private void checkForEvents(WebSocket webSocket, Subscriber<? super Event<T>> subscriber) {
+    private void checkForEvents(WebSocket webSocket, Subscriber<? super Event<U>> subscriber) {
         webSocket
                 .frameHandler(new WebSocketFrameHandler(buffer -> {
                     try {
@@ -87,13 +87,13 @@ public class VertxWebSocketEventHandler<T> implements EventHandler<T> {
     }
 
     @SuppressWarnings("unchecked")
-    private void handleEvent(Event<?> event, Subscriber<? super Event<T>> subscriber) {
+    private void handleEvent(Event<?> event, Subscriber<? super Event<U>> subscriber) {
         switch (event.eventType) {
             case NEXT: {
                 if (event.payload == null) {
                     subscriber.onError(new NullPointerException("Payload was null for event: " + event));
                 } else if (aClass.isAssignableFrom(event.payload.getClass())) {
-                    subscriber.onNext((Event<T>) event);
+                    subscriber.onNext((Event<U>) event);
                 } else {
                     subscriber.onError(new ClassCastException("Invalid event payload type. Received " +
                             event.payload.getClass() + " but expected " + aClass));
