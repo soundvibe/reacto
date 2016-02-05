@@ -1,5 +1,7 @@
 package reactive.fp.server;
 
+import reactive.fp.types.Command;
+import reactive.fp.types.Event;
 import rx.Observable;
 
 import java.util.*;
@@ -11,25 +13,25 @@ import java.util.function.*;
  */
 public final class CommandRegistry {
 
-    private final Map<String, Function<Object, Observable<?>>> commands = new ConcurrentHashMap<>();
+    private final Map<String, Function<Command, Observable<Event>>> commands = new ConcurrentHashMap<>();
 
     private CommandRegistry() {
         //
     }
 
     @SuppressWarnings("unchecked")
-    public <T> CommandRegistry and(String commandName, Function<T, Observable<?>> onInvoke) {
+    public CommandRegistry and(String commandName, Function<Command, Observable<Event>> onInvoke) {
         Objects.requireNonNull(commandName, "Command name cannot be null");
         Objects.requireNonNull(onInvoke, "onInvoke cannot be null");
-        commands.put(commandName, onInvoke.compose(o -> (T) o));
+        commands.put(commandName, onInvoke.compose(o -> o));
         return this;
     }
 
-    public static <T> CommandRegistry of(String commandName, Function<T, Observable<?>> onInvoke) {
+    public static CommandRegistry of(String commandName, Function<Command, Observable<Event>> onInvoke) {
         return new CommandRegistry().and(commandName, onInvoke);
     }
 
-    public Optional<Function<Object, Observable<?>>> findCommand(String address) {
+    public Optional<Function<Command, Observable<Event>>> findCommand(String address) {
         return Optional.ofNullable(commands.get(address));
     }
 

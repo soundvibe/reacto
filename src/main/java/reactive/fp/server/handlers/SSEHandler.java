@@ -5,9 +5,9 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import reactive.fp.types.Event;
 
+import java.util.Objects;
 import java.util.function.Consumer;
-
-import static reactive.fp.mappers.Mappers.messageToJsonString;
+import java.util.function.Function;
 
 /**
  * @author Linas on 2015.12.03.
@@ -15,11 +15,14 @@ import static reactive.fp.mappers.Mappers.messageToJsonString;
 public class SSEHandler implements Handler<RoutingContext> {
 
     private final Consumer<HttpServerResponse> responseConsumer;
-
+    private final Function<Event, String> jsonMapper;
     private volatile HttpServerResponse response;
 
-    public SSEHandler(Consumer<HttpServerResponse> responseConsumer) {
+    public SSEHandler(Consumer<HttpServerResponse> responseConsumer, Function<Event, String> jsonMapper) {
+        Objects.requireNonNull(responseConsumer, "responseConsumer cannot be null");
+        Objects.requireNonNull(jsonMapper, "jsonMapper cannot be null");
         this.responseConsumer = responseConsumer;
+        this.jsonMapper = jsonMapper;
     }
 
     @Override
@@ -39,8 +42,8 @@ public class SSEHandler implements Handler<RoutingContext> {
         writeData(response, data);
     }
 
-    public void writeEvent(Event<?> event) {
-        final String json = messageToJsonString(event);
+    public void writeEvent(Event event) {
+        final String json = jsonMapper.apply(event);
         write(json);
     }
 

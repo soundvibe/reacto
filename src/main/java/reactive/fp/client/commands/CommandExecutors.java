@@ -6,6 +6,8 @@ import reactive.fp.client.commands.hystrix.HystrixTimeOutCommandExecutor;
 import reactive.fp.client.errors.CommandNotFound;
 import reactive.fp.client.events.VertxWebSocketEventHandler;
 import reactive.fp.mappers.Mappers;
+import reactive.fp.types.Command;
+import reactive.fp.types.Event;
 import rx.Observable;
 
 import java.util.function.Function;
@@ -17,24 +19,24 @@ public interface CommandExecutors {
 
     int DEFAULT_EXECUTION_TIMEOUT = 1000;
 
-    static <T, U> CommandExecutor<T, U> webSocket(CommandDef<U> commandDef) {
-        return Mappers.<T,U>mapToEventHandlers(commandDef, uri -> new VertxWebSocketEventHandler<>(uri, commandDef.eventClass))
-                .map(eventHandlers -> new HystrixCommandExecutor<>(commandDef.name, eventHandlers))
+    static CommandExecutor webSocket(CommandDef commandDef) {
+        return Mappers.mapToEventHandlers(commandDef, VertxWebSocketEventHandler::new)
+                .map(HystrixCommandExecutor::new)
                 .orElseThrow(() -> new CommandNotFound(commandDef.name));
     }
 
-    static <T, U> CommandExecutor<T, U> webSocket(CommandDef<U> commandDef, int executionTimeoutInMs) {
-        return Mappers.<T,U>mapToEventHandlers(commandDef, uri -> new VertxWebSocketEventHandler<>(uri, commandDef.eventClass))
-                .map(eventHandlers -> new HystrixTimeOutCommandExecutor<>(commandDef.name, eventHandlers, executionTimeoutInMs))
+    static CommandExecutor webSocket(CommandDef commandDef, int executionTimeoutInMs) {
+        return Mappers.mapToEventHandlers(commandDef, VertxWebSocketEventHandler::new)
+                .map(eventHandlers -> new HystrixTimeOutCommandExecutor(eventHandlers, executionTimeoutInMs))
                 .orElseThrow(() -> new CommandNotFound(commandDef.name));
     }
 
-    static <T, U> CommandExecutor<T, U> inMemory(String commandName, Function<T, Observable<U>> commandExecutor) {
-        return arg -> new HystrixObservableCommandWrapper<>(commandName, commandExecutor, arg, 0).toObservable();
+    static CommandExecutor inMemory(Function<Command, Observable<Event>> commandExecutor) {
+        return arg -> new HystrixObservableCommandWrapper(commandExecutor, arg, 0).toObservable();
     }
 
-    static <T, U> CommandExecutor<T, U> inMemory(String commandName, Function<T, Observable<U>> commandExecutor, int executionTimeoutInMs) {
-        return arg -> new HystrixObservableCommandWrapper<>(commandName, commandExecutor, arg, executionTimeoutInMs).toObservable();
+    static CommandExecutor inMemory(Function<Command, Observable<Event>> commandExecutor, int executionTimeoutInMs) {
+        return arg -> new HystrixObservableCommandWrapper(commandExecutor, arg, executionTimeoutInMs).toObservable();
     }
 
 }

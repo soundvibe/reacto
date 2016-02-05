@@ -1,6 +1,8 @@
 package reactive.fp.client.commands.hystrix;
 
 import com.netflix.hystrix.*;
+import reactive.fp.types.Command;
+import reactive.fp.types.Event;
 import rx.Observable;
 
 import java.util.function.Function;
@@ -8,23 +10,21 @@ import java.util.function.Function;
 /**
  * @author Cipolinas on 2015.12.01.
  */
-public class HystrixObservableCommandWrapper<T, U> extends HystrixObservableCommand<U> {
+public class HystrixObservableCommandWrapper extends HystrixObservableCommand<Event> {
 
-    private final String commandName;
-    private final Function<T, Observable<U>> f;
-    private final T arg;
+    private final Function<Command, Observable<Event>> f;
+    private final Command command;
 
-    public HystrixObservableCommandWrapper(String commandName, Function<T, Observable<U>> f, T arg, int executionTimeoutInMs) {
-        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group: " + commandName))
+    public HystrixObservableCommandWrapper(Function<Command, Observable<Event>> f, Command command, int executionTimeoutInMs) {
+        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group: " + command.name))
                 .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
                         .withFallbackEnabled(false)
                         .withExecutionTimeoutEnabled(executionTimeoutInMs > 0)
                         .withExecutionTimeoutInMilliseconds(executionTimeoutInMs)
                 )
-                .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(commandName, executionTimeoutInMs > 0))));
-        this.commandName = commandName;
+                .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(command.name, executionTimeoutInMs > 0))));
         this.f = f;
-        this.arg = arg;
+        this.command = command;
     }
 
     protected static String resolveCommandName(String name, boolean useExecutionTimeout) {
@@ -32,16 +32,15 @@ public class HystrixObservableCommandWrapper<T, U> extends HystrixObservableComm
     }
 
     @Override
-    protected Observable<U> construct() {
-        return f.apply(arg);
+    protected Observable<Event> construct() {
+        return f.apply(command);
     }
 
     @Override
     public String toString() {
         return "HystrixObservableCommandWrapper{" +
-                "commandName='" + commandName + '\'' +
-                ", f=" + f +
-                ", arg=" + arg +
-                '}';
+                "f=" + f +
+                ", command=" + command +
+                "} " + super.toString();
     }
 }

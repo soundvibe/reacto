@@ -9,7 +9,7 @@ import reactive.fp.types.Event;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
-import static reactive.fp.mappers.Mappers.fromJsonToCommand;
+import static reactive.fp.mappers.Mappers.fromBytesToCommand;
 
 /**
  * @author Linas on 2015.12.03.
@@ -28,13 +28,13 @@ public class SSECommandHandler implements Handler<RoutingContext> {
     public void handle(RoutingContext routingContext) {
         commands.findCommand(getCommandNameFrom(routingContext.request())).ifPresent(command -> routingContext.request().bodyHandler(buffer -> {
             try {
-                Command<?> receivedArgument = fromJsonToCommand(buffer.getBytes());
-                final Subscription subscription = command.apply(receivedArgument.payload)
+                Command receivedArgument = fromBytesToCommand(buffer.getBytes());
+                final Subscription subscription = command.apply(receivedArgument)
                         .subscribeOn(Schedulers.computation())
                         .subscribe(
-                                payload -> sseHandler.writeEvent(Event.onNext(payload)),
+                                sseHandler::writeEvent,
                                 throwable -> sseHandler.writeEvent(Event.onError(throwable)),
-                                () -> sseHandler.writeEvent(Event.onCompleted("Completed")));
+                                () -> sseHandler.writeEvent(Event.onCompleted()));
             } catch (Throwable e) {
                 sseHandler.writeEvent(Event.onError(e));
             }

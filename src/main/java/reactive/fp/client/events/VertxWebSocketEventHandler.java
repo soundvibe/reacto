@@ -10,6 +10,7 @@ import reactive.fp.mappers.Mappers;
 import reactive.fp.server.handlers.WebSocketFrameHandler;
 import reactive.fp.types.Command;
 import reactive.fp.types.Event;
+import reactive.fp.types.ReactiveException;
 import reactive.fp.utils.Factories;
 import rx.Observable;
 import rx.Subscriber;
@@ -17,43 +18,39 @@ import rx.Subscriber;
 import java.net.URI;
 import java.util.Objects;
 
-import static reactive.fp.mappers.Mappers.fromJsonToEvent;
-import static reactive.fp.mappers.Mappers.messageToJsonBytes;
+import static reactive.fp.mappers.Mappers.fromBytesToEvent;
 
 /**
  * @author OZY on 2015.11.23.
  */
-public class VertxWebSocketEventHandler<T,U> implements EventHandler<T,U> {
+public class VertxWebSocketEventHandler implements EventHandler {
 
     private final URI wsUrl;
     private final Vertx vertx;
-    private final Class<U> aClass;
 
-    public VertxWebSocketEventHandler(URI wsUrl, Class<U> eventClass) {
+    public VertxWebSocketEventHandler(URI wsUrl) {
         Objects.requireNonNull(wsUrl, "WebSocket URI cannot be null");
-        Objects.requireNonNull(eventClass, "Event class cannot be null");
         this.wsUrl = wsUrl;
-        this.aClass = eventClass;
         this.vertx = Factories.vertx();
     }
 
     @Override
-    public Observable<Event<U>> toObservable(String commandName, T arg) {
+    public Observable<Event> toObservable(Command command) {
         return Observable.using(() -> vertx.createHttpClient(new HttpClientOptions()),
-                httpClient -> webSocketStreamObservable(httpClient, commandName, arg),
+                httpClient -> webSocketStreamObservable(httpClient, command),
                 HttpClient::close);
     }
 
-    private Observable<Event<U>> webSocketStreamObservable(HttpClient httpClient, String commandName, T arg) {
+    private Observable<Event> webSocketStreamObservable(HttpClient httpClient, Command command) {
         try {
             final WebSocketStream webSocketStream = httpClient.websocketStream(getPortFromURI(wsUrl), wsUrl.getHost(), wsUrl.getPath());
-            return observe(webSocketStream, commandName, arg);
+            return observe(webSocketStream, command);
         } catch (Throwable e) {
             return Observable.error(e);
         }
     }
 
-    private Observable<Event<U>> observe(WebSocketStream webSocketStream, String commandName, T arg) {
+    private Observable<Event> observe(WebSocketStream webSocketStream, Command command) {
         return Observable.create(subscriber -> {
             try {
                 webSocketStream
@@ -61,7 +58,7 @@ public class VertxWebSocketEventHandler<T,U> implements EventHandler<T,U> {
                         .handler(webSocket -> {
                             try {
                                 webSocket.setWriteQueueMaxSize(Integer.MAX_VALUE);
-                                sendCommandToExecutor(commandName, arg, webSocket);
+                                sendCommandToExecutor(command, webSocket);
                                 checkForEvents(webSocket, subscriber);
                             } catch (Throwable e) {
                                 subscriber.onError(e);
@@ -73,12 +70,12 @@ public class VertxWebSocketEventHandler<T,U> implements EventHandler<T,U> {
         });
     }
 
-    private void checkForEvents(WebSocket webSocket, Subscriber<? super Event<U>> subscriber) {
+    private void checkForEvents(WebSocket webSocket, Subscriber<? super Event> subscriber) {
         webSocket
                 .frameHandler(new WebSocketFrameHandler(buffer -> {
                     try {
                         if (!subscriber.isUnsubscribed()) {
-                            handleEvent(fromJsonToEvent(buffer.getBytes()), subscriber);
+                            handleEvent(fromBytesToEvent(buffer.getBytes()), subscriber);
                         }
                     } catch (Throwable e) {
                         subscriber.onError(e);
@@ -87,21 +84,22 @@ public class VertxWebSocketEventHandler<T,U> implements EventHandler<T,U> {
     }
 
     @SuppressWarnings("unchecked")
-    private void handleEvent(Event<?> event, Subscriber<? super Event<U>> subscriber) {
+    private void handleEvent(Event event, Subscriber<? super Event> subscriber) {
         switch (event.eventType) {
             case NEXT: {
-                if (event.payload == null) {
+                subscriber.onNext(event);
+/*                if (event.payload == null) {
                     subscriber.onError(new NullPointerException("Payload was null for event: " + event));
                 } else if (aClass.isAssignableFrom(event.payload.getClass())) {
-                    subscriber.onNext((Event<U>) event);
+                    subscriber.onNext(event);
                 } else {
                     subscriber.onError(new ClassCastException("Invalid event payload type. Received " +
                             event.payload.getClass() + " but expected " + aClass));
-                }
+                }*/
                 break;
             }
             case ERROR: {
-                subscriber.onError(Mappers.mapToThrowable(event.payload));
+                subscriber.onError(event.error.orElse(ReactiveException.from(new UnknownError("Unknown error from event: " + event))));
                 break;
             }
             case COMPLETED: {
@@ -117,9 +115,8 @@ public class VertxWebSocketEventHandler<T,U> implements EventHandler<T,U> {
                 uri.getPort();
     }
 
-    private void sendCommandToExecutor(String commandName, Object arg, WebSocket webSocket) {
-        final Command<?> command = Command.create(commandName, arg);
-        final byte[] messageJson = messageToJsonBytes(command);
-        webSocket.writeBinaryMessage(Buffer.buffer(messageJson));
+    private void sendCommandToExecutor(Command command, WebSocket webSocket) {
+        final byte[] bytes = Mappers.commandToBytes(command);
+        webSocket.writeBinaryMessage(Buffer.buffer(bytes));
     }
 }

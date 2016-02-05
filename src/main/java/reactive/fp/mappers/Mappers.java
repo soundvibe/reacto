@@ -1,24 +1,12 @@
 package reactive.fp.mappers;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.RuntimeJsonMappingException;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.protobuf.InvalidProtocolBufferException;
 import reactive.fp.client.commands.CommandDef;
 import reactive.fp.client.events.EventHandler;
 import reactive.fp.client.events.EventHandlers;
-import reactive.fp.types.Command;
-import reactive.fp.client.errors.CommandError;
-import reactive.fp.types.Event;
+import reactive.fp.types.*;
 
-import java.io.IOException;
 import java.net.URI;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -27,78 +15,38 @@ import java.util.function.Function;
  */
 public interface Mappers {
 
-    static ObjectMapper createJsonMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModules(
-                new Jdk8Module(),
-                new JavaTimeModule()
-        );
-        objectMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
-        objectMapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
-        objectMapper.configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false);
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
-        objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        objectMapper.configure(SerializationFeature.WRITE_DATE_KEYS_AS_TIMESTAMPS, true);
-        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, true);
-        return objectMapper;
+    static byte[] eventToBytes(Event event) {
+        return MessageMappers.toProtoBufEvent(event).toByteArray();
     }
 
-    ObjectMapper jsonMapper = createJsonMapper();
+    static byte[] commandToBytes(Command command) {
+        return MessageMappers.toProtoBufCommand(command).toByteArray();
+    }
 
-    static <T> byte[] messageToJsonBytes(T message) {
+    static Event fromBytesToEvent(byte[] bytes) {
         try {
-            return jsonMapper.writeValueAsBytes(message);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeJsonMappingException("Cannot serialize message to json: " + message);
+            return MessageMappers.toEvent(Messages.Event.parseFrom(bytes));
+        } catch (InvalidProtocolBufferException e) {
+            throw new RuntimeProtocolBufferException("Cannot deserialize event from bytes: " + new String(bytes), e);
         }
     }
 
-    static <T> String messageToJsonString(T message) {
+    static Command fromBytesToCommand(byte[] bytes) {
         try {
-            return jsonMapper.writeValueAsString(message);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeJsonMappingException("Cannot serialize message to json: " + message);
+            return MessageMappers.toCommand(Messages.Command.parseFrom(bytes));
+        } catch (InvalidProtocolBufferException e) {
+            throw new RuntimeProtocolBufferException("Cannot deserialize command from bytes: " + new String(bytes), e);
         }
     }
 
-    static Event<?> fromJsonToEvent(byte[] bytes) {
-        try {
-            return jsonMapper.readValue(bytes, Event.class);
-        } catch (IOException e) {
-            throw new RuntimeJsonMappingException("Cannot deserialize event from json: " + new String(bytes));
-        }
-    }
-
-    static Command<?> fromJsonToCommand(byte[] bytes) {
-        try {
-            return jsonMapper.readValue(bytes, Command.class);
-        } catch (IOException e) {
-            throw new RuntimeJsonMappingException("Cannot deserialize command from json: " + new String(bytes));
-        }
-    }
-
-    static <T,U> Optional<EventHandlers<T,U>> mapToEventHandlers(CommandDef<U> commandDef,
-                                                             Function<URI, EventHandler<T,U>> eventHandlerFactory) {
+    static <T,U> Optional<EventHandlers> mapToEventHandlers(CommandDef commandDef,
+                                                             Function<URI, EventHandler> eventHandlerFactory) {
         return Optional.ofNullable(commandDef.mainURI())
                 .map(eventHandlerFactory::apply)
-                .map(mainEventHandler -> new EventHandlers<>(mainEventHandler, Optional.empty()))
+                .map(mainEventHandler -> new EventHandlers(mainEventHandler, Optional.empty()))
                 .map(eventHandlers -> commandDef.fallbackURI()
                         .map(eventHandlerFactory::apply)
                         .map(eventHandlers::copy)
                         .orElse(eventHandlers));
     }
-
-    @SuppressWarnings("unchecked")
-    static Throwable mapToThrowable(Object error) {
-        if (error instanceof Throwable) {
-            return (Throwable) error;
-        } else if (error instanceof Map) {
-            return new CommandError(((Map<String, String>) error).get("message"));
-        } else if (error instanceof String) {
-            return new CommandError((String) error);
-        }
-        return new CommandError("Unknown Error");
-    }
-
 }
