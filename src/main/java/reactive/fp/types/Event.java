@@ -28,6 +28,10 @@ public final class Event implements Message {
         this.error = Optional.of(error).map(ReactiveException::from);
     }
 
+    public static Event create(Optional<MetaData> metaData, Optional<byte[]> payload) {
+        return new Event(metaData, payload, Optional.empty(), EventType.NEXT);
+    }
+
     public static Event onNext(Optional<MetaData> metaData, Optional<byte[]> payload) {
         return new Event(metaData, payload, Optional.empty(),EventType.NEXT);
     }

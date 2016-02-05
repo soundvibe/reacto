@@ -24,6 +24,24 @@ public final class Command implements Message {
         return new Command(ObjectId.get(), name, metaData, payload);
     }
 
+    public static Command create(String name) {
+        Objects.requireNonNull(name, "name cannot be null");
+        return new Command(ObjectId.get(), name, Optional.empty(), Optional.empty());
+    }
+
+    public static Command create(String name, MetaData metaData) {
+        Objects.requireNonNull(name, "name cannot be null");
+        Objects.requireNonNull(metaData, "metaData cannot be null");
+        return new Command(ObjectId.get(), name, Optional.of(metaData), Optional.empty());
+    }
+
+    public static Command create(String name, MetaData metaData, byte[] payload) {
+        Objects.requireNonNull(name, "name cannot be null");
+        Objects.requireNonNull(metaData, "metaData cannot be null");
+        Objects.requireNonNull(payload, "payload cannot be null");
+        return new Command(ObjectId.get(), name, Optional.of(metaData), Optional.of(payload));
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
