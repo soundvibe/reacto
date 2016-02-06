@@ -6,12 +6,9 @@ import reactive.fp.client.commands.CommandExecutor;
 import reactive.fp.client.commands.CommandExecutors;
 import reactive.fp.types.Command;
 import reactive.fp.types.Event;
-import reactive.fp.types.MetaData;
 import reactive.fp.types.Pair;
 import rx.Observable;
 import rx.observers.TestSubscriber;
-
-import java.util.Optional;
 
 /**
  * @author Cipolinas on 2015.12.01.
@@ -20,10 +17,9 @@ public class HystrixInMemoryCommandExecutorTest {
 
     @Test
     public void shouldExecuteCommand() throws Exception {
-        final Event event = Event.create(
-                Optional.of(MetaData.from(Pair.of("foo", "bar"))), Optional.empty());
+        final Event event = Event.create(Pair.of("foo", "bar"));
         TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-        CommandExecutor sut = CommandExecutors.inMemory(o -> Observable.just(event));
+        CommandExecutor sut = CommandExecutors.inMemory(o -> event.toObservable());
 
         sut.execute(Command.create("foo"))
                 .subscribe(testSubscriber);
@@ -39,7 +35,7 @@ public class HystrixInMemoryCommandExecutorTest {
         TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
         CommandExecutor sut = CommandExecutors.inMemory(o -> Observable.error(new IllegalArgumentException("error")));
 
-        sut.execute(Command.create("foo", MetaData.from(Pair.of("foo", "bar"))))
+        sut.execute(Command.create("foo", Pair.of("foo", "bar")))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();

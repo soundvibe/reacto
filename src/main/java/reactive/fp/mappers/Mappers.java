@@ -1,7 +1,7 @@
 package reactive.fp.mappers;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import reactive.fp.client.commands.CommandDef;
+import reactive.fp.client.commands.Nodes;
 import reactive.fp.client.events.EventHandler;
 import reactive.fp.client.events.EventHandlers;
 import reactive.fp.types.*;
@@ -39,12 +39,12 @@ public interface Mappers {
         }
     }
 
-    static <T,U> Optional<EventHandlers> mapToEventHandlers(CommandDef commandDef,
-                                                             Function<URI, EventHandler> eventHandlerFactory) {
-        return Optional.ofNullable(commandDef.mainURI())
+    static Function<String, Optional<EventHandlers>> mapToEventHandlers(Nodes nodes,
+                                                      Function<URI, EventHandler> eventHandlerFactory) {
+        return  commandName -> Optional.ofNullable(nodes.mainURI(commandName))
                 .map(eventHandlerFactory::apply)
                 .map(mainEventHandler -> new EventHandlers(mainEventHandler, Optional.empty()))
-                .map(eventHandlers -> commandDef.fallbackURI()
+                .map(eventHandlers -> nodes.fallbackURI(commandName)
                         .map(eventHandlerFactory::apply)
                         .map(eventHandlers::copy)
                         .orElse(eventHandlers));

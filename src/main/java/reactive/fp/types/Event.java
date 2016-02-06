@@ -1,5 +1,7 @@
 package reactive.fp.types;
 
+import rx.Observable;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -25,14 +27,42 @@ public final class Event implements Message {
         this.metaData = Optional.empty();
         this.payload = Optional.empty();
         this.eventType = EventType.ERROR;
-        this.error = Optional.of(error).map(ReactiveException::from);
+        this.error = Optional.ofNullable(error).map(ReactiveException::from);
+    }
+
+    public String get(String key) {
+        return metaData.map(pairs -> pairs.get(key)).orElse(null);
+    }
+
+    public Optional<String> valueOf(String key) {
+        return metaData.flatMap(pairs -> pairs.valueOf(key));
+    }
+
+    public Observable<Event> toObservable() {
+        return Observable.just(this);
+    }
+
+    public static Event create(Pair... metaDataPairs) {
+        return onNext(Optional.of(MetaData.from(metaDataPairs)), Optional.empty());
+    }
+
+    public static Event create(MetaData metaData) {
+        return onNext(Optional.ofNullable(metaData), Optional.empty());
+    }
+
+    public static Event create(byte[] payload) {
+        return onNext(Optional.empty(), Optional.ofNullable(payload));
+    }
+
+    public static Event create(MetaData metaData, byte[] payload) {
+        return onNext(Optional.ofNullable(metaData), Optional.ofNullable(payload));
     }
 
     public static Event create(Optional<MetaData> metaData, Optional<byte[]> payload) {
-        return new Event(metaData, payload, Optional.empty(), EventType.NEXT);
+        return onNext(metaData, payload);
     }
 
-    public static Event onNext(Optional<MetaData> metaData, Optional<byte[]> payload) {
+    static Event onNext(Optional<MetaData> metaData, Optional<byte[]> payload) {
         return new Event(metaData, payload, Optional.empty(),EventType.NEXT);
     }
 
@@ -40,7 +70,7 @@ public final class Event implements Message {
         return new Event(throwable);
     }
 
-    public static Event onCompleted() {
+     public static Event onCompleted() {
         return new Event(Optional.empty(), Optional.empty(), Optional.empty(), EventType.COMPLETED);
     }
 

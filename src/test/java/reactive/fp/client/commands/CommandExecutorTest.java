@@ -9,11 +9,11 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import reactive.TestUtils.models.CustomError;
-import reactive.TestUtils.models.Foo;
-import reactive.TestUtils.models.FooBar;
-import reactive.TestUtils.models.NotDeserializable;
 import reactive.fp.server.CommandRegistry;
 import reactive.fp.server.VertxServer;
+import reactive.fp.types.Command;
+import reactive.fp.types.Event;
+import reactive.fp.types.Pair;
 import reactive.fp.utils.Factories;
 import rx.Observable;
 import rx.observers.TestSubscriber;
@@ -24,9 +24,9 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static reactive.fp.client.commands.CommandDef.ofMain;
-import static reactive.fp.client.commands.CommandDef.ofMainAndFallback;
 import static reactive.fp.client.commands.CommandExecutors.DEFAULT_EXECUTION_TIMEOUT;
+import static reactive.fp.client.commands.Nodes.ofMain;
+import static reactive.fp.client.commands.Nodes.ofMainAndFallback;
 
 /**
  * @author Cipolinas on 2015.12.01.
@@ -52,22 +52,24 @@ public class CommandExecutorTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        CommandRegistry mainCommands = CommandRegistry.of(TEST_COMMAND, o -> Observable.just("Called command with arg: " + o))
-                .and(TEST_COMMAND_MANY, (String o) -> Observable.just(
-                        "1. Called command with arg: " + o,
-                        "2. Called command with arg: " + o,
-                        "3. Called command with arg: " + o
+        CommandRegistry mainCommands = CommandRegistry.of(TEST_COMMAND, cmd ->
+                    event1Arg("Called command with arg: " + cmd.get("arg")).toObservable()
+                )
+                .and(TEST_COMMAND_MANY, o -> Observable.just(
+                        event1Arg("1. Called command with arg: " + o.get("arg")),
+                        event1Arg("2. Called command with arg: " + o.get("arg")),
+                        event1Arg("3. Called command with arg: " + o.get("arg"))
                 ))
                 .and(TEST_FAIL_COMMAND, o -> Observable.error(new RuntimeException("failed")))
                 .and(TEST_FAIL_BUT_FALLBACK_COMMAND, o -> Observable.error(new RuntimeException("failed")))
-                .and(COMMAND_WITHOUT_ARGS, o -> Observable.just("ok"))
-                .and(COMMAND_OO, (String o) -> Observable.just(new FooBar(o, o)))
-                .and(COMMAND_NOT_DESERIALIZABLE, (String o) -> Observable.just(new NotDeserializable(o)))
-                .and(COMMAND_CUSTOM_ERROR, (String o) -> Observable.error(new CustomError(o)))
-                .and(LONG_TASK, (Integer interval) -> Observable.create(subscriber -> {
+                .and(COMMAND_WITHOUT_ARGS, o -> event1Arg("ok").toObservable())
+               // .and(COMMAND_OO, o -> Observable.just(new FooBar(o, o)))
+              //  .and(COMMAND_NOT_DESERIALIZABLE, (String o) -> Observable.just(new NotDeserializable(o)))
+                .and(COMMAND_CUSTOM_ERROR, o -> Observable.error(new CustomError(o.get("arg"))))
+                .and(LONG_TASK, interval -> Observable.create(subscriber -> {
                     try {
-                        Thread.sleep(interval);
-                        subscriber.onNext("ok");
+                        Thread.sleep(Integer.valueOf(interval.get("arg")));
+                        subscriber.onNext(event1Arg("ok"));
                         subscriber.onCompleted();
                     } catch (InterruptedException e) {
                         System.out.println(e.getMessage());
@@ -76,7 +78,8 @@ public class CommandExecutorTest {
                 }))
                 ;
 
-        CommandRegistry fallbackCommands = CommandRegistry.of(TEST_FAIL_BUT_FALLBACK_COMMAND, o -> Observable.just("Recovered: " + o));
+        CommandRegistry fallbackCommands = CommandRegistry.of(TEST_FAIL_BUT_FALLBACK_COMMAND,
+                o -> event1Arg("Recovered: " + o.get("arg")).toObservable());
 
         Vertx vertx = Factories.vertx();
         HttpServer mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
@@ -100,42 +103,50 @@ public class CommandExecutorTest {
         fallbackVertxServer.stop();
     }
 
+    private static Event event1Arg(String value) {
+        return Event.create(Pair.of("arg", value));
+    }
+
+    private static Command command1Arg(String name, String value) {
+        return Command.create(name, Pair.of("arg", value));
+    }
+
     @Test
     public void shouldExecuteCommand() throws Exception {
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, MAIN_NODE, String.class));
-        sut.execute("foo")
+        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
+        sut.execute(command1Arg(TEST_COMMAND, "foo"))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertCompleted();
-        testSubscriber.assertValue("Called command with arg: foo");
+        testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
     }
 
 
     @Test
     public void shouldCallCommandAndReceiveMultipleEvents() throws Exception {
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND_MANY, MAIN_NODE, String.class));
-        sut.execute("bar")
+        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
+        sut.execute(command1Arg(TEST_COMMAND_MANY, "bar"))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
         testSubscriber.assertCompleted();
         testSubscriber.assertValues(
-                "1. Called command with arg: bar",
-                "2. Called command with arg: bar",
-                "3. Called command with arg: bar"
+                event1Arg("1. Called command with arg: bar"),
+                event1Arg("2. Called command with arg: bar"),
+                event1Arg("3. Called command with arg: bar")
         );
     }
 
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldMainFailAndNoFallbackAvailable() throws Exception {
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(TEST_FAIL_COMMAND, MAIN_NODE, String.class));
-        sut.execute("foo")
+        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
+        sut.execute(command1Arg(TEST_FAIL_COMMAND, "foo"))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -149,18 +160,18 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldMainFailAndFallbackSucceed() throws Exception {
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMainAndFallback(TEST_FAIL_BUT_FALLBACK_COMMAND, MAIN_NODE, FALLBACK_NODE, String.class));
-        sut.execute("foo")
+        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        CommandExecutor sut = CommandExecutors.webSocket(ofMainAndFallback(MAIN_NODE, FALLBACK_NODE));
+        sut.execute(command1Arg(TEST_FAIL_BUT_FALLBACK_COMMAND, "foo"))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
         testSubscriber.assertCompleted();
-        testSubscriber.assertValue("Recovered: foo");
+        testSubscriber.assertValue(event1Arg("Recovered: foo"));
     }
 
-    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
+   /* @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldFailWhenPayloadIsOfInvalidClass() throws Exception {
         TestSubscriber<Integer> testSubscriber = new TestSubscriber<>();
@@ -173,9 +184,9 @@ public class CommandExecutorTest {
         testSubscriber.assertNotCompleted();
         testSubscriber.assertNoValues();
         assertEquals(ClassCastException.class, testSubscriber.getOnErrorEvents().get(0).getCause().getClass());
-    }
+    }*/
 
-    @Test
+    /*@Test
     public void shouldFailWhenCannotDeserializeReceivedEvent() throws Exception {
         TestSubscriber<NotDeserializable> testSubscriber = new TestSubscriber<>();
         CommandExecutor<String, NotDeserializable> sut = CommandExecutors.webSocket(ofMain(COMMAND_NOT_DESERIALIZABLE, MAIN_NODE, NotDeserializable.class));
@@ -186,9 +197,9 @@ public class CommandExecutorTest {
         System.out.println(testSubscriber.getOnNextEvents());
         testSubscriber.assertNotCompleted();
         testSubscriber.assertError(HystrixRuntimeException.class);
-    }
+    }*/
 
-    @Test
+    /*@Test
     public void shouldReceiveEventsAsSubTypeOfTheTypeCommandIsEmitting() throws Exception {
         TestSubscriber<Foo> testSubscriber = new TestSubscriber<>();
         CommandExecutor<String, Foo> sut = CommandExecutors.webSocket(ofMain(COMMAND_OO, MAIN_NODE, Foo.class));
@@ -198,15 +209,15 @@ public class CommandExecutorTest {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertCompleted();
         testSubscriber.assertValue(new Foo("bar"));
-    }
+    }*/
 
     @Test
     public void shouldComposeDifferentCommands() throws Exception {
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String, String> sut1 = CommandExecutors.webSocket(ofMain(TEST_COMMAND, MAIN_NODE, String.class));
-        CommandExecutor<String, String> sut2 = CommandExecutors.webSocket(ofMain(TEST_COMMAND_MANY, MAIN_NODE, String.class));
-        sut1.execute("foo")
-                .mergeWith(sut2.execute("bar"))
+        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        CommandExecutor sut1 = CommandExecutors.webSocket(ofMain(MAIN_NODE));
+        CommandExecutor sut2 = CommandExecutors.webSocket(ofMain(MAIN_NODE));
+        sut1.execute(command1Arg(TEST_COMMAND, "foo"))
+                .mergeWith(sut2.execute(command1Arg(TEST_COMMAND_MANY, "bar")))
                 .observeOn(Schedulers.computation())
                 .subscribeOn(Schedulers.computation())
                 .subscribe(testSubscriber);
@@ -214,19 +225,19 @@ public class CommandExecutorTest {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertCompleted();
         testSubscriber.assertNoErrors();
-        List<String> onNextEvents = testSubscriber.getOnNextEvents();
+        List<Event> onNextEvents = testSubscriber.getOnNextEvents();
         assertEquals("Should be 4 elements", 4, onNextEvents.size());
-        assertTrue(onNextEvents.contains("1. Called command with arg: bar"));
-        assertTrue(onNextEvents.contains("2. Called command with arg: bar"));
-        assertTrue(onNextEvents.contains("3. Called command with arg: bar"));
-        assertTrue(onNextEvents.contains("Called command with arg: foo"));
+        assertTrue(onNextEvents.contains(event1Arg("1. Called command with arg: bar")));
+        assertTrue(onNextEvents.contains(event1Arg("2. Called command with arg: bar")));
+        assertTrue(onNextEvents.contains(event1Arg("3. Called command with arg: bar")));
+        assertTrue(onNextEvents.contains(event1Arg("Called command with arg: foo")));
     }
 
     @Test
     public void shouldFailAfterHystrixTimeout() throws Exception {
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<Integer, String> sut = CommandExecutors.webSocket(ofMain(LONG_TASK, MAIN_NODE, String.class), DEFAULT_EXECUTION_TIMEOUT);
-        sut.execute(5000)
+        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE), DEFAULT_EXECUTION_TIMEOUT);
+        sut.execute(command1Arg(LONG_TASK, "5000"))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -238,9 +249,9 @@ public class CommandExecutorTest {
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldFailWhenCommandIsInvokedWithInvalidArgument() throws Exception {
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(LONG_TASK, MAIN_NODE, String.class));
-        sut.execute("foo")
+        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
+        sut.execute(command1Arg(LONG_TASK, "foo"))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -254,9 +265,9 @@ public class CommandExecutorTest {
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldFailAndReceiveCustomExceptionFromCommand() throws Exception {
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(COMMAND_CUSTOM_ERROR, MAIN_NODE, String.class));
-        sut.execute("foo")
+        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
+        sut.execute( command1Arg(COMMAND_CUSTOM_ERROR, "foo"))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -271,23 +282,23 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldCallCommandWithoutArgs() throws Exception {
-        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(COMMAND_WITHOUT_ARGS, MAIN_NODE, String.class));
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        sut.execute(null)
+        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
+        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        sut.execute(Command.create(COMMAND_WITHOUT_ARGS))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertCompleted();
         testSubscriber.assertNoErrors();
-        testSubscriber.assertValue("ok");
+        testSubscriber.assertValue(event1Arg("ok"));
     }
 
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldFailWhenCommandExecutorIsInaccessible() throws Exception {
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, "http://localhost:45689/foo/", String.class));
-        sut.execute("foo")
+        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        CommandExecutor sut = CommandExecutors.webSocket(ofMain("http://localhost:45689/foo/"));
+        sut.execute(command1Arg(TEST_COMMAND, "foo"))
             .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -300,17 +311,17 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldExecuteHugeCommandEntity() throws Exception {
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String, String> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, MAIN_NODE, String.class));
+        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
 
         String commandWithHugePayload = createDataSize(100_000);
 
-        sut.execute(commandWithHugePayload)
+        sut.execute( command1Arg(TEST_COMMAND, commandWithHugePayload))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
-        testSubscriber.assertValue("Called command with arg: " + commandWithHugePayload);
+        testSubscriber.assertValue(event1Arg("Called command with arg: " + commandWithHugePayload));
     }
 
     private static String createDataSize(int msgSize) {

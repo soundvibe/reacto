@@ -2,6 +2,7 @@ package reactive.fp;
 
 import org.junit.Test;
 import reactive.fp.server.CommandRegistry;
+import reactive.fp.types.Event;
 import rx.Observable;
 
 import static org.junit.Assert.assertFalse;
@@ -14,7 +15,7 @@ public class CommandRegistryTest {
 
     @Test
     public void shouldFindCommand() throws Exception {
-        CommandRegistry sut = CommandRegistry.of("foo", o -> Observable.just(o + "bar"));
+        CommandRegistry sut = CommandRegistry.of("foo", o -> Observable.just(Event.create()));
 
         assertTrue(sut.findCommand("foo").isPresent());
     }

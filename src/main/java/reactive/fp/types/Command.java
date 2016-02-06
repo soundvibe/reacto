@@ -1,5 +1,7 @@
 package reactive.fp.types;
 
+import rx.Observable;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -20,6 +22,18 @@ public final class Command implements Message {
         this.payload = payload;
     }
 
+    public String get(String key) {
+        return metaData.map(pairs -> pairs.get(key)).orElse(null);
+    }
+
+    public Optional<String> valueOf(String key) {
+        return metaData.flatMap(pairs -> pairs.valueOf(key));
+    }
+
+    public Observable<Command> toObservable() {
+        return Observable.just(this);
+    }
+
     public static Command create(String name, Optional<MetaData> metaData, Optional<byte[]> payload) {
         return new Command(ObjectId.get(), name, metaData, payload);
     }
@@ -33,6 +47,12 @@ public final class Command implements Message {
         Objects.requireNonNull(name, "name cannot be null");
         Objects.requireNonNull(metaData, "metaData cannot be null");
         return new Command(ObjectId.get(), name, Optional.of(metaData), Optional.empty());
+    }
+
+    public static Command create(String name, Pair... pairs) {
+        Objects.requireNonNull(name, "name cannot be null");
+        Objects.requireNonNull(pairs, "pairs cannot be null");
+        return new Command(ObjectId.get(), name, Optional.of(MetaData.from(pairs)), Optional.empty());
     }
 
     public static Command create(String name, MetaData metaData, byte[] payload) {
