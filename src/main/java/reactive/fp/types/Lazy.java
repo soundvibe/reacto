@@ -1,5 +1,6 @@
 package reactive.fp.types;
 
+import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
@@ -27,5 +28,18 @@ public final class Lazy<T> implements Supplier<T> {
             }
             return value;
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Lazy<?> lazy = (Lazy<?>) o;
+        return Objects.equals(value, lazy.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
     }
 }

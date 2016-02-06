@@ -70,4 +70,13 @@ public class ReactiveException extends RuntimeException {
             printLnConsumer.accept(line);
         }
     }
+
+    @Override
+    public String toString() {
+        return "ReactiveException{" +
+                "className='" + className + '\'' +
+                ", message='" + message + '\'' +
+                ", stackTrace='" + stackTrace + '\'' +
+                '}';
+    }
 }

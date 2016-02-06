@@ -65,4 +65,25 @@ public final class MetaData implements Iterable<Pair> {
     public Iterator<Pair> iterator() {
         return entries.iterator();
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MetaData metaData = (MetaData) o;
+        return Objects.equals(entries, metaData.entries);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(entries);
+    }
+
+    @Override
+    public String toString() {
+        return "MetaData{" +
+                "entries=" + entries +
+                ", mapCache=" + mapCache +
+                '}';
+    }
 }
