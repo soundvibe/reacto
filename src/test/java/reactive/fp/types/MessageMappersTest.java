@@ -13,14 +13,14 @@ public class MessageMappersTest {
 
     @Test
     public void shouldMapToCommand() throws Exception {
-
+        final String id = ObjectId.get().toString();
         final Messages.Command expected = Messages.Command.newBuilder()
-                .setId("1")
+                .setId(id)
                 .setName("doSomething")
                 .build();
 
         final Command actual = MessageMappers.toCommand(expected);
-        assertEquals("1", actual.id.toString());
+        assertEquals(id, actual.id.toString());
         assertEquals("doSomething", actual.name);
         assertEquals(Optional.empty(), actual.payload);
         assertEquals(Optional.empty(), actual.metaData);

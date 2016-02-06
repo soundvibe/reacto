@@ -11,11 +11,14 @@ import org.junit.Before;
 import org.junit.Test;
 import reactive.fp.server.CommandRegistry;
 import reactive.fp.server.VertxServer;
+import reactive.fp.server.handlers.HystrixEventStreamHandler;
+import reactive.fp.server.handlers.SSEHandler;
 import reactive.fp.utils.Factories;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertTrue;
 
@@ -31,7 +34,21 @@ public class HystrixEventStreamHandlerTest {
     @Before
     public void setUp() throws Exception {
         Vertx vertx = Factories.vertx();
-        vertxServer = new VertxServer(Router.router(vertx), vertx.createHttpServer(new HttpServerOptions().setPort(8282)), "test",
+        final Router router = Router.router(vertx);
+        router.route("/test/hystrix.stream")
+                .handler(new SSEHandler(HystrixEventStreamHandler::handle, event -> {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("{");
+                    event.metaData.ifPresent(metaData -> {
+                        sb.append(
+                            metaData.stream()
+                                    .map(pair -> pair.key + ": \"" + pair.value + "\"")
+                                    .collect(Collectors.joining(",")));
+                        });
+                    sb.append("}");
+                    return sb.toString();
+                }));
+        vertxServer = new VertxServer(router, vertx.createHttpServer(new HttpServerOptions().setPort(8282)), "test",
                CommandRegistry.of("bla", o -> Observable.empty()));
         vertxServer.start();
         lastData = new AtomicReference<>();
