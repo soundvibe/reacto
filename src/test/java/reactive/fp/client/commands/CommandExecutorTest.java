@@ -14,6 +14,7 @@ import reactive.fp.server.VertxServer;
 import reactive.fp.types.Command;
 import reactive.fp.types.Event;
 import reactive.fp.types.Pair;
+import reactive.fp.types.ReactiveException;
 import reactive.fp.utils.Factories;
 import rx.Observable;
 import rx.observers.TestSubscriber;
@@ -49,6 +50,10 @@ public class CommandExecutorTest {
 
     private static VertxServer vertxServer;
     private static VertxServer fallbackVertxServer;
+
+    private final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+    private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(ofMain(MAIN_NODE));
+    private final CommandExecutor mainNodeAndFallbackExecutor = CommandExecutors.webSocket(ofMainAndFallback(MAIN_NODE, FALLBACK_NODE));
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -113,9 +118,7 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldExecuteCommand() throws Exception {
-        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
-        sut.execute(command1Arg(TEST_COMMAND, "foo"))
+        mainNodeExecutor.execute(command1Arg(TEST_COMMAND, "foo"))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -126,9 +129,7 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldCallCommandAndReceiveMultipleEvents() throws Exception {
-        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
-        sut.execute(command1Arg(TEST_COMMAND_MANY, "bar"))
+        mainNodeExecutor.execute(command1Arg(TEST_COMMAND_MANY, "bar"))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -144,9 +145,7 @@ public class CommandExecutorTest {
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldMainFailAndNoFallbackAvailable() throws Exception {
-        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
-        sut.execute(command1Arg(TEST_FAIL_COMMAND, "foo"))
+        mainNodeExecutor.execute(command1Arg(TEST_FAIL_COMMAND, "foo"))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -160,9 +159,7 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldMainFailAndFallbackSucceed() throws Exception {
-        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-        CommandExecutor sut = CommandExecutors.webSocket(ofMainAndFallback(MAIN_NODE, FALLBACK_NODE));
-        sut.execute(command1Arg(TEST_FAIL_BUT_FALLBACK_COMMAND, "foo"))
+        mainNodeAndFallbackExecutor.execute(command1Arg(TEST_FAIL_BUT_FALLBACK_COMMAND, "foo"))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -213,11 +210,8 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldComposeDifferentCommands() throws Exception {
-        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-        CommandExecutor sut1 = CommandExecutors.webSocket(ofMain(MAIN_NODE));
-        CommandExecutor sut2 = CommandExecutors.webSocket(ofMain(MAIN_NODE));
-        sut1.execute(command1Arg(TEST_COMMAND, "foo"))
-                .mergeWith(sut2.execute(command1Arg(TEST_COMMAND_MANY, "bar")))
+        mainNodeExecutor.execute(command1Arg(TEST_COMMAND, "foo"))
+                .mergeWith(mainNodeExecutor.execute(command1Arg(TEST_COMMAND_MANY, "bar")))
                 .observeOn(Schedulers.computation())
                 .subscribeOn(Schedulers.computation())
                 .subscribe(testSubscriber);
@@ -235,7 +229,6 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldFailAfterHystrixTimeout() throws Exception {
-        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
         CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE), DEFAULT_EXECUTION_TIMEOUT);
         sut.execute(command1Arg(LONG_TASK, "5000"))
                 .subscribe(testSubscriber);
@@ -249,9 +242,7 @@ public class CommandExecutorTest {
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldFailWhenCommandIsInvokedWithInvalidArgument() throws Exception {
-        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
-        sut.execute(command1Arg(LONG_TASK, "foo"))
+        mainNodeExecutor.execute(command1Arg(LONG_TASK, "foo"))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -259,15 +250,13 @@ public class CommandExecutorTest {
         testSubscriber.assertNoValues();
         testSubscriber.assertError(HystrixRuntimeException.class);
         final Throwable actualError = testSubscriber.getOnErrorEvents().get(0).getCause();
-        assertEquals(ClassCastException.class, actualError.getClass());
+        assertEquals(ReactiveException.class, actualError.getClass());
     }
 
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldFailAndReceiveCustomExceptionFromCommand() throws Exception {
-        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
-        sut.execute( command1Arg(COMMAND_CUSTOM_ERROR, "foo"))
+        mainNodeExecutor.execute(command1Arg(COMMAND_CUSTOM_ERROR, "foo"))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -282,9 +271,7 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldCallCommandWithoutArgs() throws Exception {
-        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
-        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-        sut.execute(Command.create(COMMAND_WITHOUT_ARGS))
+        mainNodeExecutor.execute(Command.create(COMMAND_WITHOUT_ARGS))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -296,7 +283,6 @@ public class CommandExecutorTest {
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldFailWhenCommandExecutorIsInaccessible() throws Exception {
-        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
         CommandExecutor sut = CommandExecutors.webSocket(ofMain("http://localhost:45689/foo/"));
         sut.execute(command1Arg(TEST_COMMAND, "foo"))
             .subscribe(testSubscriber);
@@ -311,12 +297,9 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldExecuteHugeCommandEntity() throws Exception {
-        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-        CommandExecutor sut = CommandExecutors.webSocket(ofMain(MAIN_NODE));
-
         String commandWithHugePayload = createDataSize(100_000);
 
-        sut.execute( command1Arg(TEST_COMMAND, commandWithHugePayload))
+        mainNodeExecutor.execute( command1Arg(TEST_COMMAND, commandWithHugePayload))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
