@@ -30,8 +30,10 @@ public final class MessageMappers {
 
         return new Event(protoBufEvent.getMetadataCount() == 0 ? Optional.empty() : Optional.of(MetaData.fromStream(pairStream)),
                 protoBufEvent.getPayload().isEmpty() ? Optional.empty() : Optional.ofNullable(protoBufEvent.getPayload().toByteArray()),
-                ofNullable(protoBufEvent.getError())
-                        .map(error -> new ReactiveException(error.getClassName(), error.getErrorMessage(), error.getStackTrace())),
+                protoBufEvent.hasError() ?
+                        ofNullable(protoBufEvent.getError())
+                            .map(error -> new ReactiveException(error.getClassName(), error.getErrorMessage(), error.getStackTrace())):
+                        Optional.empty(),
                 ofNullable(protoBufEvent.getEventType())
                         .map(eventType -> EventType.valueOf(eventType.name())).orElse(EventType.ERROR));
     }
