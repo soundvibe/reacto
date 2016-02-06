@@ -264,8 +264,8 @@ public class CommandExecutorTest {
         testSubscriber.assertNoValues();
         testSubscriber.assertError(HystrixRuntimeException.class);
         final Throwable actualError = testSubscriber.getOnErrorEvents().get(0).getCause();
-        assertEquals(CustomError.class, actualError.getClass());
-        assertEquals("foo", ((CustomError) actualError).data);
+        assertEquals(ReactiveException.class, actualError.getClass());
+        assertEquals("foo", ((ReactiveException) actualError).message);
     }
 
 

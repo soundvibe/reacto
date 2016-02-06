@@ -23,7 +23,9 @@ public class ReactiveException extends RuntimeException {
     }
 
     public static ReactiveException from(Throwable throwable) {
-        return new ReactiveException(throwable.getClass().getName(), throwable.getMessage(), getStackTrace(throwable));
+        return new ReactiveException(throwable.getClass().getName(),
+                throwable.getMessage() == null ? throwable.toString() : throwable.getMessage(),
+                getStackTrace(throwable));
     }
 
     private static String getStackTrace(Throwable throwable) {
