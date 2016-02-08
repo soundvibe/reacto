@@ -15,7 +15,7 @@ public class CommandRegistryTest {
 
     @Test
     public void shouldFindCommand() throws Exception {
-        CommandRegistry sut = CommandRegistry.of("foo", o -> Observable.just(Event.create()));
+        CommandRegistry sut = CommandRegistry.of("foo", o -> Observable.just(Event.create("foo")));
 
         assertTrue(sut.findCommand("foo").isPresent());
     }

@@ -28,7 +28,8 @@ public final class MessageMappers {
         final Stream<Pair> pairStream = protoBufEvent.getMetadataList().stream()
                 .map(o -> Pair.of(o.getKey(), o.getValue()));
 
-        return new Event(protoBufEvent.getMetadataCount() == 0 ? Optional.empty() : Optional.of(MetaData.fromStream(pairStream)),
+        return new Event(protoBufEvent.getName(),
+                protoBufEvent.getMetadataCount() == 0 ? Optional.empty() : Optional.of(MetaData.fromStream(pairStream)),
                 protoBufEvent.getPayload().isEmpty() ? Optional.empty() : Optional.ofNullable(protoBufEvent.getPayload().toByteArray()),
                 protoBufEvent.hasError() ?
                         ofNullable(protoBufEvent.getError())
@@ -56,7 +57,7 @@ public final class MessageMappers {
 
     public static Messages.Event toProtoBufEvent(Event event) {
         final Messages.Event.Builder eventBuilder = Messages.Event.newBuilder();
-
+        eventBuilder.setName(event.name);
         eventBuilder.setEventType(Messages.EventType.valueOf(event.eventType.name()));
         event.error.ifPresent(e -> eventBuilder.setError(Messages.Error.newBuilder()
                 .setClassName(e.className)

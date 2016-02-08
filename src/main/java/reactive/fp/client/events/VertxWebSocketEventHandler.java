@@ -88,14 +88,6 @@ public class VertxWebSocketEventHandler implements EventHandler {
         switch (event.eventType) {
             case NEXT: {
                 subscriber.onNext(event);
-/*                if (event.payload == null) {
-                    subscriber.onError(new NullPointerException("Payload was null for event: " + event));
-                } else if (aClass.isAssignableFrom(event.payload.getClass())) {
-                    subscriber.onNext(event);
-                } else {
-                    subscriber.onError(new ClassCastException("Invalid event payload type. Received " +
-                            event.payload.getClass() + " but expected " + aClass));
-                }*/
                 break;
             }
             case ERROR: {

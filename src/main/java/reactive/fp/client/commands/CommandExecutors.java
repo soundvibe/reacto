@@ -29,11 +29,11 @@ public interface CommandExecutors {
     }
 
     static CommandExecutor inMemory(Function<Command, Observable<Event>> commandExecutor) {
-        return arg -> new HystrixObservableCommandWrapper(commandExecutor, arg, 0).toObservable();
+        return cmd -> new HystrixObservableCommandWrapper(commandExecutor, cmd, 0).toObservable();
     }
 
     static CommandExecutor inMemory(Function<Command, Observable<Event>> commandExecutor, int executionTimeoutInMs) {
-        return arg -> new HystrixObservableCommandWrapper(commandExecutor, arg, executionTimeoutInMs).toObservable();
+        return cmd -> new HystrixObservableCommandWrapper(commandExecutor, cmd, executionTimeoutInMs).toObservable();
     }
 
 }

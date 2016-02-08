@@ -11,12 +11,14 @@ import java.util.Optional;
 
 public final class Event implements Message {
 
+    public final String name;
     public final Optional<MetaData> metaData;
     public final Optional<byte[]> payload;
     public final EventType eventType;
     public final Optional<ReactiveException> error;
 
-    Event(Optional<MetaData> metaData, Optional<byte[]> payload, Optional<Throwable> error, EventType eventType) {
+    Event(String name, Optional<MetaData> metaData, Optional<byte[]> payload, Optional<Throwable> error, EventType eventType) {
+        this.name = name;
         this.metaData = metaData;
         this.payload = payload;
         this.eventType = eventType;
@@ -24,6 +26,7 @@ public final class Event implements Message {
     }
 
     Event(Throwable error) {
+        this.name = "error";
         this.metaData = Optional.empty();
         this.payload = Optional.empty();
         this.eventType = EventType.ERROR;
@@ -42,36 +45,36 @@ public final class Event implements Message {
         return Observable.just(this);
     }
 
-    public static Event create(Pair... metaDataPairs) {
-        return onNext(Optional.of(MetaData.from(metaDataPairs)), Optional.empty());
+    public static Event create(String name, Pair... metaDataPairs) {
+        return onNext(name, Optional.of(MetaData.from(metaDataPairs)), Optional.empty());
     }
 
-    public static Event create(MetaData metaData) {
-        return onNext(Optional.ofNullable(metaData), Optional.empty());
+    public static Event create(String name, MetaData metaData) {
+        return onNext(name, Optional.ofNullable(metaData), Optional.empty());
     }
 
-    public static Event create(byte[] payload) {
-        return onNext(Optional.empty(), Optional.ofNullable(payload));
+    public static Event create(String name, byte[] payload) {
+        return onNext(name, Optional.empty(), Optional.ofNullable(payload));
     }
 
-    public static Event create(MetaData metaData, byte[] payload) {
-        return onNext(Optional.ofNullable(metaData), Optional.ofNullable(payload));
+    public static Event create(String name, MetaData metaData, byte[] payload) {
+        return onNext(name, Optional.ofNullable(metaData), Optional.ofNullable(payload));
     }
 
-    public static Event create(Optional<MetaData> metaData, Optional<byte[]> payload) {
-        return onNext(metaData, payload);
+    public static Event create(String name, Optional<MetaData> metaData, Optional<byte[]> payload) {
+        return onNext(name, metaData, payload);
     }
 
-    static Event onNext(Optional<MetaData> metaData, Optional<byte[]> payload) {
-        return new Event(metaData, payload, Optional.empty(),EventType.NEXT);
+    static Event onNext(String name, Optional<MetaData> metaData, Optional<byte[]> payload) {
+        return new Event(name, metaData, payload, Optional.empty(), EventType.NEXT);
     }
 
     public static Event onError(Throwable throwable) {
         return new Event(throwable);
     }
 
-     public static Event onCompleted() {
-        return new Event(Optional.empty(), Optional.empty(), Optional.empty(), EventType.COMPLETED);
+    public static Event onCompleted() {
+        return new Event("completed", Optional.empty(), Optional.empty(), Optional.empty(), EventType.COMPLETED);
     }
 
     @Override
@@ -79,7 +82,8 @@ public final class Event implements Message {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Event event = (Event) o;
-        return Objects.equals(metaData, event.metaData) &&
+        return Objects.equals(name, event.name) &&
+                Objects.equals(metaData, event.metaData) &&
                 Objects.equals(payload, event.payload) &&
                 eventType == event.eventType &&
                 Objects.equals(error, event.error);
@@ -87,13 +91,14 @@ public final class Event implements Message {
 
     @Override
     public int hashCode() {
-        return Objects.hash(metaData, payload, eventType, error);
+        return Objects.hash(name, metaData, payload, eventType, error);
     }
 
     @Override
     public String toString() {
         return "Event{" +
-                "metaData=" + metaData +
+                "name='" + name + '\'' +
+                ", metaData=" + metaData +
                 ", payload=" + payload +
                 ", eventType=" + eventType +
                 ", error=" + error +

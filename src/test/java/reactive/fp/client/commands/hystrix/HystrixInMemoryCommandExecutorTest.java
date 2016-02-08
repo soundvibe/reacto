@@ -17,7 +17,7 @@ public class HystrixInMemoryCommandExecutorTest {
 
     @Test
     public void shouldExecuteCommand() throws Exception {
-        final Event event = Event.create(Pair.of("foo", "bar"));
+        final Event event = Event.create("foo", Pair.of("foo", "bar"));
         TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
         CommandExecutor sut = CommandExecutors.inMemory(o -> event.toObservable());
 

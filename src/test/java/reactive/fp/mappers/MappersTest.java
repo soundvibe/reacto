@@ -20,7 +20,7 @@ public class MappersTest {
     public void shouldBeBothMainAndFallbackSet() throws Exception {
         final Optional<EventHandlers> actual = Mappers.mapToEventHandlers(
                 Nodes.ofMainAndFallback("localhost", "www.google.com"),
-                uri -> arg -> Observable.just(Event.create(Pair.of("arg", "foo " + arg)))).apply("foo");
+                uri -> arg -> Observable.just(Event.create("foo", Pair.of("arg", "foo " + arg)))).apply("foo");
 
         assertTrue("Mapping should be successful",actual.isPresent());
         final EventHandlers eventHandlers = actual.get();
@@ -32,7 +32,7 @@ public class MappersTest {
     public void shouldBeOnlyMainSet() throws Exception {
         final Optional<EventHandlers> actual = Mappers.mapToEventHandlers(
                 Nodes.ofMain("localhost"),
-                uri -> arg -> Observable.just(Event.create(Pair.of("arg", "foo " + arg)))).apply("foo");
+                uri -> arg -> Observable.just(Event.create("foo", Pair.of("arg", "foo " + arg)))).apply("foo");
 
         assertTrue("Mapping should be successful",actual.isPresent());
         final EventHandlers eventHandlers = actual.get();

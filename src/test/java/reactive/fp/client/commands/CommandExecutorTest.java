@@ -40,8 +40,6 @@ public class CommandExecutorTest {
     public static final String TEST_FAIL_BUT_FALLBACK_COMMAND = "testFailFallback";
     public static final String LONG_TASK = "longTask";
     public static final String COMMAND_WITHOUT_ARGS = "argLessCommand";
-    public static final String COMMAND_OO = "commandOO";
-    public static final String COMMAND_NOT_DESERIALIZABLE = "commandNotDeserializable";
     public static final String COMMAND_CUSTOM_ERROR = "commandCustomError";
 
     public static final String MAIN_NODE = "http://localhost:8282/dist/";
@@ -68,8 +66,6 @@ public class CommandExecutorTest {
                 .and(TEST_FAIL_COMMAND, o -> Observable.error(new RuntimeException("failed")))
                 .and(TEST_FAIL_BUT_FALLBACK_COMMAND, o -> Observable.error(new RuntimeException("failed")))
                 .and(COMMAND_WITHOUT_ARGS, o -> event1Arg("ok").toObservable())
-               // .and(COMMAND_OO, o -> Observable.just(new FooBar(o, o)))
-              //  .and(COMMAND_NOT_DESERIALIZABLE, (String o) -> Observable.just(new NotDeserializable(o)))
                 .and(COMMAND_CUSTOM_ERROR, o -> Observable.error(new CustomError(o.get("arg"))))
                 .and(LONG_TASK, interval -> Observable.create(subscriber -> {
                     try {
@@ -78,7 +74,7 @@ public class CommandExecutorTest {
                         subscriber.onCompleted();
                     } catch (InterruptedException e) {
                         System.out.println(e.getMessage());
-                        //subscriber.onError(e);
+                        subscriber.onError(e);
                     }
                 }))
                 ;
@@ -109,7 +105,7 @@ public class CommandExecutorTest {
     }
 
     private static Event event1Arg(String value) {
-        return Event.create(Pair.of("arg", value));
+        return Event.create("testEvent", Pair.of("arg", value));
     }
 
     private static Command command1Arg(String name, String value) {
@@ -167,46 +163,6 @@ public class CommandExecutorTest {
         testSubscriber.assertCompleted();
         testSubscriber.assertValue(event1Arg("Recovered: foo"));
     }
-
-   /* @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
-    @Test
-    public void shouldFailWhenPayloadIsOfInvalidClass() throws Exception {
-        TestSubscriber<Integer> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String,Integer> sut = CommandExecutors.webSocket(ofMain(TEST_COMMAND, MAIN_NODE, Integer.class));
-        sut.execute("foo")
-                .subscribe(testSubscriber);
-
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertError(HystrixRuntimeException.class);
-        testSubscriber.assertNotCompleted();
-        testSubscriber.assertNoValues();
-        assertEquals(ClassCastException.class, testSubscriber.getOnErrorEvents().get(0).getCause().getClass());
-    }*/
-
-    /*@Test
-    public void shouldFailWhenCannotDeserializeReceivedEvent() throws Exception {
-        TestSubscriber<NotDeserializable> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String, NotDeserializable> sut = CommandExecutors.webSocket(ofMain(COMMAND_NOT_DESERIALIZABLE, MAIN_NODE, NotDeserializable.class));
-        sut.execute("bar")
-                .subscribe(testSubscriber);
-
-        testSubscriber.awaitTerminalEvent();
-        System.out.println(testSubscriber.getOnNextEvents());
-        testSubscriber.assertNotCompleted();
-        testSubscriber.assertError(HystrixRuntimeException.class);
-    }*/
-
-    /*@Test
-    public void shouldReceiveEventsAsSubTypeOfTheTypeCommandIsEmitting() throws Exception {
-        TestSubscriber<Foo> testSubscriber = new TestSubscriber<>();
-        CommandExecutor<String, Foo> sut = CommandExecutors.webSocket(ofMain(COMMAND_OO, MAIN_NODE, Foo.class));
-        sut.execute("bar")
-                .subscribe(testSubscriber);
-
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertCompleted();
-        testSubscriber.assertValue(new Foo("bar"));
-    }*/
 
     @Test
     public void shouldComposeDifferentCommands() throws Exception {
