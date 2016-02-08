@@ -6,7 +6,7 @@
 
     <groupId>reactive</groupId>
     <artifactId>react-fp</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>reactive-fp</name>
     <description>Reactive-fp is a Java functional reactive library built for Java 8 and above.</description>
