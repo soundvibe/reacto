@@ -6,7 +6,7 @@ import io.vertx.core.http.ServerWebSocket;
 import reactive.fp.mappers.Mappers;
 import reactive.fp.server.CommandRegistry;
 import reactive.fp.types.Command;
-import reactive.fp.types.Event;
+import reactive.fp.internal.InternalEvent;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
@@ -33,19 +33,19 @@ public class WebSocketHandler implements Handler<ServerWebSocket> {
                         final Subscription subscription = command.apply(receivedCommand)
                                 .subscribeOn(Schedulers.computation())
                                 .subscribe(
-                                        event -> send(serverWebSocket, event),
-                                        throwable -> send(serverWebSocket, Event.onError(throwable)),
-                                        () -> send(serverWebSocket, Event.onCompleted()));
+                                        event -> send(serverWebSocket, InternalEvent.onNext(event)),
+                                        throwable -> send(serverWebSocket, InternalEvent.onError(throwable)),
+                                        () -> send(serverWebSocket, InternalEvent.onCompleted()));
                         serverWebSocket.closeHandler(event -> subscription.unsubscribe());
                     } catch (Throwable e) {
-                        send(serverWebSocket, Event.onError(e));
+                        send(serverWebSocket, InternalEvent.onError(e));
                     }
 
                 })));
     }
 
-    private void send(ServerWebSocket ws, Event event) {
-        final byte[] bytes = Mappers.eventToBytes(event);
+    private void send(ServerWebSocket ws, InternalEvent internalEvent) {
+        final byte[] bytes = Mappers.internalEventToBytes(internalEvent);
         ws.writeBinaryMessage(Buffer.buffer(bytes));
     }
 

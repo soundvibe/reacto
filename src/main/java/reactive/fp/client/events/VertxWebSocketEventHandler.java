@@ -10,6 +10,7 @@ import reactive.fp.mappers.Mappers;
 import reactive.fp.server.handlers.WebSocketFrameHandler;
 import reactive.fp.types.Command;
 import reactive.fp.types.Event;
+import reactive.fp.internal.InternalEvent;
 import reactive.fp.types.ReactiveException;
 import reactive.fp.utils.Factories;
 import rx.Observable;
@@ -18,7 +19,8 @@ import rx.Subscriber;
 import java.net.URI;
 import java.util.Objects;
 
-import static reactive.fp.mappers.Mappers.fromBytesToEvent;
+import static reactive.fp.mappers.Mappers.fromBytesToInternalEvent;
+import static reactive.fp.mappers.Mappers.fromInternalEvent;
 
 /**
  * @author OZY on 2015.11.23.
@@ -75,7 +77,7 @@ public class VertxWebSocketEventHandler implements EventHandler {
                 .frameHandler(new WebSocketFrameHandler(buffer -> {
                     try {
                         if (!subscriber.isUnsubscribed()) {
-                            handleEvent(fromBytesToEvent(buffer.getBytes()), subscriber);
+                            handleEvent(fromBytesToInternalEvent(buffer.getBytes()), subscriber);
                         }
                     } catch (Throwable e) {
                         subscriber.onError(e);
@@ -84,14 +86,15 @@ public class VertxWebSocketEventHandler implements EventHandler {
     }
 
     @SuppressWarnings("unchecked")
-    private void handleEvent(Event event, Subscriber<? super Event> subscriber) {
-        switch (event.eventType) {
+    private void handleEvent(InternalEvent internalEvent, Subscriber<? super Event> subscriber) {
+        switch (internalEvent.eventType) {
             case NEXT: {
-                subscriber.onNext(event);
+                subscriber.onNext(fromInternalEvent(internalEvent));
                 break;
             }
             case ERROR: {
-                subscriber.onError(event.error.orElse(ReactiveException.from(new UnknownError("Unknown error from event: " + event))));
+                subscriber.onError(internalEvent.error
+                        .orElse(ReactiveException.from(new UnknownError("Unknown error from internalEvent: " + internalEvent))));
                 break;
             }
             case COMPLETED: {

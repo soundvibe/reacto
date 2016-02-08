@@ -2,8 +2,8 @@ package reactive.fp.mappers;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import reactive.fp.client.commands.Nodes;
-import reactive.fp.client.events.EventHandler;
-import reactive.fp.client.events.EventHandlers;
+import reactive.fp.client.events.*;
+import reactive.fp.internal.*;
 import reactive.fp.types.*;
 
 import java.net.URI;
@@ -15,20 +15,24 @@ import java.util.function.Function;
  */
 public interface Mappers {
 
-    static byte[] eventToBytes(Event event) {
-        return MessageMappers.toProtoBufEvent(event).toByteArray();
+    static byte[] internalEventToBytes(InternalEvent internalEvent) {
+        return MessageMappers.toProtoBufEvent(internalEvent).toByteArray();
     }
 
     static byte[] commandToBytes(Command command) {
         return MessageMappers.toProtoBufCommand(command).toByteArray();
     }
 
-    static Event fromBytesToEvent(byte[] bytes) {
+    static InternalEvent fromBytesToInternalEvent(byte[] bytes) {
         try {
-            return MessageMappers.toEvent(Messages.Event.parseFrom(bytes));
+            return MessageMappers.toInternalEvent(Messages.Event.parseFrom(bytes));
         } catch (InvalidProtocolBufferException e) {
             throw new RuntimeProtocolBufferException("Cannot deserialize event from bytes: " + new String(bytes), e);
         }
+    }
+
+    static Event fromInternalEvent(InternalEvent internalEvent) {
+        return new Event(internalEvent.name, internalEvent.metaData, internalEvent.payload);
     }
 
     static Command fromBytesToCommand(byte[] bytes) {

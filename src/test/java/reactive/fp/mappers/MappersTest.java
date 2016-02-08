@@ -2,8 +2,8 @@ package reactive.fp.mappers;
 
 import org.junit.Test;
 import reactive.fp.client.commands.Nodes;
-import reactive.fp.types.Event;
 import reactive.fp.client.events.EventHandlers;
+import reactive.fp.types.Event;
 import reactive.fp.types.Pair;
 import rx.Observable;
 

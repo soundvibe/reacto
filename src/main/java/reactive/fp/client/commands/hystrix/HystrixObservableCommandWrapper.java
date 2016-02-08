@@ -1,6 +1,9 @@
 package reactive.fp.client.commands.hystrix;
 
-import com.netflix.hystrix.*;
+import com.netflix.hystrix.HystrixCommandGroupKey;
+import com.netflix.hystrix.HystrixCommandKey;
+import com.netflix.hystrix.HystrixCommandProperties;
+import com.netflix.hystrix.HystrixObservableCommand;
 import reactive.fp.types.Command;
 import reactive.fp.types.Event;
 import rx.Observable;

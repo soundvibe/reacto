@@ -5,7 +5,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import reactive.fp.server.CommandRegistry;
 import reactive.fp.types.Command;
-import reactive.fp.types.Event;
+import reactive.fp.internal.InternalEvent;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
@@ -32,11 +32,11 @@ public class SSECommandHandler implements Handler<RoutingContext> {
                 final Subscription subscription = command.apply(receivedArgument)
                         .subscribeOn(Schedulers.computation())
                         .subscribe(
-                                sseHandler::writeEvent,
-                                throwable -> sseHandler.writeEvent(Event.onError(throwable)),
-                                () -> sseHandler.writeEvent(Event.onCompleted()));
+                                event -> sseHandler.writeEvent(InternalEvent.onNext(event)),
+                                throwable -> sseHandler.writeEvent(InternalEvent.onError(throwable)),
+                                () -> sseHandler.writeEvent(InternalEvent.onCompleted()));
             } catch (Throwable e) {
-                sseHandler.writeEvent(Event.onError(e));
+                sseHandler.writeEvent(InternalEvent.onError(e));
             }
         }));
         routingContext.response().end();

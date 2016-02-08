@@ -1,6 +1,9 @@
 package reactive.fp.types;
 
 import org.junit.Test;
+import reactive.fp.internal.MessageMappers;
+import reactive.fp.internal.Messages;
+import reactive.fp.internal.ObjectId;
 
 import java.util.Optional;
 

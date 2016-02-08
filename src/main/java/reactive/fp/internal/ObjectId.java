@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package reactive.fp.types;
+package reactive.fp.internal;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;

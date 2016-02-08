@@ -2,6 +2,8 @@ package reactive.fp.types;
 
 import com.google.protobuf.ByteString;
 import org.junit.Test;
+import reactive.fp.internal.Messages;
+import reactive.fp.internal.ObjectId;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -9,7 +11,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
-import static reactive.fp.types.Messages.Command.newBuilder;
+import static reactive.fp.internal.Messages.Command.newBuilder;
 
 /**
  * @author OZY on 2016.02.05.

@@ -1,4 +1,4 @@
-package reactive.fp.types;
+package reactive.fp.internal;
 
 import java.util.Objects;
 import java.util.function.Supplier;

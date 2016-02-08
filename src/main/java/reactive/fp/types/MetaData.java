@@ -1,10 +1,10 @@
 package reactive.fp.types;
 
+import reactive.fp.internal.Lazy;
+
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import java.util.stream.*;
 
 /**
  * @author OZY on 2016.02.05.

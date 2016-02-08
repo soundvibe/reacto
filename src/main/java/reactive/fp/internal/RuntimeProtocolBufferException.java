@@ -1,4 +1,4 @@
-package reactive.fp.types;
+package reactive.fp.internal;
 
 /**
  * @author OZY on 2016.02.05.

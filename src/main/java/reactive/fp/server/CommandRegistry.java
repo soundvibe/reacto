@@ -1,7 +1,6 @@
 package reactive.fp.server;
 
-import reactive.fp.types.Command;
-import reactive.fp.types.Event;
+import reactive.fp.types.*;
 import rx.Observable;
 
 import java.util.*;

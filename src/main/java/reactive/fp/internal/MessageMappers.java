@@ -1,10 +1,10 @@
-package reactive.fp.types;
+package reactive.fp.internal;
 
 import com.google.protobuf.ByteString;
+import reactive.fp.types.*;
 
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.stream.*;
 
 import static java.util.Optional.ofNullable;
 
@@ -24,11 +24,11 @@ public final class MessageMappers {
                 protoBufCommand.getPayload().isEmpty() ? Optional.empty() : Optional.ofNullable(protoBufCommand.getPayload().toByteArray()));
     }
 
-    public static Event toEvent(Messages.Event protoBufEvent) {
+    public static InternalEvent toInternalEvent(Messages.Event protoBufEvent) {
         final Stream<Pair> pairStream = protoBufEvent.getMetadataList().stream()
                 .map(o -> Pair.of(o.getKey(), o.getValue()));
 
-        return new Event(protoBufEvent.getName(),
+        return new InternalEvent(protoBufEvent.getName(),
                 protoBufEvent.getMetadataCount() == 0 ? Optional.empty() : Optional.of(MetaData.fromStream(pairStream)),
                 protoBufEvent.getPayload().isEmpty() ? Optional.empty() : Optional.ofNullable(protoBufEvent.getPayload().toByteArray()),
                 protoBufEvent.hasError() ?
@@ -55,22 +55,22 @@ public final class MessageMappers {
                 .build();
     }
 
-    public static Messages.Event toProtoBufEvent(Event event) {
+    public static Messages.Event toProtoBufEvent(InternalEvent internalEvent) {
         final Messages.Event.Builder eventBuilder = Messages.Event.newBuilder();
-        eventBuilder.setName(event.name);
-        eventBuilder.setEventType(Messages.EventType.valueOf(event.eventType.name()));
-        event.error.ifPresent(e -> eventBuilder.setError(Messages.Error.newBuilder()
+        eventBuilder.setName(internalEvent.name);
+        eventBuilder.setEventType(Messages.EventType.valueOf(internalEvent.eventType.name()));
+        internalEvent.error.ifPresent(e -> eventBuilder.setError(Messages.Error.newBuilder()
                 .setClassName(e.className)
                 .setErrorMessage(e.message)
                 .setStackTrace(e.stackTrace)
         ));
-        event.metaData.ifPresent(metadata -> {
+        internalEvent.metaData.ifPresent(metadata -> {
             final Messages.Metadata.Builder metaDataBuilder = Messages.Metadata.newBuilder();
             eventBuilder.addAllMetadata(metadata.stream().map(pair -> metaDataBuilder.setKey(pair.key).setValue(pair.value).build())
                     .collect(Collectors.toList()));
         });
 
-        event.payload.ifPresent(bytes -> eventBuilder.setPayload(ByteString.copyFrom(bytes)));
+        internalEvent.payload.ifPresent(bytes -> eventBuilder.setPayload(ByteString.copyFrom(bytes)));
         return eventBuilder
                 .build();
     }
