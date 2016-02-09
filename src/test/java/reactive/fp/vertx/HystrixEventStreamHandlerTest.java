@@ -18,7 +18,6 @@ import rx.Observable;
 import rx.observers.TestSubscriber;
 
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertTrue;
 
@@ -36,16 +35,7 @@ public class HystrixEventStreamHandlerTest {
         Vertx vertx = Factories.vertx();
         final Router router = Router.router(vertx);
         router.route("/test/hystrix.stream")
-                .handler(new SSEHandler(HystrixEventStreamHandler::handle, event -> {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("{");
-                    event.metaData.ifPresent(metaData -> sb.append(
-                        metaData.stream()
-                                .map(pair -> pair.key + ": \"" + pair.value + "\"")
-                                .collect(Collectors.joining(","))));
-                    sb.append("}");
-                    return sb.toString();
-                }));
+                .handler(new SSEHandler(HystrixEventStreamHandler::handle));
         vertxServer = new VertxServer(router, vertx.createHttpServer(new HttpServerOptions().setPort(8282)), "test",
                CommandRegistry.of("bla", o -> Observable.empty()));
         vertxServer.start();

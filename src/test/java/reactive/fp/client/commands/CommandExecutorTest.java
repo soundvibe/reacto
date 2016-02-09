@@ -120,8 +120,7 @@ public class CommandExecutorTest {
         mainNodeExecutor.execute(command1Arg(TEST_COMMAND, "foo"))
                 .subscribe(testSubscriber);
 
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertCompleted();
+        assertCompletedSuccessfully();
         testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
     }
 
@@ -131,9 +130,7 @@ public class CommandExecutorTest {
         mainNodeExecutor.execute(command1Arg(TEST_COMMAND_MANY, "bar"))
                 .subscribe(testSubscriber);
 
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNoErrors();
-        testSubscriber.assertCompleted();
+        assertCompletedSuccessfully();
         testSubscriber.assertValues(
                 event1Arg("1. Called command with arg: bar"),
                 event1Arg("2. Called command with arg: bar"),
@@ -146,8 +143,6 @@ public class CommandExecutorTest {
         mainNodeExecutor.execute(command1Arg(TEST_FAIL_COMMAND, "foo"))
                 .subscribe(testSubscriber);
 
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNoValues();
         assertActualHystrixError(RuntimeException.class,
                 e -> assertEquals("failed", e.getMessage()));
     }
@@ -157,9 +152,7 @@ public class CommandExecutorTest {
         mainNodeAndFallbackExecutor.execute(command1Arg(TEST_FAIL_BUT_FALLBACK_COMMAND, "foo"))
                 .subscribe(testSubscriber);
 
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNoErrors();
-        testSubscriber.assertCompleted();
+        assertCompletedSuccessfully();
         testSubscriber.assertValue(event1Arg("Recovered: foo"));
     }
 
@@ -171,9 +164,7 @@ public class CommandExecutorTest {
                 .subscribeOn(Schedulers.computation())
                 .subscribe(testSubscriber);
 
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertCompleted();
-        testSubscriber.assertNoErrors();
+        assertCompletedSuccessfully();
         List<Event> onNextEvents = testSubscriber.getOnNextEvents();
         assertEquals("Should be 4 elements", 4, onNextEvents.size());
         assertTrue(onNextEvents.contains(event1Arg("1. Called command with arg: bar")));
@@ -188,10 +179,6 @@ public class CommandExecutorTest {
         sut.execute(command1Arg(LONG_TASK, "5000"))
                 .subscribe(testSubscriber);
 
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNotCompleted();
-        testSubscriber.assertNoValues();
-
         assertActualHystrixError(TimeoutException.class,
                 e -> assertEquals("java.util.concurrent.TimeoutException", e.toString()));
     }
@@ -201,10 +188,6 @@ public class CommandExecutorTest {
         mainNodeExecutor.execute(command1Arg(LONG_TASK, "foo"))
                 .subscribe(testSubscriber);
 
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNotCompleted();
-        testSubscriber.assertNoValues();
-
         assertActualHystrixError(NumberFormatException.class,
                 e -> assertEquals("For input string: \"foo\"", e.getMessage()));
     }
@@ -213,10 +196,6 @@ public class CommandExecutorTest {
     public void shouldFailAndReceiveCustomExceptionFromCommand() throws Exception {
         mainNodeExecutor.execute(command1Arg(COMMAND_CUSTOM_ERROR, "foo"))
                 .subscribe(testSubscriber);
-
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNotCompleted();
-        testSubscriber.assertNoValues();
 
         assertActualHystrixError(CustomError.class,
                 customError -> assertEquals("foo", customError.data));
@@ -228,9 +207,7 @@ public class CommandExecutorTest {
         mainNodeExecutor.execute(Command.create(COMMAND_WITHOUT_ARGS))
                 .subscribe(testSubscriber);
 
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertCompleted();
-        testSubscriber.assertNoErrors();
+        assertCompletedSuccessfully();
         testSubscriber.assertValue(event1Arg("ok"));
     }
 
@@ -239,10 +216,6 @@ public class CommandExecutorTest {
         CommandExecutor sut = CommandExecutors.webSocket(ofMain("http://localhost:45689/foo/"));
         sut.execute(command1Arg(TEST_COMMAND, "foo"))
             .subscribe(testSubscriber);
-
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNotCompleted();
-        testSubscriber.assertNoValues();
 
         assertActualHystrixError(ConnectException.class,
                 e -> assertEquals("Connection refused: no further information: localhost/127.0.0.1:45689", e.getMessage()));
@@ -255,8 +228,7 @@ public class CommandExecutorTest {
         mainNodeExecutor.execute(command1Arg(TEST_COMMAND, commandWithHugePayload))
                 .subscribe(testSubscriber);
 
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNoErrors();
+        assertCompletedSuccessfully();
         testSubscriber.assertValue(event1Arg("Called command with arg: " + commandWithHugePayload));
     }
 
@@ -265,13 +237,21 @@ public class CommandExecutorTest {
         mainNodeExecutor.execute(Command.create("someUnknownCommand"))
                 .subscribe(testSubscriber);
 
-        testSubscriber.awaitTerminalEvent();
         assertActualHystrixError(CommandNotFound.class,
                 commandNotFound -> assertEquals("Command not found: someUnknownCommand", commandNotFound.getMessage()));
     }
 
+    private void assertCompletedSuccessfully() {
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertCompleted();
+    }
+
     @SuppressWarnings({"ThrowableResultOfMethodCallIgnored", "unchecked"})
     private <T extends Throwable> void assertActualHystrixError(Class<T> expected, Consumer<T> errorChecker) {
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNotCompleted();
+        testSubscriber.assertNoValues();
         final List<Throwable> onErrorEvents = testSubscriber.getOnErrorEvents();
         assertEquals("Should be one error", 1, onErrorEvents.size());
 
