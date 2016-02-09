@@ -11,26 +11,29 @@ import java.util.Optional;
  */
 public final class Nodes {
 
-    private final CommandNodes nodes;
+    private final String mainNode;
+    private final Optional<String> fallbackNode;
 
-    private Nodes(CommandNodes nodes) {
-        this.nodes = nodes;
+    private Nodes(String mainNode, Optional<String> fallbackNode) {
+        Objects.requireNonNull(mainNode, "Main node cannot be null");
+        this.mainNode = mainNode;
+        this.fallbackNode = fallbackNode;
     }
 
     public static Nodes ofMain(String mainNode) {
-        return new Nodes(new CommandNodes(mainNode, Optional.empty()));
+        return new Nodes(mainNode, Optional.empty());
     }
 
     public static Nodes ofMainAndFallback(String mainNode, String fallbackNode) {
-        return new Nodes(new CommandNodes(mainNode, Optional.of(fallbackNode)));
+        return new Nodes(mainNode, Optional.ofNullable(fallbackNode));
     }
 
     public URI mainURI(String commandName) {
-        return WebUtils.resolveWsURI(WebUtils.includeEndDelimiter(nodes.mainNode) + commandName);
+        return WebUtils.resolveWsURI(WebUtils.includeEndDelimiter(mainNode) + commandName);
     }
 
     public Optional<URI> fallbackURI(String commandName) {
-        return nodes.fallbackNode
+        return fallbackNode
                 .map(node -> WebUtils.includeEndDelimiter(node) + commandName)
                 .map(WebUtils::resolveWsURI);
     }
@@ -39,19 +42,21 @@ public final class Nodes {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Nodes that = (Nodes) o;
-        return Objects.equals(nodes, that.nodes);
+        Nodes nodes = (Nodes) o;
+        return Objects.equals(mainNode, nodes.mainNode) &&
+                Objects.equals(fallbackNode, nodes.fallbackNode);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(nodes);
+        return Objects.hash(mainNode, fallbackNode);
     }
 
     @Override
     public String toString() {
-        return "CommandDef{" +
-                "nodes=" + nodes +
+        return "Nodes{" +
+                "mainNode='" + mainNode + '\'' +
+                ", fallbackNode=" + fallbackNode +
                 '}';
     }
 }
