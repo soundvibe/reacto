@@ -39,4 +39,19 @@ public class MappersTest {
         assertNotNull("Main Node should be set", eventHandlers.mainNodeClient);
         assertFalse("Fallback Node should not be set", eventHandlers.fallbackNodeClient.isPresent());
     }
+
+    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
+    @Test
+    public void shouldMapExceptions() throws Exception {
+        RuntimeException exception = new RuntimeException("Not Implemented");
+        final Optional<byte[]> bytes = Mappers.exceptionToBytes(exception);
+        assertTrue(bytes.get().length > 0);
+        final Optional<Throwable> throwable = Mappers.fromBytesToException(bytes.get());
+        assertEquals(RuntimeException.class, throwable.get().getClass());
+        final String message = throwable.map(e -> (RuntimeException) e)
+                .map(Throwable::getMessage)
+                .orElse("foo");
+
+        assertEquals(exception.getMessage(), message);
+    }
 }

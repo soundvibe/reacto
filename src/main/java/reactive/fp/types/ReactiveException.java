@@ -1,8 +1,9 @@
 package reactive.fp.types;
 
+import reactive.fp.utils.Exceptions;
+
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -25,14 +26,7 @@ public class ReactiveException extends RuntimeException {
     public static ReactiveException from(Throwable throwable) {
         return new ReactiveException(throwable.getClass().getName(),
                 throwable.getMessage() == null ? throwable.toString() : throwable.getMessage(),
-                getStackTrace(throwable));
-    }
-
-    private static String getStackTrace(Throwable throwable) {
-        final StringWriter sw = new StringWriter();
-        final PrintWriter pw = new PrintWriter(sw);
-        throwable.printStackTrace(pw);
-        return sw.toString();
+                Exceptions.getStackTrace(throwable));
     }
 
     @Override

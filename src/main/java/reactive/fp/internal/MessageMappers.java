@@ -1,7 +1,9 @@
 package reactive.fp.internal;
 
 import com.google.protobuf.ByteString;
+import reactive.fp.mappers.Mappers;
 import reactive.fp.types.*;
+import reactive.fp.utils.Exceptions;
 
 import java.util.Optional;
 import java.util.stream.*;
@@ -28,15 +30,30 @@ public final class MessageMappers {
         final Stream<Pair> pairStream = protoBufEvent.getMetadataList().stream()
                 .map(o -> Pair.of(o.getKey(), o.getValue()));
 
+        final EventType eventType = ofNullable(protoBufEvent.getEventType())
+                .map(et -> EventType.valueOf(et.name())).orElse(EventType.ERROR);
+
+        final Optional<Throwable> error = eventType == EventType.ERROR ?
+                parseException(protoBufEvent) :
+                Optional.empty();
+
         return new InternalEvent(protoBufEvent.getName(),
                 protoBufEvent.getMetadataCount() == 0 ? Optional.empty() : Optional.of(MetaData.fromStream(pairStream)),
                 protoBufEvent.getPayload().isEmpty() ? Optional.empty() : Optional.ofNullable(protoBufEvent.getPayload().toByteArray()),
-                protoBufEvent.hasError() ?
-                        ofNullable(protoBufEvent.getError())
-                            .map(error -> new ReactiveException(error.getClassName(), error.getErrorMessage(), error.getStackTrace())):
-                        Optional.empty(),
-                ofNullable(protoBufEvent.getEventType())
-                        .map(eventType -> EventType.valueOf(eventType.name())).orElse(EventType.ERROR));
+                error,
+                eventType);
+    }
+
+    private static Optional<Throwable> parseException(Messages.Event protoBufEvent) {
+        final Optional<Throwable> e = !protoBufEvent.getPayload().isEmpty() ?
+                Mappers.fromBytesToException(protoBufEvent.getPayload().toByteArray()) :
+                Optional.empty();
+
+        if (!e.isPresent()) {
+            return Optional.ofNullable(protoBufEvent.getError())
+                    .map(error -> new ReactiveException(error.getClassName(), error.getErrorMessage(), error.getStackTrace()));
+        }
+        return e;
     }
 
     public static Messages.Command toProtoBufCommand(Command command) {
@@ -60,9 +77,9 @@ public final class MessageMappers {
         eventBuilder.setName(internalEvent.name);
         eventBuilder.setEventType(Messages.EventType.valueOf(internalEvent.eventType.name()));
         internalEvent.error.ifPresent(e -> eventBuilder.setError(Messages.Error.newBuilder()
-                .setClassName(e.className)
-                .setErrorMessage(e.message)
-                .setStackTrace(e.stackTrace)
+                .setClassName(e.getClass().getName())
+                .setErrorMessage(e.getMessage())
+                .setStackTrace(Exceptions.getStackTrace(e))
         ));
         internalEvent.metaData.ifPresent(metadata -> {
             final Messages.Metadata.Builder metaDataBuilder = Messages.Metadata.newBuilder();

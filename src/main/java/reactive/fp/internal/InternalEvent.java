@@ -1,5 +1,6 @@
 package reactive.fp.internal;
 
+import reactive.fp.mappers.Mappers;
 import reactive.fp.types.*;
 
 import java.util.*;
@@ -14,22 +15,22 @@ public final class InternalEvent implements Message {
     public final Optional<MetaData> metaData;
     public final Optional<byte[]> payload;
     public final EventType eventType;
-    public final Optional<ReactiveException> error;
+    public final Optional<Throwable> error;
 
     InternalEvent(String name, Optional<MetaData> metaData, Optional<byte[]> payload, Optional<Throwable> error, EventType eventType) {
         this.name = name;
         this.metaData = metaData;
         this.payload = payload;
         this.eventType = eventType;
-        this.error = error.map(ReactiveException::from);
+        this.error = error;
     }
 
     private InternalEvent(Throwable error) {
         this.name = "error";
-        this.metaData = Optional.empty();
-        this.payload = Optional.empty();
         this.eventType = EventType.ERROR;
-        this.error = Optional.ofNullable(error).map(ReactiveException::from);
+        this.metaData = Optional.empty();
+        this.error = Optional.ofNullable(error);
+        this.payload = this.error.flatMap(Mappers::exceptionToBytes);
     }
 
     public static InternalEvent onNext(Event event) {
