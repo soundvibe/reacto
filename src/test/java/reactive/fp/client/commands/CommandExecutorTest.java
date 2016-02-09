@@ -9,9 +9,13 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import reactive.TestUtils.models.CustomError;
+import reactive.fp.client.errors.CommandNotFound;
 import reactive.fp.server.CommandRegistry;
 import reactive.fp.server.VertxServer;
-import reactive.fp.types.*;
+import reactive.fp.types.Command;
+import reactive.fp.types.Event;
+import reactive.fp.types.MetaData;
+import reactive.fp.types.Pair;
 import reactive.fp.utils.Factories;
 import rx.Observable;
 import rx.observers.TestSubscriber;
@@ -19,6 +23,8 @@ import rx.schedulers.Schedulers;
 
 import java.net.ConnectException;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -135,7 +141,6 @@ public class CommandExecutorTest {
         );
     }
 
-    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldMainFailAndNoFallbackAvailable() throws Exception {
         mainNodeExecutor.execute(command1Arg(TEST_FAIL_COMMAND, "foo"))
@@ -143,11 +148,8 @@ public class CommandExecutorTest {
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoValues();
-        List<Throwable> errors = testSubscriber.getOnErrorEvents();
-        assertEquals("Should be one error", 1, errors.size());
-        Throwable throwable = errors.get(0);
-        assertEquals("Error message should be failed", "testFail$ failed and fallback disabled.", throwable.getMessage());
-        assertEquals("Should be HystrixRuntimeException", HystrixRuntimeException.class, throwable.getClass());
+        assertActualHystrixError(RuntimeException.class,
+                e -> assertEquals("failed", e.getMessage()));
     }
 
     @Test
@@ -189,10 +191,11 @@ public class CommandExecutorTest {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNotCompleted();
         testSubscriber.assertNoValues();
-        testSubscriber.assertError(HystrixRuntimeException.class);
+
+        assertActualHystrixError(TimeoutException.class,
+                e -> assertEquals("java.util.concurrent.TimeoutException", e.toString()));
     }
 
-    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldFailWhenCommandIsInvokedWithInvalidArgument() throws Exception {
         mainNodeExecutor.execute(command1Arg(LONG_TASK, "foo"))
@@ -201,12 +204,11 @@ public class CommandExecutorTest {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNotCompleted();
         testSubscriber.assertNoValues();
-        testSubscriber.assertError(HystrixRuntimeException.class);
-        final Throwable actualError = testSubscriber.getOnErrorEvents().get(0).getCause();
-        assertEquals(NumberFormatException.class, actualError.getClass());
+
+        assertActualHystrixError(NumberFormatException.class,
+                e -> assertEquals("For input string: \"foo\"", e.getMessage()));
     }
 
-    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldFailAndReceiveCustomExceptionFromCommand() throws Exception {
         mainNodeExecutor.execute(command1Arg(COMMAND_CUSTOM_ERROR, "foo"))
@@ -215,10 +217,9 @@ public class CommandExecutorTest {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNotCompleted();
         testSubscriber.assertNoValues();
-        testSubscriber.assertError(HystrixRuntimeException.class);
-        final Throwable actualError = testSubscriber.getOnErrorEvents().get(0).getCause();
-        assertEquals(CustomError.class, actualError.getClass());
-        assertEquals("foo", ((CustomError) actualError).data);
+
+        assertActualHystrixError(CustomError.class,
+                customError -> assertEquals("foo", customError.data));
     }
 
 
@@ -233,7 +234,6 @@ public class CommandExecutorTest {
         testSubscriber.assertValue(event1Arg("ok"));
     }
 
-    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldFailWhenCommandExecutorIsInaccessible() throws Exception {
         CommandExecutor sut = CommandExecutors.webSocket(ofMain("http://localhost:45689/foo/"));
@@ -241,11 +241,11 @@ public class CommandExecutorTest {
             .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
-        List<Throwable> onErrorEvents = testSubscriber.getOnErrorEvents();
-        assertEquals(ConnectException.class, onErrorEvents.get(0).getCause().getClass());
         testSubscriber.assertNotCompleted();
         testSubscriber.assertNoValues();
-        testSubscriber.assertError(HystrixRuntimeException.class);
+
+        assertActualHystrixError(ConnectException.class,
+                e -> assertEquals("Connection refused: no further information: localhost/127.0.0.1:45689", e.getMessage()));
     }
 
     @Test
@@ -258,6 +258,28 @@ public class CommandExecutorTest {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
         testSubscriber.assertValue(event1Arg("Called command with arg: " + commandWithHugePayload));
+    }
+
+    @Test
+    public void shouldFailWithCommandNotFoundWhenCommandIsNotAvailableOnTheServer() throws Exception {
+        mainNodeExecutor.execute(Command.create("someUnknownCommand"))
+                .subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        assertActualHystrixError(CommandNotFound.class,
+                commandNotFound -> assertEquals("Command not found: someUnknownCommand", commandNotFound.getMessage()));
+    }
+
+    @SuppressWarnings({"ThrowableResultOfMethodCallIgnored", "unchecked"})
+    private <T extends Throwable> void assertActualHystrixError(Class<T> expected, Consumer<T> errorChecker) {
+        final List<Throwable> onErrorEvents = testSubscriber.getOnErrorEvents();
+        assertEquals("Should be one error", 1, onErrorEvents.size());
+
+        final Throwable throwable = onErrorEvents.get(0);
+        assertEquals("Should be HystrixRuntimeException", HystrixRuntimeException.class, throwable.getClass());
+        final Throwable actualCause = throwable.getCause();
+        assertEquals(expected, actualCause.getClass());
+        errorChecker.accept((T) actualCause);
     }
 
     private static String createDataSize(int msgSize) {
