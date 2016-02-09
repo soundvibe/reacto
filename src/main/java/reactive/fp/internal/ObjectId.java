@@ -16,9 +16,6 @@
 
 package reactive.fp.internal;
 
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import java.io.Serializable;
 import java.net.NetworkInterface;
 import java.nio.BufferUnderflowException;
@@ -301,7 +298,6 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
      *
      * @return the Date
      */
-    @JsonIgnore
     public Date getDate() {
         return new Date(timestamp * 1000L);
     }
