@@ -19,6 +19,46 @@ public final class MetaData implements Iterable<Pair> {
         this.mapCache = mapSupplier(entries);
     }
 
+    public static MetaData of(String key, String value) {
+        return MetaData.from(Pair.of(key, value));
+    }
+
+    public static MetaData of(String key1, String value1, String key2, String value2) {
+        return MetaData.from(Pair.of(key1, value1), Pair.of(key2, value2));
+    }
+
+    public static MetaData of(String key1, String value1, String key2, String value2, String key3, String value3) {
+        return MetaData.from(Pair.of(key1, value1), Pair.of(key2, value2), Pair.of(key3, value3));
+    }
+
+    public static MetaData of(String key1, String value1, String key2, String value2, String key3, String value3, String key4, String value4) {
+        return MetaData.from(Pair.of(key1, value1), Pair.of(key2, value2), Pair.of(key3, value3), Pair.of(key4, value4));
+    }
+
+    public static MetaData of(String key1, String value1, String key2, String value2, String key3, String value3, String key4, String value4,
+                              String key5, String value5) {
+        return MetaData.from(Pair.of(key1, value1), Pair.of(key2, value2), Pair.of(key3, value3), Pair.of(key4, value4),
+                Pair.of(key5, value5));
+    }
+
+    public static MetaData of(String key1, String value1, String key2, String value2, String key3, String value3, String key4, String value4,
+                                   String key5, String value5, String key6, String value6) {
+        return MetaData.from(Pair.of(key1, value1), Pair.of(key2, value2), Pair.of(key3, value3), Pair.of(key4, value4),
+                Pair.of(key5, value5), Pair.of(key6, value6));
+    }
+
+    public static MetaData of(String key1, String value1, String key2, String value2, String key3, String value3, String key4, String value4,
+                              String key5, String value5, String key6, String value6, String key7, String value7) {
+        return MetaData.from(Pair.of(key1, value1), Pair.of(key2, value2), Pair.of(key3, value3), Pair.of(key4, value4),
+                Pair.of(key5, value5), Pair.of(key6, value6), Pair.of(key7, value7));
+    }
+
+    public static MetaData of(String key1, String value1, String key2, String value2, String key3, String value3, String key4, String value4,
+                              String key5, String value5, String key6, String value6, String key7, String value7, String key8, String value8) {
+        return MetaData.from(Pair.of(key1, value1), Pair.of(key2, value2), Pair.of(key3, value3), Pair.of(key4, value4),
+                Pair.of(key5, value5), Pair.of(key6, value6), Pair.of(key7, value7), Pair.of(key8, value8));
+    }
+
     public static MetaData from(Pair... pairs) {
         return new MetaData(Arrays.asList(pairs));
     }

@@ -39,12 +39,10 @@ public class HystrixEventStreamHandlerTest {
                 .handler(new SSEHandler(HystrixEventStreamHandler::handle, event -> {
                     StringBuilder sb = new StringBuilder();
                     sb.append("{");
-                    event.metaData.ifPresent(metaData -> {
-                        sb.append(
-                            metaData.stream()
-                                    .map(pair -> pair.key + ": \"" + pair.value + "\"")
-                                    .collect(Collectors.joining(",")));
-                        });
+                    event.metaData.ifPresent(metaData -> sb.append(
+                        metaData.stream()
+                                .map(pair -> pair.key + ": \"" + pair.value + "\"")
+                                .collect(Collectors.joining(","))));
                     sb.append("}");
                     return sb.toString();
                 }));

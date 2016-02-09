@@ -31,16 +31,16 @@ import static reactive.fp.client.commands.Nodes.ofMainAndFallback;
  */
 public class CommandExecutorTest {
 
-    public static final String TEST_COMMAND = "test";
-    public static final String TEST_COMMAND_MANY = "testMany";
-    public static final String TEST_FAIL_COMMAND = "testFail";
-    public static final String TEST_FAIL_BUT_FALLBACK_COMMAND = "testFailFallback";
-    public static final String LONG_TASK = "longTask";
-    public static final String COMMAND_WITHOUT_ARGS = "argLessCommand";
-    public static final String COMMAND_CUSTOM_ERROR = "commandCustomError";
+    private static final String TEST_COMMAND = "test";
+    private static final String TEST_COMMAND_MANY = "testMany";
+    private static final String TEST_FAIL_COMMAND = "testFail";
+    private static final String TEST_FAIL_BUT_FALLBACK_COMMAND = "testFailFallback";
+    private static final String LONG_TASK = "longTask";
+    private static final String COMMAND_WITHOUT_ARGS = "argLessCommand";
+    private static final String COMMAND_CUSTOM_ERROR = "commandCustomError";
 
-    public static final String MAIN_NODE = "http://localhost:8282/dist/";
-    public static final String FALLBACK_NODE = "http://localhost:8383/distFallback/";
+    private static final String MAIN_NODE = "http://localhost:8282/dist/";
+    private static final String FALLBACK_NODE = "http://localhost:8383/distFallback/";
 
 
     private static VertxServer vertxServer;
@@ -102,7 +102,7 @@ public class CommandExecutorTest {
     }
 
     private static Event event1Arg(String value) {
-        return Event.create("testEvent", Pair.of("arg", value));
+        return Event.create("testEvent", MetaData.of("arg", value));
     }
 
     private static Command command1Arg(String name, String value) {
@@ -252,7 +252,7 @@ public class CommandExecutorTest {
     public void shouldExecuteHugeCommandEntity() throws Exception {
         String commandWithHugePayload = createDataSize(100_000);
 
-        mainNodeExecutor.execute( command1Arg(TEST_COMMAND, commandWithHugePayload))
+        mainNodeExecutor.execute(command1Arg(TEST_COMMAND, commandWithHugePayload))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();

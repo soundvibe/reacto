@@ -3,12 +3,18 @@ package reactive.fp.server.handlers;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.ServerWebSocket;
+import reactive.fp.client.errors.CommandNotFound;
+import reactive.fp.internal.InternalEvent;
 import reactive.fp.mappers.Mappers;
 import reactive.fp.server.CommandRegistry;
 import reactive.fp.types.Command;
-import reactive.fp.internal.InternalEvent;
+import reactive.fp.types.Event;
+import rx.Observable;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
+
+import java.util.Optional;
+import java.util.function.Function;
 
 import static reactive.fp.mappers.Mappers.fromBytesToCommand;
 
@@ -26,7 +32,9 @@ public class WebSocketHandler implements Handler<ServerWebSocket> {
     @Override
     public void handle(ServerWebSocket serverWebSocket) {
         serverWebSocket.setWriteQueueMaxSize(Integer.MAX_VALUE);
-        commands.findCommand(getCommandNameFrom(serverWebSocket.path())).ifPresent(command ->
+        final String commandName = getCommandNameFrom(serverWebSocket.path());
+        final Optional<Function<Command, Observable<Event>>> commandMaybe = commands.findCommand(commandName);
+        commandMaybe.ifPresent(command ->
                 serverWebSocket.frameHandler(new WebSocketFrameHandler(buffer -> {
                     try {
                         Command receivedCommand = fromBytesToCommand(buffer.getBytes());
@@ -42,6 +50,9 @@ public class WebSocketHandler implements Handler<ServerWebSocket> {
                     }
 
                 })));
+        if (!commandMaybe.isPresent()) {
+            send(serverWebSocket, InternalEvent.onError(new CommandNotFound(commandName)));
+        }
     }
 
     private void send(ServerWebSocket ws, InternalEvent internalEvent) {

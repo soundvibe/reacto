@@ -1,6 +1,7 @@
 package reactive.fp.mappers;
 
 import org.junit.Test;
+import reactive.TestUtils.models.CustomError;
 import reactive.fp.client.commands.Nodes;
 import reactive.fp.client.events.EventHandlers;
 import reactive.fp.types.Event;
@@ -43,13 +44,13 @@ public class MappersTest {
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
     public void shouldMapExceptions() throws Exception {
-        RuntimeException exception = new RuntimeException("Not Implemented");
+        CustomError exception = new CustomError("Not Implemented");
         final Optional<byte[]> bytes = Mappers.exceptionToBytes(exception);
         assertTrue(bytes.get().length > 0);
         final Optional<Throwable> throwable = Mappers.fromBytesToException(bytes.get());
-        assertEquals(RuntimeException.class, throwable.get().getClass());
-        final String message = throwable.map(e -> (RuntimeException) e)
-                .map(Throwable::getMessage)
+        assertEquals(CustomError.class, throwable.get().getClass());
+        final String message = throwable.map(e -> (CustomError) e)
+                .map(customError -> customError.data)
                 .orElse("foo");
 
         assertEquals(exception.getMessage(), message);
