@@ -8,23 +8,23 @@ import reactive.fp.types.Event;
 import rx.Observable;
 
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * @author OZY on 2015.11.13.
  */
 public class HystrixCommandExecutor implements CommandExecutor {
 
-    private final Function<String, Optional<EventHandlers>> eventHandlers;
+    private final Supplier<Optional<EventHandlers>> eventHandlers;
 
-    public HystrixCommandExecutor(Function<String, Optional<EventHandlers>> eventHandlers) {
+    public HystrixCommandExecutor(Supplier<Optional<EventHandlers>> eventHandlers) {
         this.eventHandlers = eventHandlers;
     }
 
 
     @Override
     public Observable<Event> execute(Command command) {
-        return eventHandlers.apply(command.name)
+        return eventHandlers.get()
                 .map(eventHandlers -> new HystrixDistributedObservableCommand(command, eventHandlers, false, 0)
                         .toObservable())
                 .orElse(Observable.error(new CannotConnectToWebSocket("Cannot connect to ws of command: " + command)));

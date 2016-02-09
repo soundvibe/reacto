@@ -10,6 +10,7 @@ import java.io.*;
 import java.net.URI;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * @author Linas on 2015.10.25.
@@ -64,12 +65,12 @@ public interface Mappers {
         }
     }
 
-    static Function<String, Optional<EventHandlers>> mapToEventHandlers(Nodes nodes,
-                                                      Function<URI, EventHandler> eventHandlerFactory) {
-        return  commandName -> Optional.ofNullable(nodes.mainURI(commandName))
+    static Supplier<Optional<EventHandlers>> mapToEventHandlers(Nodes nodes,
+                                                               Function<URI, EventHandler> eventHandlerFactory) {
+        return () -> Optional.ofNullable(nodes.mainURI())
                 .map(eventHandlerFactory::apply)
                 .map(mainEventHandler -> new EventHandlers(mainEventHandler, Optional.empty()))
-                .map(eventHandlers -> nodes.fallbackURI(commandName)
+                .map(eventHandlers -> nodes.fallbackURI()
                         .map(eventHandlerFactory::apply)
                         .map(eventHandlers::copy)
                         .orElse(eventHandlers));

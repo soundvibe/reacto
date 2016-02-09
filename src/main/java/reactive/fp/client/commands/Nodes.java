@@ -28,13 +28,13 @@ public final class Nodes {
         return new Nodes(mainNode, Optional.ofNullable(fallbackNode));
     }
 
-    public URI mainURI(String commandName) {
-        return WebUtils.resolveWsURI(WebUtils.includeEndDelimiter(mainNode) + commandName);
+    public URI mainURI() {
+        return WebUtils.resolveWsURI(WebUtils.includeEndDelimiter(mainNode));
     }
 
-    public Optional<URI> fallbackURI(String commandName) {
+    public Optional<URI> fallbackURI() {
         return fallbackNode
-                .map(node -> WebUtils.includeEndDelimiter(node) + commandName)
+                .map(WebUtils::includeEndDelimiter)
                 .map(WebUtils::resolveWsURI);
     }
 

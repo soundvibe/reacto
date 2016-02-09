@@ -3,7 +3,8 @@ package reactive.fp.server;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import reactive.fp.server.handlers.WebSocketHandler;
+import reactive.fp.server.handlers.CommandHandler;
+import reactive.fp.server.handlers.WebSocketCommandHandler;
 
 import java.util.Objects;
 
@@ -45,7 +46,7 @@ public class VertxServer implements Server {
 
     private void setupRoutes() {
         router.route().handler(BodyHandler.create());
-        httpServer.websocketHandler(new WebSocketHandler(commands));
+        httpServer.websocketHandler(new WebSocketCommandHandler(new CommandHandler(commands)));
         /*router.route(root() + "hystrix.stream")
                 .handler(new SSEHandler(HystrixEventStreamHandler::handle, jsonMapper));*/
         /*router.route(root() + "sse.stream")
