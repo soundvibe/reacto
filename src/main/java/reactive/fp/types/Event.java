@@ -1,62 +1,79 @@
 package reactive.fp.types;
 
-import com.fasterxml.jackson.annotation.JsonRootName;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import rx.Observable;
 
-import java.io.Serializable;
-import java.util.Objects;
+import java.util.*;
 
 /**
- * @author Linas on 2015.11.13.
+ * @author OZY on 2016.02.08.
  */
-@JsonRootName("event")
-public class Event<T> implements Serializable, Message<T> {
+public final class Event {
 
-    @JsonTypeInfo(use=JsonTypeInfo.Id.CLASS, include=JsonTypeInfo.As.PROPERTY, property="@class")
-    public final T payload;
-    public final EventType eventType;
+    public final String name;
+    public final Optional<MetaData> metaData;
+    public final Optional<byte[]> payload;
 
-    private Event() {
-        this.payload = null;
-        this.eventType = EventType.NEXT;
-    }
-
-    protected Event(T payload, EventType eventType) {
+    Event(String name, Optional<MetaData> metaData, Optional<byte[]> payload) {
+        this.name = name;
+        this.metaData = metaData;
         this.payload = payload;
-        this.eventType = eventType;
     }
 
-    public static <T> Event<T> onNext(T payload) {
-        return new Event<>(payload, EventType.NEXT);
+    public String get(String key) {
+        return metaData.map(pairs -> pairs.get(key)).orElse(null);
     }
 
-    public static Event<Throwable> onError(Throwable throwable) {
-        return new Event<>(throwable, EventType.ERROR);
+    public Optional<String> valueOf(String key) {
+        return metaData.flatMap(pairs -> pairs.valueOf(key));
     }
 
-    public static <T> Event<T> onCompleted(T payload) {
-        return new Event<>(payload, EventType.COMPLETED);
+    public Observable<Event> toObservable() {
+        return Observable.just(this);
+    }
+
+    @SafeVarargs
+    public static Event create(String name, Pair<String, String>... metaDataPairs) {
+        return new Event(name, Optional.of(MetaData.from(metaDataPairs)), Optional.empty());
+    }
+
+    public static Event create(String name, MetaData metaData) {
+        return new Event(name, Optional.ofNullable(metaData), Optional.empty());
+    }
+
+    public static Event create(String name, byte[] payload) {
+        return new Event(name, Optional.empty(), Optional.ofNullable(payload));
+    }
+
+    public static Event create(String name, MetaData metaData, byte[] payload) {
+        return new Event(name, Optional.ofNullable(metaData), Optional.ofNullable(payload));
+    }
+
+    public static Event create(String name, Optional<MetaData> metaData, Optional<byte[]> payload) {
+        return new Event(name, metaData, payload);
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Event<?> event = (Event<?>) o;
-        return Objects.equals(payload, event.payload) &&
-                eventType == event.eventType;
+        Event event = (Event) o;
+        return Objects.equals(name, event.name) &&
+                Objects.equals(metaData, event.metaData) &&
+                Objects.equals(payload, event.payload);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(payload, eventType);
+        return Objects.hash(name, metaData, payload);
     }
 
     @Override
     public String toString() {
         return "Event{" +
-                "payload=" + payload +
-                ", eventType=" + eventType +
+                "name='" + name + '\'' +
+                ", metaData=" + metaData +
+                ", payload=" + payload +
                 '}';
     }
+
 }

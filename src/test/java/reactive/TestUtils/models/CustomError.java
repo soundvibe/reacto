@@ -11,4 +11,8 @@ public class CustomError extends RuntimeException {
         this.data = data;
     }
 
+    @Override
+    public String getMessage() {
+        return data;
+    }
 }

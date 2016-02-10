@@ -1,40 +1,45 @@
 package reactive.fp.server;
 
+import reactive.fp.types.*;
 import rx.Observable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.*;
+import java.util.function.Function;
+import java.util.stream.*;
 
 /**
  * @author Linas on 2015.11.12.
  */
-public final class CommandRegistry {
+public final class CommandRegistry implements Iterable<Pair<String, Function<Command, Observable<Event>>>> {
 
-    private final Map<String, Function<Object, Observable<?>>> commands = new ConcurrentHashMap<>();
+    private final Map<String, Function<Command, Observable<Event>>> commands = new ConcurrentHashMap<>();
 
     private CommandRegistry() {
-        //
+        //hide constructor
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> CommandRegistry and(String commandName, Function<T, Observable<?>> onInvoke) {
+    public CommandRegistry and(String commandName, Function<Command, Observable<Event>> onInvoke) {
         Objects.requireNonNull(commandName, "Command name cannot be null");
         Objects.requireNonNull(onInvoke, "onInvoke cannot be null");
-        commands.put(commandName, onInvoke.compose(o -> (T) o));
+        commands.put(commandName, onInvoke.compose(o -> o));
         return this;
     }
 
-    public static <T> CommandRegistry of(String commandName, Function<T, Observable<?>> onInvoke) {
+    public static CommandRegistry of(String commandName, Function<Command, Observable<Event>> onInvoke) {
         return new CommandRegistry().and(commandName, onInvoke);
     }
 
-    public Optional<Function<Object, Observable<?>>> findCommand(String address) {
+    public Optional<Function<Command, Observable<Event>>> findCommand(String address) {
         return Optional.ofNullable(commands.get(address));
     }
 
-    public void foreach(Consumer<String> consumer) {
-        commands.keySet().forEach(consumer);
+    public Stream<Pair<String, Function<Command, Observable<Event>>>> stream() {
+        return StreamSupport.stream(spliterator(), false);
+    }
+
+    public Stream<Pair<String, Function<Command, Observable<Event>>>> parallelStream() {
+        return StreamSupport.stream(spliterator(), true);
     }
 
     @Override
@@ -44,4 +49,20 @@ public final class CommandRegistry {
                 '}';
     }
 
+    @Override
+    public Iterator<Pair<String, Function<Command, Observable<Event>>>> iterator() {
+        final Iterator<Map.Entry<String, Function<Command, Observable<Event>>>> entryIterator = commands.entrySet().iterator();
+        return new Iterator<Pair<String, Function<Command, Observable<Event>>>>() {
+            @Override
+            public boolean hasNext() {
+                return entryIterator.hasNext();
+            }
+
+            @Override
+            public Pair<String, Function<Command, Observable<Event>>> next() {
+                final Map.Entry<String, Function<Command, Observable<Event>>> entry = entryIterator.next();
+                return Pair.of(entry.getKey(), entry.getValue());
+            }
+        };
+    }
 }

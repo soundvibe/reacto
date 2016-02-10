@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-package reactive.fp.types;
-
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
+package reactive.fp.internal;
 
 import java.io.Serializable;
 import java.net.NetworkInterface;
@@ -301,7 +298,6 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
      *
      * @return the Date
      */
-    @JsonIgnore
     public Date getDate() {
         return new Date(timestamp * 1000L);
     }

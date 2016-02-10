@@ -1,17 +1,19 @@
 package reactive.fp.client.commands;
 
+import reactive.fp.types.Command;
+import reactive.fp.types.Event;
 import rx.Observable;
 
 /**
  * @author OZY on 2015.11.13.
  */
-public interface CommandExecutor<T, U> {
+public interface CommandExecutor {
 
     /**
      * Executes command without execution timeout
-     * @param arg command argument
+     * @param command argument
      * @return event observable
      */
-    Observable<U> execute(final T arg);
+    Observable<Event> execute(final Command command);
 
 }

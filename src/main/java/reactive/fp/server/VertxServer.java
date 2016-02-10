@@ -2,11 +2,10 @@ package reactive.fp.server;
 
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.handler.BodyHandler;
+import reactive.fp.server.handlers.CommandHandler;
 import reactive.fp.server.handlers.HystrixEventStreamHandler;
-import reactive.fp.server.handlers.SSECommandHandler;
 import reactive.fp.server.handlers.SSEHandler;
-import reactive.fp.server.handlers.WebSocketHandler;
+import reactive.fp.server.handlers.WebSocketCommandHandler;
 
 import java.util.Objects;
 
@@ -22,7 +21,6 @@ public class VertxServer implements Server {
     private final CommandRegistry commands;
     private final HttpServer httpServer;
     private final Router router;
-    private final SSEHandler sseStreamHandler = new SSEHandler(response -> {});
 
     public VertxServer(Router router, HttpServer httpServer, String root, CommandRegistry commands) {
         Objects.requireNonNull(router, "Router cannot be null");
@@ -47,18 +45,13 @@ public class VertxServer implements Server {
     }
 
     private void setupRoutes() {
-        router.route().handler(BodyHandler.create());
-        httpServer.websocketHandler(new WebSocketHandler(commands));
+        httpServer.websocketHandler(new WebSocketCommandHandler(new CommandHandler(commands)));
         router.route(root() + "hystrix.stream")
                 .handler(new SSEHandler(HystrixEventStreamHandler::handle));
-        router.route(root() + "sse.stream")
-                .handler(sseStreamHandler);
-        router.route(root() + "sse.command")
-                .handler(new SSECommandHandler(sseStreamHandler, commands));
         httpServer.requestHandler(router::accept);
     }
 
     private String root() {
         return includeEndDelimiter(includeStartDelimiter(root));
     }
-    }
+}
