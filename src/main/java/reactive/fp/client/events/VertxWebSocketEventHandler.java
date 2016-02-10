@@ -6,11 +6,12 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.WebSocket;
 import io.vertx.core.http.WebSocketStream;
+import reactive.fp.client.errors.ConnectionClosedUnexpectedly;
+import reactive.fp.internal.InternalEvent;
 import reactive.fp.mappers.Mappers;
 import reactive.fp.server.handlers.WebSocketFrameHandler;
 import reactive.fp.types.Command;
 import reactive.fp.types.Event;
-import reactive.fp.internal.InternalEvent;
 import reactive.fp.types.ReactiveException;
 import reactive.fp.utils.Factories;
 import rx.Observable;
@@ -45,7 +46,8 @@ public class VertxWebSocketEventHandler implements EventHandler {
 
     private Observable<Event> webSocketStreamObservable(HttpClient httpClient, Command command) {
         try {
-            final WebSocketStream webSocketStream = httpClient.websocketStream(getPortFromURI(wsUrl), wsUrl.getHost(), wsUrl.getPath());
+            final WebSocketStream webSocketStream = httpClient
+                    .websocketStream(getPortFromURI(wsUrl), wsUrl.getHost(), wsUrl.getPath());
             return observe(webSocketStream, command);
         } catch (Throwable e) {
             return Observable.error(e);
@@ -59,7 +61,12 @@ public class VertxWebSocketEventHandler implements EventHandler {
                         .exceptionHandler(subscriber::onError)
                         .handler(webSocket -> {
                             try {
-                                webSocket.setWriteQueueMaxSize(Integer.MAX_VALUE);
+                                webSocket.setWriteQueueMaxSize(Integer.MAX_VALUE).closeHandler(__ -> {
+                                    if (!subscriber.isUnsubscribed()) {
+                                        subscriber.onError(new ConnectionClosedUnexpectedly(
+                                                "WebSocket connection closed without completion for command: " + command));
+                                    }
+                                }).exceptionHandler(subscriber::onError);
                                 sendCommandToExecutor(command, webSocket);
                                 checkForEvents(webSocket, subscriber);
                             } catch (Throwable e) {
@@ -106,7 +113,7 @@ public class VertxWebSocketEventHandler implements EventHandler {
 
     private int getPortFromURI(URI uri) {
         return uri.getPort() == -1 ?
-                80:
+                80 :
                 uri.getPort();
     }
 

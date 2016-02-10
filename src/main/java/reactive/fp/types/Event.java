@@ -31,6 +31,10 @@ public final class Event {
         return Observable.just(this);
     }
 
+    public static Event create(String name) {
+        return new Event(name, Optional.empty(), Optional.empty());
+    }
+
     @SafeVarargs
     public static Event create(String name, Pair<String, String>... metaDataPairs) {
         return new Event(name, Optional.of(MetaData.from(metaDataPairs)), Optional.empty());

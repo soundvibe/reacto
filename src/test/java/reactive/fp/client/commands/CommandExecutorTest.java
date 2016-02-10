@@ -10,6 +10,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import reactive.TestUtils.models.CustomError;
 import reactive.fp.client.errors.CommandNotFound;
+import reactive.fp.client.errors.ConnectionClosedUnexpectedly;
 import reactive.fp.server.CommandRegistry;
 import reactive.fp.server.VertxServer;
 import reactive.fp.types.Command;
@@ -23,6 +24,7 @@ import rx.schedulers.Schedulers;
 
 import java.net.ConnectException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
@@ -44,11 +46,12 @@ public class CommandExecutorTest {
     private static final String LONG_TASK = "longTask";
     private static final String COMMAND_WITHOUT_ARGS = "argLessCommand";
     private static final String COMMAND_CUSTOM_ERROR = "commandCustomError";
+    private static final String COMMAND_EMIT_AND_FAIL = "emitAndFail";
 
     private static final String MAIN_NODE = "http://localhost:8282/dist/";
     private static final String FALLBACK_NODE = "http://localhost:8383/distFallback/";
 
-
+    private static HttpServer mainHttpServer;
     private static VertxServer vertxServer;
     private static VertxServer fallbackVertxServer;
 
@@ -70,6 +73,14 @@ public class CommandExecutorTest {
                 .and(TEST_FAIL_BUT_FALLBACK_COMMAND, o -> Observable.error(new RuntimeException("failed")))
                 .and(COMMAND_WITHOUT_ARGS, o -> event1Arg("ok").toObservable())
                 .and(COMMAND_CUSTOM_ERROR, o -> Observable.error(new CustomError(o.get("arg"))))
+                .and(COMMAND_EMIT_AND_FAIL, command -> Observable.create(subscriber -> {
+                    subscriber.onNext(Event.create("ok"));
+                    try {
+                        Thread.sleep(1000L);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }))
                 .and(LONG_TASK, interval -> Observable.create(subscriber -> {
                     try {
                         Thread.sleep(Integer.valueOf(interval.get("arg")));
@@ -86,7 +97,7 @@ public class CommandExecutorTest {
                 o -> event1Arg("Recovered: " + o.get("arg")).toObservable());
 
         Vertx vertx = Factories.vertx();
-        HttpServer mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
+        mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(8282)
                 .setSsl(false)
                 .setReuseAddress(true));
@@ -241,6 +252,24 @@ public class CommandExecutorTest {
                 commandNotFound -> assertEquals("Command not found: someUnknownCommand", commandNotFound.getMessage()));
     }
 
+    @Test
+    public void shouldReceiveOneEventAndThenFail() throws Exception {
+        mainNodeExecutor.execute(Command.create(COMMAND_EMIT_AND_FAIL))
+                .subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent(500L, TimeUnit.MILLISECONDS);
+        testSubscriber.assertValue(Event.create("ok"));
+        //shut down main node
+        mainHttpServer.close();
+        try {
+            assertActualHystrixError(ConnectionClosedUnexpectedly.class, connectionClosedUnexpectedly ->
+                    assertTrue(connectionClosedUnexpectedly.getMessage()
+                            .startsWith("WebSocket connection closed without completion for command: ")));
+        } finally {
+            mainHttpServer.listen();
+        }
+    }
+
     private void assertCompletedSuccessfully() {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
@@ -251,7 +280,6 @@ public class CommandExecutorTest {
     private <T extends Throwable> void assertActualHystrixError(Class<T> expected, Consumer<T> errorChecker) {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNotCompleted();
-        testSubscriber.assertNoValues();
         final List<Throwable> onErrorEvents = testSubscriber.getOnErrorEvents();
         assertEquals("Should be one error", 1, onErrorEvents.size());
 
