@@ -36,7 +36,7 @@
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <vertx.version>3.1.0</vertx.version>
+        <vertx.version>3.2.1</vertx.version>
         <hystrix.version>1.4.23</hystrix.version>
         <rxjava.version>1.1.0</rxjava.version>
     </properties>

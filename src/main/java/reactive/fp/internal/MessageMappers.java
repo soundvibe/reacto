@@ -16,7 +16,7 @@ import static java.util.Optional.ofNullable;
 public final class MessageMappers {
 
     public static Command toCommand(Messages.Command protoBufCommand) {
-        final Stream<Pair> pairStream = protoBufCommand.getMetadataList().stream()
+        final Stream<Pair<String, String>> pairStream = protoBufCommand.getMetadataList().stream()
                 .map(o -> Pair.of(o.getKey(), o.getValue()));
 
         return new Command(
@@ -27,7 +27,7 @@ public final class MessageMappers {
     }
 
     public static InternalEvent toInternalEvent(Messages.Event protoBufEvent) {
-        final Stream<Pair> pairStream = protoBufEvent.getMetadataList().stream()
+        final Stream<Pair<String, String>> pairStream = protoBufEvent.getMetadataList().stream()
                 .map(o -> Pair.of(o.getKey(), o.getValue()));
 
         final EventType eventType = ofNullable(protoBufEvent.getEventType())

@@ -29,7 +29,7 @@ public final class CommandHandler {
 
     public void handle(final byte[] bytes,
                           Consumer<byte[]> sender,
-                          Consumer<Subscription> unsubscriber) {
+                          Consumer<Subscription> unSubscriber) {
         try {
             final Command receivedCommand = fromBytesToCommand(bytes);
             final Optional<Function<Command, Observable<Event>>> commandFunc = commands.findCommand(receivedCommand.name);
@@ -40,7 +40,7 @@ public final class CommandHandler {
                                     event -> sender.accept(toBytes(InternalEvent.onNext(event))),
                                     throwable -> sender.accept(toBytes(InternalEvent.onError(throwable))),
                                     () -> sender.accept(toBytes(InternalEvent.onCompleted()))))
-                    .ifPresent(unsubscriber::accept);
+                    .ifPresent(unSubscriber::accept);
 
             if (!commandFunc.isPresent()) {
                 sender.accept(toBytes(InternalEvent.onError(new CommandNotFound(receivedCommand.name))));

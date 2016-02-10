@@ -34,7 +34,7 @@ public interface Mappers {
     }
 
     static Event fromInternalEvent(InternalEvent internalEvent) {
-        return new Event(internalEvent.name, internalEvent.metaData, internalEvent.payload);
+        return Event.create(internalEvent.name, internalEvent.metaData, internalEvent.payload);
     }
 
     static Command fromBytesToCommand(byte[] bytes) {

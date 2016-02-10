@@ -8,7 +8,7 @@ import java.util.*;
 /**
  * @author Cipolinas on 2015.11.16.
  */
-public final class Command implements Message {
+public final class Command {
 
     public final ObjectId id;
     public final String name;
@@ -49,7 +49,8 @@ public final class Command implements Message {
         return new Command(ObjectId.get(), name, Optional.of(metaData), Optional.empty());
     }
 
-    public static Command create(String name, Pair... pairs) {
+    @SafeVarargs
+    public static Command create(String name, Pair<String,String>... pairs) {
         Objects.requireNonNull(name, "name cannot be null");
         Objects.requireNonNull(pairs, "pairs cannot be null");
         return new Command(ObjectId.get(), name, Optional.of(MetaData.from(pairs)), Optional.empty());

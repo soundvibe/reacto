@@ -1,6 +1,7 @@
 package reactive.fp.types;
 
 import reactive.fp.internal.Lazy;
+import rx.Observable;
 
 import java.util.*;
 import java.util.function.Supplier;
@@ -9,12 +10,12 @@ import java.util.stream.*;
 /**
  * @author OZY on 2016.02.05.
  */
-public final class MetaData implements Iterable<Pair> {
+public final class MetaData implements Iterable<Pair<String, String>> {
 
-    private final Iterable<Pair> entries;
+    private final Iterable<Pair<String, String>> entries;
     private final Supplier<Map<String, String>> mapCache;
 
-    private MetaData(Iterable<Pair> entries) {
+    private MetaData(Iterable<Pair<String, String>> entries) {
         this.entries = entries;
         this.mapCache = mapSupplier(entries);
     }
@@ -59,15 +60,16 @@ public final class MetaData implements Iterable<Pair> {
                 Pair.of(key5, value5), Pair.of(key6, value6), Pair.of(key7, value7), Pair.of(key8, value8));
     }
 
-    public static MetaData from(Pair... pairs) {
+    @SafeVarargs
+    public static MetaData from(Pair<String, String>... pairs) {
         return new MetaData(Arrays.asList(pairs));
     }
 
-    public static MetaData from(Iterable<Pair> entries) {
+    public static MetaData from(Iterable<Pair<String, String>> entries) {
         return new MetaData(entries);
     }
 
-    public static MetaData fromStream(Stream<Pair> pairStream) {
+    public static MetaData fromStream(Stream<Pair<String, String>> pairStream) {
         return new MetaData(pairStream.collect(Collectors.toList()));
     }
 
@@ -85,15 +87,19 @@ public final class MetaData implements Iterable<Pair> {
         return Optional.ofNullable(mapCache.get().get(key));
     }
 
-    public Stream<Pair> stream() {
+    public Stream<Pair<String, String>> stream() {
         return StreamSupport.stream(entries.spliterator(), false);
     }
 
-    public Stream<Pair> parallelStream() {
+    public Stream<Pair<String, String>> parallelStream() {
         return StreamSupport.stream(entries.spliterator(), true);
     }
 
-    private Supplier<Map<String, String>> mapSupplier(Iterable<Pair> entries) {
+    public rx.Observable<Pair<String,String>> toObservable() {
+        return Observable.from(this.entries);
+    }
+
+    private Supplier<Map<String, String>> mapSupplier(Iterable<Pair<String, String>> entries) {
         return Lazy.of(() -> {
             Map<String, String> map = new HashMap<>();
             entries.forEach(pair -> map.put(pair.key, pair.value));
@@ -102,7 +108,7 @@ public final class MetaData implements Iterable<Pair> {
     }
 
     @Override
-    public Iterator<Pair> iterator() {
+    public Iterator<Pair<String, String>> iterator() {
         return entries.iterator();
     }
 

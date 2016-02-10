@@ -1,22 +1,38 @@
 package reactive.fp.types;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * @author OZY on 2016.02.05.
  */
-public final class Pair {
+public final class Pair<K,V> implements Map.Entry<K, V> {
 
-    public final String key;
-    public final String value;
+    public final K key;
+    public final V value;
 
-    public Pair(String key, String value) {
+    public Pair(K key, V value) {
         this.key = key;
         this.value = value;
     }
 
-    public static Pair of(String key, String value) {
-        return new Pair(key, value);
+    public static <K,V> Pair<K,V> of(K key, V value) {
+        return new Pair<>(key, value);
+    }
+
+    @Override
+    public K getKey() {
+        return key;
+    }
+
+    @Override
+    public V getValue() {
+        return value;
+    }
+
+    @Override
+    public V setValue(V value) {
+        throw new UnsupportedOperationException("Pair is immutable");
     }
 
     @Override

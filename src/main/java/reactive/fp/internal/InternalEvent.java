@@ -9,7 +9,7 @@ import java.util.*;
  * @author Linas on 2015.11.13.
  */
 
-public final class InternalEvent implements Message {
+public final class InternalEvent {
 
     public final String name;
     public final Optional<MetaData> metaData;

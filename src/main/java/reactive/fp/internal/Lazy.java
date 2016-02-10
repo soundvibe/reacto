@@ -42,4 +42,11 @@ public final class Lazy<T> implements Supplier<T> {
     public int hashCode() {
         return Objects.hash(value);
     }
+
+    @Override
+    public String toString() {
+        return "Lazy{" +
+                "value=" + value +
+                '}';
+    }
 }

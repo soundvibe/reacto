@@ -13,7 +13,7 @@ public final class Event {
     public final Optional<MetaData> metaData;
     public final Optional<byte[]> payload;
 
-    public Event(String name, Optional<MetaData> metaData, Optional<byte[]> payload) {
+    Event(String name, Optional<MetaData> metaData, Optional<byte[]> payload) {
         this.name = name;
         this.metaData = metaData;
         this.payload = payload;
@@ -31,7 +31,8 @@ public final class Event {
         return Observable.just(this);
     }
 
-    public static Event create(String name, Pair... metaDataPairs) {
+    @SafeVarargs
+    public static Event create(String name, Pair<String, String>... metaDataPairs) {
         return new Event(name, Optional.of(MetaData.from(metaDataPairs)), Optional.empty());
     }
 
@@ -74,4 +75,5 @@ public final class Event {
                 ", payload=" + payload +
                 '}';
     }
+
 }
