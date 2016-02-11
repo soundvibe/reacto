@@ -29,6 +29,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -226,7 +227,7 @@ public class CommandExecutorTest {
             .subscribe(testSubscriber);
 
         assertActualHystrixError(ConnectException.class,
-                e -> assertTrue(e.getMessage().startsWith("Connection refused: no further information")));
+                e -> assertFalse(e.getMessage().isEmpty()));
     }
 
     @Test
