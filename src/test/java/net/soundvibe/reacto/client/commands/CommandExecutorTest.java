@@ -226,7 +226,7 @@ public class CommandExecutorTest {
             .subscribe(testSubscriber);
 
         assertActualHystrixError(ConnectException.class,
-                e -> assertEquals("Connection refused: no further information: localhost/127.0.0.1:45689", e.getMessage()));
+                e -> assertTrue(e.getMessage().startsWith("Connection refused: no further information")));
     }
 
     @Test
