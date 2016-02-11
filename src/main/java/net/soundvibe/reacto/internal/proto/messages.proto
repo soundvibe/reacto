@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+option java_package = "reactive.fp.types";
+option java_outer_classname = "Messages";
+
+message Metadata {
+    string key = 1;
+    string value = 2;
+}
+
+message Command {
+    string id = 1;
+    string name = 2;
+    repeated Metadata metadata = 3;
+    bytes payload = 4;
+}
+
+enum EventType {
+    NEXT = 0;
+    ERROR = 1;
+    COMPLETED = 2;
+}
+
+message Error {
+    string className = 1;
+    string errorMessage = 2;
+    string stackTrace = 3;
+}
+
+message Event {
+    string id = 1;
+    string name = 2;
+    EventType eventType = 3;
+    Error error = 4;
+    repeated Metadata metadata = 5;
+    bytes payload = 6;
+}
+
