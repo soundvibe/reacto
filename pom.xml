@@ -4,13 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>reactive</groupId>
-    <artifactId>react-fp</artifactId>
+    <groupId>io.reacto</groupId>
+    <artifactId>reacto</artifactId>
     <version>0.0.2-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>reactive-fp</name>
-    <description>Reactive-fp is a Java functional reactive library built for Java 8 and above.</description>
-    <url>https://bitbucket.org/soundvibe/react-fp/overview</url>
+    <name>reacto</name>
+    <description>Reacto is a Java functional reactive library built for Java 8 and above.</description>
+    <url>https://github.com/soundvibe/reacto</url>
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
@@ -20,9 +20,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:git@bitbucket.org:soundvibe/react-fp.git</connection>
-        <developerConnection>scm:git:git@bitbucket.org:soundvibe/react-fp.git</developerConnection>
-        <url>git@bitbucket.org:soundvibe/react-fp.git</url>
+        <connection>scm:git:https://github.com/soundvibe/reacto.git</connection>
+        <developerConnection>scm:git:https://github.com/soundvibe/reacto.git</developerConnection>
+        <url>https://github.com/soundvibe/reacto.git</url>
         <tag>HEAD</tag>
     </scm>
     <developers>
