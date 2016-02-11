@@ -50,7 +50,7 @@ public interface Mappers {
              ObjectOutputStream oos = new ObjectOutputStream(byteArrayOutputStream)) {
             oos.writeObject(throwable);
             return Optional.of(byteArrayOutputStream.toByteArray());
-        } catch (IOException e) {
+        } catch (Throwable e) {
             return Optional.empty();
         }
     }

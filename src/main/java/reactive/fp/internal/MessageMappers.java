@@ -78,7 +78,7 @@ public final class MessageMappers {
         eventBuilder.setEventType(Messages.EventType.valueOf(internalEvent.eventType.name()));
         internalEvent.error.ifPresent(e -> eventBuilder.setError(Messages.Error.newBuilder()
                 .setClassName(e.getClass().getName())
-                .setErrorMessage(e.getMessage())
+                .setErrorMessage(e.getMessage() == null? e.toString() : e.getMessage())
                 .setStackTrace(Exceptions.getStackTrace(e))
         ));
         internalEvent.metaData.ifPresent(metadata -> {
