@@ -3,7 +3,7 @@
 
 # reacto
 
-Functional reactive library for the JVM. Building simple scalable micro services has never been so easy.
+Functional reactive library for the JVM (Java 8 and above). Building simple scalable micro services has never been so easy.
 You are working with ordinary Observables but they can be executing on any server in the network.
 
 Learn more about reacto on the [Wiki home](https://github.com/soundvibe/reacto/wiki).
