@@ -1,4 +1,3 @@
-# reactive-fp
+# reacto
 
-## TODO ##
-* Support pushing and receiving events through SSE (see: https://github.com/aesteve/vertx-sse/blob/master/src/main/java/io/vertx/ext/web/handler/sse/impl/EventSourceImpl.java)
+Functional reactive library for the JVM. Uses Observables and Hystrix for commands and events.
