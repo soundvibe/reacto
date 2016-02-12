@@ -3,6 +3,8 @@
 
 # reacto
 
+[![Join the chat at https://gitter.im/soundvibe/reacto](https://badges.gitter.im/soundvibe/reacto.svg)](https://gitter.im/soundvibe/reacto?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Functional reactive library for the JVM (Java 8 and above). Building simple scalable micro services has never been so easy.
 You are working with ordinary Observables but they can be executing on any server in the network.
 
