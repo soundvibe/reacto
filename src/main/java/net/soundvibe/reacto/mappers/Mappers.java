@@ -5,7 +5,7 @@ import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.client.events.EventHandlers;
 import net.soundvibe.reacto.internal.InternalEvent;
 import net.soundvibe.reacto.internal.MessageMappers;
-import net.soundvibe.reacto.internal.Messages;
+import net.soundvibe.reacto.internal.proto.Messages;
 import net.soundvibe.reacto.internal.RuntimeProtocolBufferException;
 import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.types.Event;

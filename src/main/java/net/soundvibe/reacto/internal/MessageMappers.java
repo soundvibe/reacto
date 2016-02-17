@@ -1,6 +1,7 @@
 package net.soundvibe.reacto.internal;
 
 import com.google.protobuf.ByteString;
+import net.soundvibe.reacto.internal.proto.Messages;
 import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.types.MetaData;
 import net.soundvibe.reacto.types.Pair;

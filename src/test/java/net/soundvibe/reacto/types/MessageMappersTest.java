@@ -1,7 +1,7 @@
 package net.soundvibe.reacto.types;
 
 import net.soundvibe.reacto.internal.MessageMappers;
-import net.soundvibe.reacto.internal.Messages;
+import net.soundvibe.reacto.internal.proto.Messages;
 import net.soundvibe.reacto.internal.ObjectId;
 import org.junit.Assert;
 import org.junit.Test;
