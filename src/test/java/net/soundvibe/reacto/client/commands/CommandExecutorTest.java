@@ -1,7 +1,7 @@
 package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
-import net.soundvibe.reacto.TestUtils.models.CustomError;
+import net.soundvibe.reacto.utils.models.CustomError;
 import net.soundvibe.reacto.client.errors.CommandNotFound;
 import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.server.VertxServer;
@@ -252,20 +252,35 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldReceiveOneEventAndThenFail() throws Exception {
-        mainNodeExecutor.execute(Command.create(COMMAND_EMIT_AND_FAIL))
+        HttpServer server = Factories.vertx().createHttpServer(new HttpServerOptions()
+                .setPort(8183)
+                .setSsl(false)
+                .setReuseAddress(true));
+
+        final VertxServer reactoServer = new VertxServer(Router.router(Factories.vertx()), server, "distTest/", CommandRegistry.of(COMMAND_EMIT_AND_FAIL,
+                command -> Observable.create(subscriber -> {
+                    subscriber.onNext(Event.create("ok"));
+                    try {
+                        Thread.sleep(1000L);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                })));
+
+        final CommandExecutor executor = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:8183/distTest/"));
+
+        reactoServer.start();
+
+        executor.execute(Command.create(COMMAND_EMIT_AND_FAIL))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent(500L, TimeUnit.MILLISECONDS);
         testSubscriber.assertValue(Event.create("ok"));
         //shut down main node
-        mainHttpServer.close();
-        try {
-            assertActualHystrixError(ConnectionClosedUnexpectedly.class, connectionClosedUnexpectedly ->
-                    assertTrue(connectionClosedUnexpectedly.getMessage()
-                            .startsWith("WebSocket connection closed without completion for command: ")));
-        } finally {
-            mainHttpServer.listen();
-        }
+        reactoServer.stop();
+        assertActualHystrixError(ConnectionClosedUnexpectedly.class, connectionClosedUnexpectedly ->
+                assertTrue(connectionClosedUnexpectedly.getMessage()
+                        .startsWith("WebSocket connection closed without completion for command: ")));
     }
 
     private void assertCompletedSuccessfully() {

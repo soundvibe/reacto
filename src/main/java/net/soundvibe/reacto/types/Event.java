@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.types;
 
+import net.soundvibe.reacto.utils.Bytes;
 import rx.Observable;
 
 import java.util.*;
@@ -63,12 +64,12 @@ public final class Event {
         Event event = (Event) o;
         return Objects.equals(name, event.name) &&
                 Objects.equals(metaData, event.metaData) &&
-                Objects.equals(payload, event.payload);
+                Bytes.payloadsAreEqual(this.payload, event.payload);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, metaData, payload);
+        return Objects.hash(name, metaData, payload.map(Arrays::hashCode).orElse(0));
     }
 
     @Override

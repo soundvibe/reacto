@@ -38,12 +38,4 @@ public class HystrixObservableCommandWrapper extends HystrixObservableCommand<Ev
     protected Observable<Event> construct() {
         return f.apply(command);
     }
-
-    @Override
-    public String toString() {
-        return "HystrixObservableCommandWrapper{" +
-                "f=" + f +
-                ", command=" + command +
-                "} " + super.toString();
-    }
 }

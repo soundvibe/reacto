@@ -3,6 +3,7 @@ package net.soundvibe.reacto.internal;
 import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.types.MetaData;
 import net.soundvibe.reacto.mappers.Mappers;
+import net.soundvibe.reacto.utils.Bytes;
 
 import java.util.*;
 
@@ -53,14 +54,14 @@ public final class InternalEvent {
         InternalEvent internalEvent = (InternalEvent) o;
         return Objects.equals(name, internalEvent.name) &&
                 Objects.equals(metaData, internalEvent.metaData) &&
-                Objects.equals(payload, internalEvent.payload) &&
+                Bytes.payloadsAreEqual(this.payload, internalEvent.payload) &&
                 eventType == internalEvent.eventType &&
                 Objects.equals(error, internalEvent.error);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, metaData, payload, eventType, error);
+        return Objects.hash(name, metaData, payload.map(Arrays::hashCode).orElse(0), eventType, error);
     }
 
     @Override

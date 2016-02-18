@@ -29,12 +29,4 @@ public class HystrixCommandExecutor implements CommandExecutor {
                         .toObservable())
                 .orElse(Observable.error(new CannotConnectToWebSocket("Cannot connect to ws of command: " + command)));
     }
-
-    @Override
-    public String toString() {
-        return "HystrixCommandExecutor{" +
-                "eventHandlers=" + eventHandlers +
-                '}';
-    }
-
 }

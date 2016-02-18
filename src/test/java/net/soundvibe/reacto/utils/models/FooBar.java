@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.TestUtils.models;
+package net.soundvibe.reacto.utils.models;
 
 import java.util.Objects;
 

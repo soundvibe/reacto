@@ -40,7 +40,7 @@ public final class Lazy<T> implements Supplier<T> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(value);
+        return Objects.hash(get());
     }
 
     @Override

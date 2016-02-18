@@ -117,12 +117,12 @@ public final class MetaData implements Iterable<Pair<String, String>> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         MetaData metaData = (MetaData) o;
-        return Objects.equals(entries, metaData.entries);
+        return Objects.equals(this.mapCache.get(), metaData.mapCache.get());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(entries);
+        return Objects.hash(this.mapCache.get());
     }
 
     @Override

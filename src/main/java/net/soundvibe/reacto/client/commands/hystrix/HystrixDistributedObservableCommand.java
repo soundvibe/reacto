@@ -45,12 +45,4 @@ class HystrixDistributedObservableCommand extends HystrixObservableCommand<Event
                 .map(socketClient -> socketClient.toObservable(command))
                 .orElseGet(() -> super.resumeWithFallback());
     }
-
-    @Override
-    public String toString() {
-        return "HystrixDistributedObservableCommand{" +
-                "command=" + command +
-                ", eventHandlers=" + eventHandlers +
-                "} " + super.toString();
-    }
 }

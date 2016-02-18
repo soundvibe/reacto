@@ -1,6 +1,6 @@
 package net.soundvibe.reacto.mappers;
 
-import net.soundvibe.reacto.TestUtils.models.CustomError;
+import net.soundvibe.reacto.utils.models.CustomError;
 import net.soundvibe.reacto.client.events.EventHandlers;
 import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.types.Pair;

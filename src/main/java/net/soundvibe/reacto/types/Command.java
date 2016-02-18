@@ -1,6 +1,7 @@
 package net.soundvibe.reacto.types;
 
 import net.soundvibe.reacto.internal.ObjectId;
+import net.soundvibe.reacto.utils.Bytes;
 import rx.Observable;
 
 import java.util.*;
@@ -71,12 +72,12 @@ public final class Command {
         return Objects.equals(id, command.id) &&
                 Objects.equals(name, command.name) &&
                 Objects.equals(metaData, command.metaData) &&
-                Objects.equals(payload, command.payload);
+                Bytes.payloadsAreEqual(this.payload, command.payload);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, metaData, payload);
+        return Objects.hash(id, name, metaData, payload.map(Arrays::hashCode).orElse(0));
     }
 
     @Override

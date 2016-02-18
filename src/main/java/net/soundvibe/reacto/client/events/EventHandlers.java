@@ -18,12 +18,4 @@ public class EventHandlers {
     public EventHandlers copy(EventHandler fallbackNodeClient) {
         return new EventHandlers(mainNodeClient, Optional.ofNullable(fallbackNodeClient));
     }
-
-    @Override
-    public String toString() {
-        return "EventHandlers{" +
-                "mainNodeClient=" + mainNodeClient +
-                ", fallbackNodeClient=" + fallbackNodeClient +
-                '}';
-    }
 }

@@ -23,7 +23,6 @@ import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -92,54 +91,6 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
     }
 
     /**
-     * Gets the generated machine identifier.
-     *
-     * @return an int representing the machine identifier
-     */
-    public static int getGeneratedMachineIdentifier() {
-        return MACHINE_IDENTIFIER;
-    }
-
-    /**
-     * Gets the generated process identifier.
-     *
-     * @return the process id
-     */
-    public static int getGeneratedProcessIdentifier() {
-        return PROCESS_IDENTIFIER;
-    }
-
-    /**
-     * Gets the current value of the auto-incrementing counter.
-     *
-     * @return the current counter value.
-     */
-    public static int getCurrentCounter() {
-        return NEXT_COUNTER.get();
-    }
-
-    /**
-     * <p>Creates an ObjectId using time, machine and inc values.  The Java driver used to from all ObjectIds this way, but it does not
-     * match the <a href="http://docs.mongodb.org/manual/reference/object-id/">ObjectId specification</a>, which requires four values, not
-     * three. This major release of the Java driver conforms to the specification, but still supports clients that are relying on the
-     * behavior of the previous major release by providing this explicit factory method that takes three parameters instead of four.</p>
-     *
-     * <p>Ordinary users of the driver will not need this method.  It's only for those that have written there own BSON decoders.</p>
-     *
-     * <p>NOTE: This will not break any application that use ObjectIds.  The 12-byte representation will be round-trippable from old to new
-     * driver releases.</p>
-     *
-     * @param time    time in seconds
-     * @param machine machine ID
-     * @param inc     incremental value
-     * @return a new {@code ObjectId} created from the given values
-     * @since 2.12.0
-     */
-    public static ObjectId createFromLegacyFormat(final int time, final int machine, final int inc) {
-        return new ObjectId(time, machine, inc);
-    }
-
-    /**
      * Create a new object id.
      */
     private ObjectId() {
@@ -148,19 +99,6 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
 
     private ObjectId(LocalDateTime localDateTime) {
         this(localDateTimeToTimestampSeconds(localDateTime), MACHINE_IDENTIFIER, PROCESS_IDENTIFIER, NEXT_COUNTER.getAndIncrement(), false);
-    }
-
-    /**
-     * Creates an ObjectId using the given time, machine identifier, process identifier, and counter.
-     *
-     * @param timestamp         the time in seconds
-     * @param machineIdentifier the machine identifier
-     * @param processIdentifier the process identifier
-     * @param counter           the counter
-     * @throws IllegalArgumentException if the high order byte of machineIdentifier or counter is not zero
-     */
-    public ObjectId(final int timestamp, final int machineIdentifier, final short processIdentifier, final int counter) {
-        this(timestamp, machineIdentifier, processIdentifier, counter, true);
     }
 
     private ObjectId(final int timestamp, final int machineIdentifier, final short processIdentifier, final int counter,
@@ -258,51 +196,6 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
     }
 
     /**
-     * Gets the timestamp (number of seconds since the Unix epoch).
-     *
-     * @return the timestamp
-     */
-    public int getTimestamp() {
-        return timestamp;
-    }
-
-    /**
-     * Gets the machine identifier.
-     *
-     * @return the machine identifier
-     */
-    public int getMachineIdentifier() {
-        return machineIdentifier;
-    }
-
-    /**
-     * Gets the process identifier.
-     *
-     * @return the process identifier
-     */
-    public short getProcessIdentifier() {
-        return processIdentifier;
-    }
-
-    /**
-     * Gets the counter.
-     *
-     * @return the counter
-     */
-    public int getCounter() {
-        return counter;
-    }
-
-    /**
-     * Gets the timestamp as a {@code Date} instance.
-     *
-     * @return the Date
-     */
-    public Date getDate() {
-        return new Date(timestamp * 1000L);
-    }
-
-    /**
      * Converts this instance into a 24-byte hexadecimal string representation.
      *
      * @return a string representation of the ObjectId in hexadecimal format
@@ -346,7 +239,7 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
     @Override
     public int compareTo(final ObjectId other) {
         if (other == null) {
-            throw new NullPointerException();
+            return 1;
         }
 
         byte[] byteArray = toByteArray();
@@ -432,10 +325,6 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
             b[i] = (byte) Integer.parseInt(s.substring(i * 2, i * 2 + 2), 16);
         }
         return b;
-    }
-
-    private static int dateToTimestampSeconds(final Date time) {
-        return (int) (time.getTime() / 1000);
     }
 
     private static int localDateTimeToTimestampSeconds(final LocalDateTime time) {
