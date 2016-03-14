@@ -252,12 +252,13 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldReceiveOneEventAndThenFail() throws Exception {
-        HttpServer server = Factories.vertx().createHttpServer(new HttpServerOptions()
+        final Vertx vertx = Vertx.vertx();
+        HttpServer server = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(8183)
                 .setSsl(false)
                 .setReuseAddress(true));
 
-        final VertxServer reactoServer = new VertxServer(Router.router(Factories.vertx()), server, "distTest/", CommandRegistry.of(COMMAND_EMIT_AND_FAIL,
+        final VertxServer reactoServer = new VertxServer(Router.router(vertx), server, "distTest/", CommandRegistry.of(COMMAND_EMIT_AND_FAIL,
                 command -> Observable.create(subscriber -> {
                     subscriber.onNext(Event.create("ok"));
                     try {
@@ -275,9 +276,10 @@ public class CommandExecutorTest {
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent(500L, TimeUnit.MILLISECONDS);
-        testSubscriber.assertValue(Event.create("ok"));
+        //testSubscriber.assertValue();
         //shut down main node
         reactoServer.stop();
+        assertEquals(Event.create("ok"), testSubscriber.getOnNextEvents().get(0));
         assertActualHystrixError(ConnectionClosedUnexpectedly.class, connectionClosedUnexpectedly ->
                 assertTrue(connectionClosedUnexpectedly.getMessage()
                         .startsWith("WebSocket connection closed without completion for command: ")));
