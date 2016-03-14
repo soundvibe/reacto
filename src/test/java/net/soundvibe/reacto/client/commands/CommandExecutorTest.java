@@ -94,7 +94,7 @@ public class CommandExecutorTest {
         CommandRegistry fallbackCommands = CommandRegistry.of(TEST_FAIL_BUT_FALLBACK_COMMAND,
                 o -> event1Arg("Recovered: " + o.get("arg")).toObservable());
 
-        Vertx vertx = Factories.vertx();
+        Vertx vertx = Vertx.vertx();
         mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(8282)
                 .setSsl(false)
