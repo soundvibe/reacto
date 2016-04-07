@@ -8,6 +8,7 @@ import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.types.Command;
 import rx.Observable;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -15,10 +16,11 @@ import java.util.function.Function;
  */
 public class HystrixObservableCommandWrapper extends HystrixObservableCommand<Event> {
 
-    private final Function<Command, Observable<Event>> f;
+    private final Function<Command, Observable<Event>> main;
+    private final Optional<Function<Command, Observable<Event>>> fallback;
     private final Command command;
 
-    public HystrixObservableCommandWrapper(Function<Command, Observable<Event>> f, Command command, int executionTimeoutInMs) {
+    public HystrixObservableCommandWrapper(Function<Command, Observable<Event>> main, Command command, int executionTimeoutInMs) {
         super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group: " + command.name))
                 .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
                         .withFallbackEnabled(false)
@@ -26,16 +28,36 @@ public class HystrixObservableCommandWrapper extends HystrixObservableCommand<Ev
                         .withExecutionTimeoutInMilliseconds(executionTimeoutInMs)
                 )
                 .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(command.name, executionTimeoutInMs > 0))));
-        this.f = f;
+        this.main = main;
+        this.fallback = Optional.empty();
         this.command = command;
     }
 
-    protected static String resolveCommandName(String name, boolean useExecutionTimeout) {
+    public HystrixObservableCommandWrapper(Function<Command, Observable<Event>> main, Function<Command, Observable<Event>> fallback,
+                                           Command command, int executionTimeoutInMs) {
+        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group: " + command.name))
+                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
+                        .withFallbackEnabled(true)
+                        .withExecutionTimeoutEnabled(executionTimeoutInMs > 0)
+                        .withExecutionTimeoutInMilliseconds(executionTimeoutInMs)
+                )
+                .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(command.name, executionTimeoutInMs > 0))));
+        this.main = main;
+        this.fallback = Optional.of(fallback);
+        this.command = command;
+    }
+
+    private static String resolveCommandName(String name, boolean useExecutionTimeout) {
         return useExecutionTimeout ? name : name + "$";
     }
 
     @Override
     protected Observable<Event> construct() {
-        return f.apply(command);
+        return main.apply(command);
+    }
+
+    @Override
+    protected Observable<Event> resumeWithFallback() {
+        return fallback.map(f -> f.apply(command)).orElseGet(() -> super.resumeWithFallback());
     }
 }

@@ -34,4 +34,16 @@ public class CommandExecutorsTest {
         testSubscriber.assertNoErrors();
         testSubscriber.assertNoValues();
     }
+
+    @Test
+    public void shouldCallFallbackWhenInMemoryMainExecutorFails() throws Exception {
+        final CommandExecutor sut = CommandExecutors.inMemory(
+                command -> Observable.error(new IllegalStateException("error")),
+                cmd -> Observable.just(Event.create("ok")));
+        sut.execute(Command.create("foo"))
+                .subscribe(testSubscriber);
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertValue(Event.create("ok"));
+    }
 }
