@@ -33,12 +33,12 @@ public final class CommandHandler {
             final Optional<Function<Command, Observable<Event>>> commandFunc = commands.findCommand(receivedCommand.name);
             commandFunc
                     .map(cmdFunc -> cmdFunc.apply(receivedCommand)
-                            .subscribeOn(Schedulers.computation())
+                            .subscribeOn(Schedulers.io())
                             .subscribe(
                                     event -> sender.accept(toBytes(InternalEvent.onNext(event))),
                                     throwable -> sender.accept(toBytes(InternalEvent.onError(throwable))),
                                     () -> sender.accept(toBytes(InternalEvent.onCompleted()))))
-                    .ifPresent(unSubscriber::accept);
+                    .ifPresent(unSubscriber);
 
             if (!commandFunc.isPresent()) {
                 sender.accept(toBytes(InternalEvent.onError(new CommandNotFound(receivedCommand.name))));
