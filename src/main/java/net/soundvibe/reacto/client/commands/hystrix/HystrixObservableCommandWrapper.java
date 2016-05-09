@@ -20,28 +20,22 @@ public class HystrixObservableCommandWrapper extends HystrixObservableCommand<Ev
     private final Optional<Function<Command, Observable<Event>>> fallback;
     private final Command command;
 
-    public HystrixObservableCommandWrapper(Function<Command, Observable<Event>> main, Command command, int executionTimeoutInMs) {
-        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group: " + command.name))
-                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
-                        .withFallbackEnabled(false)
-                        .withExecutionTimeoutEnabled(executionTimeoutInMs > 0)
-                        .withExecutionTimeoutInMilliseconds(executionTimeoutInMs)
-                )
-                .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(command.name, executionTimeoutInMs > 0))));
+    public HystrixObservableCommandWrapper(Function<Command, Observable<Event>> main, Command command, HystrixCommandProperties.Setter hystrixConfig) {
+        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("reacto"))
+                .andCommandPropertiesDefaults(hystrixConfig)
+                .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(command.name, hystrixConfig.getExecutionTimeoutEnabled()))));
         this.main = main;
         this.fallback = Optional.empty();
         this.command = command;
     }
 
     public HystrixObservableCommandWrapper(Function<Command, Observable<Event>> main, Function<Command, Observable<Event>> fallback,
-                                           Command command, int executionTimeoutInMs) {
+                                           Command command, HystrixCommandProperties.Setter hystrixConfig) {
         super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group: " + command.name))
-                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
+                .andCommandPropertiesDefaults(hystrixConfig
                         .withFallbackEnabled(true)
-                        .withExecutionTimeoutEnabled(executionTimeoutInMs > 0)
-                        .withExecutionTimeoutInMilliseconds(executionTimeoutInMs)
                 )
-                .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(command.name, executionTimeoutInMs > 0))));
+                .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(command.name, hystrixConfig.getExecutionTimeoutEnabled()))));
         this.main = main;
         this.fallback = Optional.of(fallback);
         this.command = command;

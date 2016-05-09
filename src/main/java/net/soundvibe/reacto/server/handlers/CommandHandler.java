@@ -7,10 +7,12 @@ import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.types.Event;
 import rx.Observable;
+import rx.Scheduler;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
 import java.util.Optional;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -20,6 +22,8 @@ import java.util.function.Function;
 public final class CommandHandler {
 
     private final CommandRegistry commands;
+
+    private static final Scheduler SINGLE_THREAD = Schedulers.from(Executors.newSingleThreadExecutor());
 
     public CommandHandler(CommandRegistry commands) {
         this.commands = commands;
@@ -33,7 +37,7 @@ public final class CommandHandler {
             final Optional<Function<Command, Observable<Event>>> commandFunc = commands.findCommand(receivedCommand.name);
             commandFunc
                     .map(cmdFunc -> cmdFunc.apply(receivedCommand)
-                            .subscribeOn(Schedulers.io())
+                            .subscribeOn(SINGLE_THREAD)
                             .subscribe(
                                     event -> sender.accept(toBytes(InternalEvent.onNext(event))),
                                     throwable -> sender.accept(toBytes(InternalEvent.onError(throwable))),

@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.client.commands.hystrix;
 
+import net.soundvibe.reacto.client.commands.CommandExecutors;
 import net.soundvibe.reacto.client.errors.CannotConnectToWebSocket;
 import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.types.Event;
@@ -17,7 +18,7 @@ public class HystrixCommandExecutorTest {
 
     @Test
     public void shouldGetErrorWhenEventHandlersAreEmpty() throws Exception {
-        HystrixCommandExecutor sut = new HystrixCommandExecutor(Optional::empty);
+        HystrixCommandExecutor sut = new HystrixCommandExecutor(Optional::empty, CommandExecutors.defaultHystrixSetter());
         sut.execute(Command.create("foo"))
             .subscribe(testSubscriber);
 

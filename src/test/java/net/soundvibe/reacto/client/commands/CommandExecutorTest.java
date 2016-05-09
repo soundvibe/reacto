@@ -28,9 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * @author Cipolinas on 2015.12.01.
@@ -184,7 +182,7 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldFailAfterHystrixTimeout() throws Exception {
-        CommandExecutor sut = CommandExecutors.webSocket(Nodes.ofMain(MAIN_NODE), CommandExecutors.DEFAULT_EXECUTION_TIMEOUT);
+        CommandExecutor sut = CommandExecutors.webSocket(Nodes.ofMain(MAIN_NODE), 1000);
         sut.execute(command1Arg(LONG_TASK, "5000"))
                 .subscribe(testSubscriber);
 
@@ -216,13 +214,14 @@ public class CommandExecutorTest {
         mainNodeExecutor.execute(Command.create(COMMAND_WITHOUT_ARGS))
                 .subscribe(testSubscriber);
 
+        System.out.println(testSubscriber.getOnErrorEvents());
         assertCompletedSuccessfully();
         testSubscriber.assertValue(event1Arg("ok"));
     }
 
     @Test
     public void shouldFailWhenCommandExecutorIsInaccessible() throws Exception {
-        CommandExecutor sut = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:45689/foo/"));
+        CommandExecutor sut = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:45689/foo/"), 5000);
         sut.execute(command1Arg(TEST_COMMAND, "foo"))
             .subscribe(testSubscriber);
 
@@ -268,7 +267,7 @@ public class CommandExecutorTest {
                     }
                 })));
 
-        final CommandExecutor executor = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:8183/distTest/"));
+        final CommandExecutor executor = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:8183/distTest/"), 5000);
 
         reactoServer.start();
 

@@ -97,12 +97,16 @@ public class VertxWebSocketEventHandler implements EventHandler {
                 break;
             }
             case ERROR: {
-                subscriber.onError(internalEvent.error
-                        .orElse(ReactiveException.from(new UnknownError("Unknown error from internalEvent: " + internalEvent))));
+                if (!subscriber.isUnsubscribed()) {
+                    subscriber.onError(internalEvent.error
+                            .orElse(ReactiveException.from(new UnknownError("Unknown error from internalEvent: " + internalEvent))));
+                }
                 break;
             }
             case COMPLETED: {
-                subscriber.onCompleted();
+                if (!subscriber.isUnsubscribed()) {
+                    subscriber.onCompleted();
+                }
                 break;
             }
         }

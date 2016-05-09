@@ -1,11 +1,7 @@
 package net.soundvibe.reacto.client.commands.hystrix;
 
-import com.netflix.hystrix.HystrixCommandGroupKey;
-import com.netflix.hystrix.HystrixCommandKey;
-import com.netflix.hystrix.HystrixCommandProperties;
-import com.netflix.hystrix.HystrixObservableCommand;
-import net.soundvibe.reacto.types.Event;
-import net.soundvibe.reacto.types.Command;
+import com.netflix.hystrix.*;
+import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.client.events.EventHandlers;
 import rx.Observable;
 
@@ -17,15 +13,10 @@ class HystrixDistributedObservableCommand extends HystrixObservableCommand<Event
     private final Command command;
     private final EventHandlers eventHandlers;
 
-    public HystrixDistributedObservableCommand(Command command, EventHandlers eventHandlers,
-                                               boolean useExecutionTimeout, int executionTimeoutInMs) {
-        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group: " + command.name))
-                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
-                        .withFallbackEnabled(eventHandlers.fallbackNodeClient.isPresent())
-                        .withExecutionTimeoutEnabled(useExecutionTimeout)
-                        .withExecutionTimeoutInMilliseconds(executionTimeoutInMs)
-                )
-                .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(command.name, useExecutionTimeout))));
+    public HystrixDistributedObservableCommand(Command command, EventHandlers eventHandlers, HystrixCommandProperties.Setter setter) {
+        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("reacto"))
+                .andCommandPropertiesDefaults(setter)
+                .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(command.name, setter.getExecutionTimeoutEnabled()))));
         this.command = command;
         this.eventHandlers = eventHandlers;
     }

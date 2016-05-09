@@ -1,8 +1,7 @@
 package net.soundvibe.reacto.client.commands;
 
-import net.soundvibe.reacto.client.commands.hystrix.HystrixCommandExecutor;
-import net.soundvibe.reacto.client.commands.hystrix.HystrixObservableCommandWrapper;
-import net.soundvibe.reacto.client.commands.hystrix.HystrixTimeOutCommandExecutor;
+import com.netflix.hystrix.HystrixCommandProperties;
+import net.soundvibe.reacto.client.commands.hystrix.*;
 import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.client.events.VertxWebSocketEventHandler;
 import net.soundvibe.reacto.types.Command;
@@ -16,32 +15,65 @@ import java.util.function.Function;
  */
 public interface CommandExecutors {
 
-    int DEFAULT_EXECUTION_TIMEOUT = 1000;
+    static HystrixCommandProperties.Setter defaultHystrixSetter() {
+        return HystrixCommandProperties.defaultSetter()
+                .withExecutionIsolationThreadInterruptOnTimeout(false)
+                .withExecutionTimeoutEnabled(false)
+                .withExecutionTimeoutInMilliseconds(1000)
+                .withExecutionIsolationSemaphoreMaxConcurrentRequests(10)
+                .withFallbackIsolationSemaphoreMaxConcurrentRequests(10)
+                .withFallbackEnabled(false)
+                .withCircuitBreakerEnabled(true)
+                .withCircuitBreakerRequestVolumeThreshold(20)
+                .withCircuitBreakerSleepWindowInMilliseconds(5000)
+                .withCircuitBreakerErrorThresholdPercentage(50)
+                .withExecutionIsolationStrategy(HystrixCommandProperties.ExecutionIsolationStrategy.THREAD)
+                .withRequestCacheEnabled(false)
+                .withRequestLogEnabled(true)
+        ;
+    }
 
     static CommandExecutor webSocket(Nodes nodes) {
-        return new HystrixCommandExecutor(Mappers.mapToEventHandlers(nodes, VertxWebSocketEventHandler::new));
+        return new HystrixCommandExecutor(Mappers.mapToEventHandlers(nodes, VertxWebSocketEventHandler::new),
+                defaultHystrixSetter());
     }
 
     static CommandExecutor webSocket(Nodes nodes, int executionTimeoutInMs) {
-        return new HystrixTimeOutCommandExecutor(Mappers.mapToEventHandlers(nodes, VertxWebSocketEventHandler::new),
-                executionTimeoutInMs);
+        return new HystrixCommandExecutor(Mappers.mapToEventHandlers(nodes, VertxWebSocketEventHandler::new),
+                defaultHystrixSetter().withExecutionTimeoutInMilliseconds(executionTimeoutInMs).withExecutionTimeoutEnabled(true));
+    }
+
+    static CommandExecutor webSocketHystrix(Nodes nodes, HystrixCommandProperties.Setter hystrixConfig) {
+        return new HystrixCommandExecutor(Mappers.mapToEventHandlers(nodes, VertxWebSocketEventHandler::new), hystrixConfig);
     }
 
     static CommandExecutor inMemory(Function<Command, Observable<Event>> commandExecutor) {
-        return cmd -> new HystrixObservableCommandWrapper(commandExecutor, cmd, 0).toObservable();
+        return cmd -> new HystrixObservableCommandWrapper(commandExecutor, cmd, defaultHystrixSetter()).toObservable();
     }
 
     static CommandExecutor inMemory(Function<Command, Observable<Event>> commandExecutor, int executionTimeoutInMs) {
-        return cmd -> new HystrixObservableCommandWrapper(commandExecutor, cmd, executionTimeoutInMs).toObservable();
+        return cmd -> new HystrixObservableCommandWrapper(commandExecutor, cmd,
+                defaultHystrixSetter().withExecutionTimeoutInMilliseconds(executionTimeoutInMs).withExecutionTimeoutEnabled(true))
+                .toObservable();
+    }
+
+    static CommandExecutor inMemory(Function<Command, Observable<Event>> commandExecutor, HystrixCommandProperties.Setter hystrixConfig) {
+        return cmd -> new HystrixObservableCommandWrapper(commandExecutor, cmd, hystrixConfig).toObservable();
     }
 
     static CommandExecutor inMemoryWithFallback(Function<Command, Observable<Event>> mainExecutor, Function<Command, Observable<Event>> fallbackExecutor) {
-        return cmd -> new HystrixObservableCommandWrapper(mainExecutor, fallbackExecutor, cmd, 0).toObservable();
+        return cmd -> new HystrixObservableCommandWrapper(mainExecutor, fallbackExecutor, cmd, defaultHystrixSetter()).toObservable();
     }
 
     static CommandExecutor inMemoryWithFallback(Function<Command, Observable<Event>> mainExecutor, Function<Command, Observable<Event>> fallbackExecutor,
                                     int executionTimeoutInMs) {
-        return cmd -> new HystrixObservableCommandWrapper(mainExecutor, fallbackExecutor, cmd, executionTimeoutInMs).toObservable();
+        return cmd -> new HystrixObservableCommandWrapper(mainExecutor, fallbackExecutor, cmd,
+                defaultHystrixSetter().withExecutionTimeoutInMilliseconds(executionTimeoutInMs).withExecutionTimeoutEnabled(true)).toObservable();
+    }
+
+    static CommandExecutor inMemoryWithFallback(Function<Command, Observable<Event>> mainExecutor, Function<Command, Observable<Event>> fallbackExecutor,
+                                                HystrixCommandProperties.Setter hystrixConfig) {
+        return cmd -> new HystrixObservableCommandWrapper(mainExecutor, fallbackExecutor, cmd, hystrixConfig).toObservable();
     }
 
 }
