@@ -33,7 +33,8 @@ public class HystrixInMemoryCommandExecutorTest {
     @Test
     public void shouldGetError() throws Exception {
         TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-        CommandExecutor sut = CommandExecutors.inMemory(o -> Observable.error(new IllegalArgumentException("error")));
+        CommandExecutor sut = CommandExecutors.inMemory(o -> Observable.error(new IllegalArgumentException("error")),
+                CommandExecutors.defaultHystrixSetter());
 
         sut.execute(Command.create("foo", Pair.of("foo", "bar")))
                 .subscribe(testSubscriber);

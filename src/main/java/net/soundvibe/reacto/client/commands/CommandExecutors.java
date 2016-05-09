@@ -34,8 +34,7 @@ public interface CommandExecutors {
     }
 
     static CommandExecutor webSocket(Nodes nodes) {
-        return new HystrixCommandExecutor(Mappers.mapToEventHandlers(nodes, VertxWebSocketEventHandler::new),
-                defaultHystrixSetter());
+        return new VertxWebSocketCommandExecutor(Mappers.mapToEventHandlers(nodes, VertxWebSocketEventHandler::new));
     }
 
     static CommandExecutor webSocket(Nodes nodes, int executionTimeoutInMs) {
@@ -48,7 +47,7 @@ public interface CommandExecutors {
     }
 
     static CommandExecutor inMemory(Function<Command, Observable<Event>> commandExecutor) {
-        return cmd -> new HystrixObservableCommandWrapper(commandExecutor, cmd, defaultHystrixSetter()).toObservable();
+        return commandExecutor::apply;
     }
 
     static CommandExecutor inMemory(Function<Command, Observable<Event>> commandExecutor, int executionTimeoutInMs) {

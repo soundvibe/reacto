@@ -52,7 +52,8 @@ public class CommandExecutorTest {
     private static VertxServer fallbackVertxServer;
 
     private final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-    private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(Nodes.ofMain(MAIN_NODE));
+    private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocketHystrix(
+            Nodes.ofMain(MAIN_NODE), CommandExecutors.defaultHystrixSetter());
     private final CommandExecutor mainNodeAndFallbackExecutor = CommandExecutors.webSocket(Nodes.ofMainAndFallback(MAIN_NODE, FALLBACK_NODE));
 
     @BeforeClass
