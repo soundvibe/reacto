@@ -22,7 +22,8 @@ public class HystrixObservableCommandWrapper extends HystrixObservableCommand<Ev
 
     public HystrixObservableCommandWrapper(Function<Command, Observable<Event>> main, Command command, HystrixCommandProperties.Setter hystrixConfig) {
         super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("reacto"))
-                .andCommandPropertiesDefaults(hystrixConfig)
+                .andCommandPropertiesDefaults(hystrixConfig
+                        .withFallbackEnabled(false))
                 .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(command.name, hystrixConfig.getExecutionTimeoutEnabled()))));
         this.main = main;
         this.fallback = Optional.empty();
@@ -31,7 +32,7 @@ public class HystrixObservableCommandWrapper extends HystrixObservableCommand<Ev
 
     public HystrixObservableCommandWrapper(Function<Command, Observable<Event>> main, Function<Command, Observable<Event>> fallback,
                                            Command command, HystrixCommandProperties.Setter hystrixConfig) {
-        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group: " + command.name))
+        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("reacto"))
                 .andCommandPropertiesDefaults(hystrixConfig
                         .withFallbackEnabled(true)
                 )

@@ -1,9 +1,7 @@
 package net.soundvibe.reacto.client.commands.hystrix;
 
-import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandProperties;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
-import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.client.errors.CannotConnectToWebSocket;
 import net.soundvibe.reacto.client.events.EventHandlers;
@@ -30,9 +28,12 @@ public class HystrixCommandExecutor implements CommandExecutor {
     @Override
     public Observable<Event> execute(Command command) {
         return eventHandlers.get()
-                .map(eventHandlers -> new HystrixDistributedObservableCommand(command, eventHandlers,
-                        hystrixConfig.withFallbackEnabled(eventHandlers.fallbackNodeClient.isPresent()))
-                        .toObservable())
+                .map(handlers -> handlers.fallbackNodeClient.isPresent() ?
+                        new HystrixObservableCommandWrapper(cmd -> handlers.mainNodeClient.toObservable(command),
+                                cmd -> handlers.fallbackNodeClient.get().toObservable(command),
+                                command, hystrixConfig).toObservable() :
+                        new HystrixObservableCommandWrapper(cmd -> handlers.mainNodeClient.toObservable(command),
+                                command, hystrixConfig).toObservable())
                 .orElse(Observable.error(new CannotConnectToWebSocket("Cannot connect to ws of command: " + command)));
     }
 }
