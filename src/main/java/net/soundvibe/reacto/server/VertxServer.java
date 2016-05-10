@@ -1,5 +1,7 @@
 package net.soundvibe.reacto.server;
 
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import net.soundvibe.reacto.server.handlers.SSEHandler;
 import net.soundvibe.reacto.server.handlers.WebSocketCommandHandler;
 import io.vertx.core.http.HttpServer;
@@ -14,6 +16,8 @@ import java.util.Objects;
  * @author OZY on 2015.11.23.
  */
 public class VertxServer implements Server {
+
+    private static final Logger log = LoggerFactory.getLogger(VertxServer.class);
 
     private final String root;
     private final CommandRegistry commands;
@@ -35,6 +39,7 @@ public class VertxServer implements Server {
     public void start() {
         setupRoutes();
         httpServer.listen();
+        log.info("VertxServer has started successfully...");
     }
 
     @Override

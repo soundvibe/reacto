@@ -1,6 +1,8 @@
 package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import net.soundvibe.reacto.utils.models.CustomError;
 import net.soundvibe.reacto.client.errors.CommandNotFound;
 import net.soundvibe.reacto.server.CommandRegistry;
@@ -22,11 +24,16 @@ import rx.Observable;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
+import java.lang.reflect.Field;
 import java.net.ConnectException;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
 
 import static org.junit.Assert.*;
 
@@ -52,7 +59,7 @@ public class CommandExecutorTest {
     private static VertxServer fallbackVertxServer;
 
     private final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-    private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocketHystrix(
+    private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(
             Nodes.ofMain(MAIN_NODE), CommandExecutors.defaultHystrixSetter());
     private final CommandExecutor mainNodeAndFallbackExecutor = CommandExecutors.webSocket(Nodes.ofMainAndFallback(MAIN_NODE, FALLBACK_NODE));
 

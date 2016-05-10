@@ -42,7 +42,7 @@ public interface CommandExecutors {
                 defaultHystrixSetter().withExecutionTimeoutInMilliseconds(executionTimeoutInMs).withExecutionTimeoutEnabled(true));
     }
 
-    static CommandExecutor webSocketHystrix(Nodes nodes, HystrixCommandProperties.Setter hystrixConfig) {
+    static CommandExecutor webSocket(Nodes nodes, HystrixCommandProperties.Setter hystrixConfig) {
         return new HystrixCommandExecutor(Mappers.mapToEventHandlers(nodes, VertxWebSocketEventHandler::new), hystrixConfig);
     }
 

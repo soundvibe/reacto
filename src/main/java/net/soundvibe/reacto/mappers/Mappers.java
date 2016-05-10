@@ -73,10 +73,10 @@ public interface Mappers {
     static Supplier<Optional<EventHandlers>> mapToEventHandlers(Nodes nodes,
                                                                 Function<URI, EventHandler> eventHandlerFactory) {
         return () -> Optional.ofNullable(nodes.mainURI())
-                .map(eventHandlerFactory::apply)
+                .map(eventHandlerFactory)
                 .map(mainEventHandler -> new EventHandlers(mainEventHandler, Optional.empty()))
                 .map(eventHandlers -> nodes.fallbackURI()
-                        .map(eventHandlerFactory::apply)
+                        .map(eventHandlerFactory)
                         .map(eventHandlers::copy)
                         .orElse(eventHandlers));
     }

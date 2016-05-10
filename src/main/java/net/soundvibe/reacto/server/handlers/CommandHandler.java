@@ -1,14 +1,13 @@
 package net.soundvibe.reacto.server.handlers;
 
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import net.soundvibe.reacto.client.errors.CommandNotFound;
 import net.soundvibe.reacto.internal.InternalEvent;
 import net.soundvibe.reacto.mappers.Mappers;
 import net.soundvibe.reacto.server.CommandRegistry;
-import net.soundvibe.reacto.types.Command;
-import net.soundvibe.reacto.types.Event;
-import rx.Observable;
-import rx.Scheduler;
-import rx.Subscription;
+import net.soundvibe.reacto.types.*;
+import rx.*;
 import rx.schedulers.Schedulers;
 
 import java.util.Optional;
@@ -20,6 +19,8 @@ import java.util.function.Function;
  * @author OZY on 2016.02.09.
  */
 public final class CommandHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(CommandHandler.class);
 
     private final CommandRegistry commands;
 
@@ -37,6 +38,7 @@ public final class CommandHandler {
             final Optional<Function<Command, Observable<Event>>> commandFunc = commands.findCommand(receivedCommand.name);
             commandFunc
                     .map(cmdFunc -> cmdFunc.apply(receivedCommand)
+                            .doOnEach(notification -> log.debug("Command "+ receivedCommand + " executed and received notification: " + notification))
                             .subscribeOn(SINGLE_THREAD)
                             .subscribe(
                                     event -> sender.accept(toBytes(InternalEvent.onNext(event))),

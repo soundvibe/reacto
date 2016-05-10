@@ -1,16 +1,13 @@
 package net.soundvibe.reacto.client.events;
 
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import net.soundvibe.reacto.internal.InternalEvent;
 import net.soundvibe.reacto.server.handlers.WebSocketFrameHandler;
-import net.soundvibe.reacto.types.Command;
-import net.soundvibe.reacto.types.Event;
-import net.soundvibe.reacto.types.ReactiveException;
+import net.soundvibe.reacto.types.*;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.http.WebSocket;
-import io.vertx.core.http.WebSocketStream;
+import io.vertx.core.http.*;
 import net.soundvibe.reacto.client.errors.ConnectionClosedUnexpectedly;
 import net.soundvibe.reacto.mappers.Mappers;
 import net.soundvibe.reacto.utils.Factories;
@@ -24,6 +21,8 @@ import java.util.Objects;
  * @author OZY on 2015.11.23.
  */
 public class VertxWebSocketEventHandler implements EventHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(VertxWebSocketEventHandler.class);
 
     private final URI wsUrl;
     private final Vertx vertx;
@@ -91,6 +90,7 @@ public class VertxWebSocketEventHandler implements EventHandler {
 
     @SuppressWarnings("unchecked")
     private void handleEvent(InternalEvent internalEvent, Subscriber<? super Event> subscriber) {
+        log.debug("InternalEvent has been received and is being handled: " + internalEvent);
         switch (internalEvent.eventType) {
             case NEXT: {
                 subscriber.onNext(Mappers.fromInternalEvent(internalEvent));
@@ -119,6 +119,7 @@ public class VertxWebSocketEventHandler implements EventHandler {
     }
 
     private void sendCommandToExecutor(Command command, WebSocket webSocket) {
+        log.debug("Sending command to executor: " + command);
         final byte[] bytes = Mappers.commandToBytes(command);
         webSocket.writeBinaryMessage(Buffer.buffer(bytes));
     }
