@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.TestUtils.models;
+package net.soundvibe.reacto.utils.models;
 
 /**
  * @author Cipolinas on 2015.12.01.

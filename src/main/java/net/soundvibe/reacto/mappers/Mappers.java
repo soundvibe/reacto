@@ -5,7 +5,7 @@ import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.client.events.EventHandlers;
 import net.soundvibe.reacto.internal.InternalEvent;
 import net.soundvibe.reacto.internal.MessageMappers;
-import net.soundvibe.reacto.internal.Messages;
+import net.soundvibe.reacto.internal.proto.Messages;
 import net.soundvibe.reacto.internal.RuntimeProtocolBufferException;
 import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.types.Event;
@@ -73,10 +73,10 @@ public interface Mappers {
     static Supplier<Optional<EventHandlers>> mapToEventHandlers(Nodes nodes,
                                                                 Function<URI, EventHandler> eventHandlerFactory) {
         return () -> Optional.ofNullable(nodes.mainURI())
-                .map(eventHandlerFactory::apply)
+                .map(eventHandlerFactory)
                 .map(mainEventHandler -> new EventHandlers(mainEventHandler, Optional.empty()))
                 .map(eventHandlers -> nodes.fallbackURI()
-                        .map(eventHandlerFactory::apply)
+                        .map(eventHandlerFactory)
                         .map(eventHandlers::copy)
                         .orElse(eventHandlers));
     }

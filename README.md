@@ -1,6 +1,5 @@
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.soundvibe/reacto/badge.svg)](https://maven-badges.herokuapp.com/maven-central/net.soundvibe/reacto)
 [![Build Status](https://travis-ci.org/soundvibe/reacto.png)](https://travis-ci.org/soundvibe/reacto)
-[![Join the chat at https://gitter.im/soundvibe/reacto](https://badges.gitter.im/soundvibe/reacto.svg)](https://gitter.im/soundvibe/reacto?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # reacto
 

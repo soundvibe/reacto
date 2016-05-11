@@ -1,10 +1,15 @@
 package net.soundvibe.reacto;
 
+import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.types.Event;
+import net.soundvibe.reacto.types.Pair;
 import org.junit.Test;
 import net.soundvibe.reacto.server.CommandRegistry;
 import rx.Observable;
 
+import java.util.function.Function;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -23,5 +28,21 @@ public class CommandRegistryTest {
     @Test
     public void shouldNotFindCommand() throws Exception {
         assertFalse(CommandRegistry.of("dfdf", o -> Observable.empty()).findCommand("foobar").isPresent());
+    }
+
+    @Test
+    public void shouldStreamOverCommands() throws Exception {
+        final long actual = CommandRegistry.of("foo", o -> Observable.just(Event.create("foo")))
+                .stream()
+                .count();
+        assertEquals(1L, actual);
+    }
+
+    @Test
+    public void shouldLoopOverCommands() throws Exception {
+        final CommandRegistry sut = CommandRegistry.of("foo", o -> Observable.just(Event.create("foo")));
+        for (Pair<String, Function<Command, Observable<Event>>> pair : sut) {
+            assertEquals("foo", pair.getKey());
+        }
     }
 }

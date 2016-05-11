@@ -2,7 +2,7 @@ package net.soundvibe.reacto.types;
 
 import com.google.protobuf.ByteString;
 import net.soundvibe.reacto.internal.ObjectId;
-import net.soundvibe.reacto.internal.Messages;
+import net.soundvibe.reacto.internal.proto.Messages;
 import org.junit.Test;
 
 import java.util.LinkedHashMap;
@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
-import static net.soundvibe.reacto.internal.Messages.Command.newBuilder;
+import static net.soundvibe.reacto.internal.proto.Messages.Command.newBuilder;
 
 /**
  * @author OZY on 2016.02.05.

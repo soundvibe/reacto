@@ -4,10 +4,13 @@ import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandKey;
 import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.HystrixObservableCommand;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.types.Command;
 import rx.Observable;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -15,35 +18,47 @@ import java.util.function.Function;
  */
 public class HystrixObservableCommandWrapper extends HystrixObservableCommand<Event> {
 
-    private final Function<Command, Observable<Event>> f;
+    private static final Logger log = LoggerFactory.getLogger(HystrixObservableCommandWrapper.class);
+
+    private final Function<Command, Observable<Event>> main;
+    private final Optional<Function<Command, Observable<Event>>> fallback;
     private final Command command;
 
-    public HystrixObservableCommandWrapper(Function<Command, Observable<Event>> f, Command command, int executionTimeoutInMs) {
-        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("group: " + command.name))
-                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
-                        .withFallbackEnabled(false)
-                        .withExecutionTimeoutEnabled(executionTimeoutInMs > 0)
-                        .withExecutionTimeoutInMilliseconds(executionTimeoutInMs)
-                )
-                .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(command.name, executionTimeoutInMs > 0))));
-        this.f = f;
+    public HystrixObservableCommandWrapper(Function<Command, Observable<Event>> main, Command command, HystrixCommandProperties.Setter hystrixConfig) {
+        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("reacto"))
+                .andCommandPropertiesDefaults(hystrixConfig
+                        .withFallbackEnabled(false))
+                .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(command.name, hystrixConfig.getExecutionTimeoutEnabled()))));
+        this.main = main;
+        this.fallback = Optional.empty();
         this.command = command;
     }
 
-    protected static String resolveCommandName(String name, boolean useExecutionTimeout) {
+    public HystrixObservableCommandWrapper(Function<Command, Observable<Event>> main, Function<Command, Observable<Event>> fallback,
+                                           Command command, HystrixCommandProperties.Setter hystrixConfig) {
+        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey("reacto"))
+                .andCommandPropertiesDefaults(hystrixConfig
+                        .withFallbackEnabled(true)
+                )
+                .andCommandKey(HystrixCommandKey.Factory.asKey(resolveCommandName(command.name, hystrixConfig.getExecutionTimeoutEnabled()))));
+        this.main = main;
+        this.fallback = Optional.of(fallback);
+        this.command = command;
+    }
+
+    private static String resolveCommandName(String name, boolean useExecutionTimeout) {
         return useExecutionTimeout ? name : name + "$";
     }
 
     @Override
     protected Observable<Event> construct() {
-        return f.apply(command);
+        log.debug("Command executed: " + command);
+        return main.apply(command);
     }
 
     @Override
-    public String toString() {
-        return "HystrixObservableCommandWrapper{" +
-                "f=" + f +
-                ", command=" + command +
-                "} " + super.toString();
+    protected Observable<Event> resumeWithFallback() {
+        log.debug("Resuming with fallback: " + command);
+        return fallback.map(f -> f.apply(command)).orElseGet(() -> super.resumeWithFallback());
     }
 }

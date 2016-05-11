@@ -1,7 +1,9 @@
 package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
-import net.soundvibe.reacto.TestUtils.models.CustomError;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import net.soundvibe.reacto.utils.models.CustomError;
 import net.soundvibe.reacto.client.errors.CommandNotFound;
 import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.server.VertxServer;
@@ -22,15 +24,18 @@ import rx.Observable;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
+import java.lang.reflect.Field;
 import java.net.ConnectException;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * @author Cipolinas on 2015.12.01.
@@ -54,7 +59,8 @@ public class CommandExecutorTest {
     private static VertxServer fallbackVertxServer;
 
     private final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
-    private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(Nodes.ofMain(MAIN_NODE));
+    private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(
+            Nodes.ofMain(MAIN_NODE), CommandExecutors.defaultHystrixSetter());
     private final CommandExecutor mainNodeAndFallbackExecutor = CommandExecutors.webSocket(Nodes.ofMainAndFallback(MAIN_NODE, FALLBACK_NODE));
 
     @BeforeClass
@@ -94,7 +100,7 @@ public class CommandExecutorTest {
         CommandRegistry fallbackCommands = CommandRegistry.of(TEST_FAIL_BUT_FALLBACK_COMMAND,
                 o -> event1Arg("Recovered: " + o.get("arg")).toObservable());
 
-        Vertx vertx = Factories.vertx();
+        Vertx vertx = Vertx.vertx();
         mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(8282)
                 .setSsl(false)
@@ -184,7 +190,7 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldFailAfterHystrixTimeout() throws Exception {
-        CommandExecutor sut = CommandExecutors.webSocket(Nodes.ofMain(MAIN_NODE), CommandExecutors.DEFAULT_EXECUTION_TIMEOUT);
+        CommandExecutor sut = CommandExecutors.webSocket(Nodes.ofMain(MAIN_NODE), 1000);
         sut.execute(command1Arg(LONG_TASK, "5000"))
                 .subscribe(testSubscriber);
 
@@ -216,13 +222,14 @@ public class CommandExecutorTest {
         mainNodeExecutor.execute(Command.create(COMMAND_WITHOUT_ARGS))
                 .subscribe(testSubscriber);
 
+        System.out.println(testSubscriber.getOnErrorEvents());
         assertCompletedSuccessfully();
         testSubscriber.assertValue(event1Arg("ok"));
     }
 
     @Test
     public void shouldFailWhenCommandExecutorIsInaccessible() throws Exception {
-        CommandExecutor sut = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:45689/foo/"));
+        CommandExecutor sut = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:45689/foo/"), 5000);
         sut.execute(command1Arg(TEST_COMMAND, "foo"))
             .subscribe(testSubscriber);
 
@@ -252,20 +259,37 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldReceiveOneEventAndThenFail() throws Exception {
-        mainNodeExecutor.execute(Command.create(COMMAND_EMIT_AND_FAIL))
+        final Vertx vertx = Vertx.vertx();
+        HttpServer server = vertx.createHttpServer(new HttpServerOptions()
+                .setPort(8183)
+                .setSsl(false)
+                .setReuseAddress(true));
+
+        final VertxServer reactoServer = new VertxServer(Router.router(vertx), server, "distTest/", CommandRegistry.of(COMMAND_EMIT_AND_FAIL,
+                command -> Observable.create(subscriber -> {
+                    subscriber.onNext(Event.create("ok"));
+                    try {
+                        Thread.sleep(1000L);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                })));
+
+        final CommandExecutor executor = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:8183/distTest/"), 5000);
+
+        reactoServer.start();
+
+        executor.execute(Command.create(COMMAND_EMIT_AND_FAIL))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent(500L, TimeUnit.MILLISECONDS);
-        testSubscriber.assertValue(Event.create("ok"));
+        //testSubscriber.assertValue();
         //shut down main node
-        mainHttpServer.close();
-        try {
-            assertActualHystrixError(ConnectionClosedUnexpectedly.class, connectionClosedUnexpectedly ->
-                    assertTrue(connectionClosedUnexpectedly.getMessage()
-                            .startsWith("WebSocket connection closed without completion for command: ")));
-        } finally {
-            mainHttpServer.listen();
-        }
+        reactoServer.stop();
+        assertEquals(Event.create("ok"), testSubscriber.getOnNextEvents().get(0));
+        assertActualHystrixError(ConnectionClosedUnexpectedly.class, connectionClosedUnexpectedly ->
+                assertTrue(connectionClosedUnexpectedly.getMessage()
+                        .startsWith("WebSocket connection closed without completion for command: ")));
     }
 
     private void assertCompletedSuccessfully() {
