@@ -17,6 +17,7 @@ import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertTrue;
@@ -37,7 +38,7 @@ public class HystrixEventStreamHandlerTest {
         router.route("/test/hystrix.stream")
                 .handler(new SSEHandler(HystrixEventStreamHandler::handle));
         vertxServer = new VertxServer(router, vertx.createHttpServer(new HttpServerOptions().setPort(8282)), "test",
-               CommandRegistry.of("bla", o -> Observable.empty()));
+               CommandRegistry.of("bla", o -> Observable.empty()), Optional.empty());
         vertxServer.start();
         lastData = new AtomicReference<>();
         httpClient = vertx.createHttpClient();

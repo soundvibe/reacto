@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
-import static net.soundvibe.reacto.internal.proto.Messages.Command.newBuilder;
 
 /**
  * @author OZY on 2016.02.05.

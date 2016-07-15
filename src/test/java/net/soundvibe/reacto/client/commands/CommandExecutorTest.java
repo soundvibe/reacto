@@ -1,8 +1,7 @@
 package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import io.vertx.servicediscovery.ServiceDiscovery;
 import net.soundvibe.reacto.utils.models.CustomError;
 import net.soundvibe.reacto.client.errors.CommandNotFound;
 import net.soundvibe.reacto.server.CommandRegistry;
@@ -11,7 +10,6 @@ import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.types.MetaData;
 import net.soundvibe.reacto.types.Pair;
-import net.soundvibe.reacto.utils.Factories;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
@@ -24,16 +22,12 @@ import rx.Observable;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
-import java.lang.reflect.Field;
 import java.net.ConnectException;
-import java.util.Enumeration;
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.logging.LogManager;
 
 import static org.junit.Assert.*;
 
@@ -57,6 +51,7 @@ public class CommandExecutorTest {
     private static HttpServer mainHttpServer;
     private static VertxServer vertxServer;
     private static VertxServer fallbackVertxServer;
+    private static ServiceDiscovery serviceDiscovery;
 
     private final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
     private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(
@@ -101,6 +96,8 @@ public class CommandExecutorTest {
                 o -> event1Arg("Recovered: " + o.get("arg")).toObservable());
 
         Vertx vertx = Vertx.vertx();
+        serviceDiscovery = ServiceDiscovery.create(vertx);
+
         mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(8282)
                 .setSsl(false)
@@ -110,8 +107,9 @@ public class CommandExecutorTest {
                 .setPort(8383)
                 .setSsl(false)
                 .setReuseAddress(true));
-        vertxServer = new VertxServer(Router.router(vertx), mainHttpServer, "dist/", mainCommands);
-        fallbackVertxServer = new VertxServer(Router.router(vertx), fallbackHttpServer, "distFallback/", fallbackCommands);
+        vertxServer = new VertxServer(Router.router(vertx), mainHttpServer, "dist/", mainCommands, Optional.of(serviceDiscovery));
+        fallbackVertxServer = new VertxServer(Router.router(vertx), fallbackHttpServer, "distFallback/", fallbackCommands,
+                Optional.of(serviceDiscovery));
         fallbackVertxServer.start();
         vertxServer.start();
     }
@@ -273,7 +271,7 @@ public class CommandExecutorTest {
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-                })));
+                })), Optional.empty());
 
         final CommandExecutor executor = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:8183/distTest/"), 5000);
 
@@ -290,6 +288,24 @@ public class CommandExecutorTest {
         assertActualHystrixError(ConnectionClosedUnexpectedly.class, connectionClosedUnexpectedly ->
                 assertTrue(connectionClosedUnexpectedly.getMessage()
                         .startsWith("WebSocket connection closed without completion for command: ")));
+    }
+
+    @Test
+    public void shouldFindServiceAndExecuteCommand() throws Exception {
+        /*final ServiceDiscovery serviceDiscovery = ServiceDiscovery.create(Vertx.vertx(),
+                new ServiceDiscoveryOptions().setBackendConfiguration(
+                    new JsonObject()
+                            .put("backend-name", "couchbase")
+        ));*/
+
+        final CommandExecutor sut = CommandExecutors.find(Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery));
+        assertNotNull(sut);
+
+        sut.execute(command1Arg(TEST_COMMAND, "foo"))
+                .subscribe(testSubscriber);
+
+        assertCompletedSuccessfully();
+        testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
     }
 
     private void assertCompletedSuccessfully() {

@@ -5,7 +5,6 @@ import io.vertx.core.logging.LoggerFactory;
 import net.soundvibe.reacto.internal.InternalEvent;
 import net.soundvibe.reacto.server.handlers.WebSocketFrameHandler;
 import net.soundvibe.reacto.types.*;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.*;
 import net.soundvibe.reacto.client.errors.ConnectionClosedUnexpectedly;
@@ -16,6 +15,7 @@ import rx.Subscriber;
 
 import java.net.URI;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * @author OZY on 2015.11.23.
@@ -24,27 +24,29 @@ public class VertxWebSocketEventHandler implements EventHandler {
 
     private static final Logger log = LoggerFactory.getLogger(VertxWebSocketEventHandler.class);
 
-    private final URI wsUrl;
-    private final Vertx vertx;
+    private final Supplier<Pair<HttpClient, WebSocketStream>> supplier;
 
     public VertxWebSocketEventHandler(URI wsUrl) {
         Objects.requireNonNull(wsUrl, "WebSocket URI cannot be null");
-        this.wsUrl = wsUrl;
-        this.vertx = Factories.vertx();
+        this.supplier = () -> {
+            final HttpClient httpClient = Factories.vertx().createHttpClient(new HttpClientOptions());
+            final WebSocketStream webSocketStream = httpClient.websocketStream(getPortFromURI(wsUrl), wsUrl.getHost(), wsUrl.getPath());
+            return Pair.of(httpClient, webSocketStream);
+        };
+    }
+
+    public VertxWebSocketEventHandler(Supplier<Pair<HttpClient, WebSocketStream>> supplier) {
+        Objects.requireNonNull(supplier, "supplier cannot be null");
+        this.supplier = supplier;
     }
 
     @Override
     public Observable<Event> toObservable(Command command) {
-        return Observable.using(() -> vertx.createHttpClient(new HttpClientOptions()),
-                httpClient -> webSocketStreamObservable(httpClient, command),
-                HttpClient::close);
-    }
-
-    private Observable<Event> webSocketStreamObservable(HttpClient httpClient, Command command) {
         try {
-            final WebSocketStream webSocketStream = httpClient
-                    .websocketStream(getPortFromURI(wsUrl), wsUrl.getHost(), wsUrl.getPath());
-            return observe(webSocketStream, command);
+            final Pair<HttpClient, WebSocketStream> pair = supplier.get();
+            return Observable.using(() -> pair.key,
+                    httpClient -> observe(pair.value, command),
+                    HttpClient::close);
         } catch (Throwable e) {
             return Observable.error(e);
         }

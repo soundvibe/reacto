@@ -18,9 +18,33 @@ public class WebUtilsTest {
     }
 
     @Test
+    public void shouldNotEndWithDelimiter() throws Exception {
+        final String actual = WebUtils.excludeEndDelimiter("localhost/");
+        assertEquals("localhost", actual);
+    }
+
+    @Test
+    public void shouldNotEndWithDelimiterWhenNoEndDelimiter() throws Exception {
+        final String actual = WebUtils.excludeEndDelimiter("localhost");
+        assertEquals("localhost", actual);
+    }
+
+    @Test
     public void shouldStartWithDelimiter() throws Exception {
         final String actual = WebUtils.includeStartDelimiter("foo");
         assertEquals("/foo", actual);
+    }
+
+    @Test
+    public void shouldNotStartWithDelimiter() throws Exception {
+        final String actual = WebUtils.excludeStartDelimiter("/foo");
+        assertEquals("foo", actual);
+    }
+
+    @Test
+    public void shouldNotStartWithDelimiterWhenNoStartDelimiter() throws Exception {
+        final String actual = WebUtils.excludeStartDelimiter("foo");
+        assertEquals("foo", actual);
     }
 
     @Test

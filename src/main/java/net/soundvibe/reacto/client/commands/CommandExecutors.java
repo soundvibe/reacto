@@ -33,6 +33,11 @@ public interface CommandExecutors {
         ;
     }
 
+    static CommandExecutor find(Services services) {
+        return new VertxWebSocketCommandExecutor(Mappers.mapToEventHandlers(services, serviceName ->
+            new VertxWebSocketEventHandler(Mappers.serviceSupplier(serviceName, services.serviceDiscovery))));
+    }
+
     static CommandExecutor webSocket(Nodes nodes) {
         return new VertxWebSocketCommandExecutor(Mappers.mapToEventHandlers(nodes, VertxWebSocketEventHandler::new));
     }
