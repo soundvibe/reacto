@@ -111,11 +111,12 @@ public class VertxServer implements Server {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         try {
             serviceDiscovery.getRecords(
-                    record -> record.getName().equals(serviceName()),
+                    record -> serviceName().equals(record.getName()),
                     true,
                     event -> {
                         if (event.succeeded()) {
                             Observable.from(event.result())
+                                    .doOnNext(record -> serviceDiscovery.release(serviceDiscovery.getReference(record)))
                                     .flatMap(record -> Observable.create(subscriber -> {
                                                 serviceDiscovery.unpublish(record.getRegistration(), e -> {
                                                     if (e.failed()) {

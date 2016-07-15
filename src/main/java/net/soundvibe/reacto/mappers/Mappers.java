@@ -103,7 +103,7 @@ public interface Mappers {
                         .orElse(eventHandlers));
     }
 
-    static Supplier<Pair<HttpClient, WebSocketStream>> serviceSupplier(String serviceName, ServiceDiscovery serviceDiscovery) {
+    static Supplier<WebSocketStream> serviceSupplier(String serviceName, ServiceDiscovery serviceDiscovery) {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final AtomicReference<HttpClient> reference = new AtomicReference<>();
         final AtomicReference<Throwable> exception = new AtomicReference<>();
@@ -130,7 +130,7 @@ public interface Mappers {
                     throw new CannotDiscoverService("Unable to find service: " + serviceName, throwable);
                 }
             }
-            return () -> Pair.of(httpClient, httpClient.websocketStream(serviceName));
+            return () -> httpClient.websocketStream(serviceName);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

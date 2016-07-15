@@ -306,6 +306,12 @@ public class CommandExecutorTest {
 
         assertCompletedSuccessfully();
         testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
+
+
+        sut.execute(command1Arg(TEST_COMMAND, "foo"))
+                .subscribe(testSubscriber);
+        assertCompletedSuccessfully();
+        testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
     }
 
     private void assertCompletedSuccessfully() {

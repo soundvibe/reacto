@@ -2,6 +2,7 @@ package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.HystrixCommandProperties;
 import net.soundvibe.reacto.client.commands.hystrix.*;
+import net.soundvibe.reacto.client.events.VertxDiscoverableEventHandler;
 import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.client.events.VertxWebSocketEventHandler;
 import net.soundvibe.reacto.types.Command;
@@ -35,7 +36,8 @@ public interface CommandExecutors {
 
     static CommandExecutor find(Services services) {
         return new VertxWebSocketCommandExecutor(Mappers.mapToEventHandlers(services, serviceName ->
-            new VertxWebSocketEventHandler(Mappers.serviceSupplier(serviceName, services.serviceDiscovery))));
+            new VertxDiscoverableEventHandler(Mappers.serviceSupplier(serviceName, services.serviceDiscovery),
+                    VertxWebSocketEventHandler::observe)));
     }
 
     static CommandExecutor webSocket(Nodes nodes) {
