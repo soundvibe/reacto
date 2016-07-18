@@ -263,7 +263,8 @@ public class CommandExecutorTest {
                 .setSsl(false)
                 .setReuseAddress(true));
 
-        final VertxServer reactoServer = new VertxServer(Router.router(vertx), server, "distTest/", CommandRegistry.of(COMMAND_EMIT_AND_FAIL,
+        final VertxServer reactoServer = new VertxServer(Router.router(vertx), server, "distTest/",
+                CommandRegistry.of(COMMAND_EMIT_AND_FAIL,
                 command -> Observable.create(subscriber -> {
                     subscriber.onNext(Event.create("ok"));
                     try {
@@ -292,12 +293,6 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldFindServiceAndExecuteCommand() throws Exception {
-        /*final ServiceDiscovery serviceDiscovery = ServiceDiscovery.create(Vertx.vertx(),
-                new ServiceDiscoveryOptions().setBackendConfiguration(
-                    new JsonObject()
-                            .put("backend-name", "couchbase")
-        ));*/
-
         final CommandExecutor sut = CommandExecutors.find(Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery));
         assertNotNull(sut);
 

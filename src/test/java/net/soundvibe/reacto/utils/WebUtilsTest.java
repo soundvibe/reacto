@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.net.URI;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * @author Cipolinas on 2015.11.23.
@@ -63,5 +64,11 @@ public class WebUtilsTest {
     public void shouldResolveWebSocketFromWebSocketUrl() throws Exception {
         final URI actual = WebUtils.resolveWsURI("ws://localhost/foo");
         assertEquals(URI.create("ws://localhost/foo"), actual);
+    }
+
+    @Test
+    public void shouldReturnLocalAddress() throws Exception {
+        final String actual = WebUtils.getLocalAddress();
+        assertNotNull(actual);
     }
 }

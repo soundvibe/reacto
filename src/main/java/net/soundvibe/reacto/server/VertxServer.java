@@ -1,8 +1,8 @@
 package net.soundvibe.reacto.server;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.server.handlers.SSEHandler;
@@ -31,6 +31,7 @@ public class VertxServer implements Server {
     private final HttpServer httpServer;
     private final Router router;
     private final Optional<ServiceDiscovery> serviceDiscovery;
+    private Record record;
 
     public VertxServer(Router router, HttpServer httpServer, String root, CommandRegistry commands,
                        Optional<ServiceDiscovery> serviceDiscovery) {
@@ -59,9 +60,15 @@ public class VertxServer implements Server {
                     countDownLatch.countDown();
                     return;
                 }
-                final Thread thread = new Thread(() -> publishRecord(countDownLatch, event, serviceDiscovery.get()));
+                record = createRecord(event.result().actualPort());
+                final Thread thread = new Thread(() -> publishRecord(countDownLatch, record, serviceDiscovery.get()));
                 thread.setDaemon(true);
                 thread.start();
+
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    log.info("Executing shutdown hook...");
+                    closeDiscovery(serviceDiscovery.get());
+                }));
             }
             if (event.failed()) {
                 log.error("Error when starting the server: " + event.cause(), event.cause());
@@ -76,15 +83,10 @@ public class VertxServer implements Server {
         }
     }
 
-    private void publishRecord(CountDownLatch countDownLatch, AsyncResult<HttpServer> event, ServiceDiscovery serviceDiscovery) {
-        removeExistingServiceRecordsIfPresent(serviceDiscovery);
+    private void publishRecord(CountDownLatch countDownLatch, Record record, ServiceDiscovery serviceDiscovery) {
+        removeExistingServiceRecordsIfPresent(serviceDiscovery, record);
         serviceDiscovery.publish(
-                HttpEndpoint.createRecord(
-                        serviceName(),
-                        WebUtils.getLocalAddress(),
-                        event.result().actualPort(),
-                        root())
-                ,
+                record,
                 recordEvent -> {
                     countDownLatch.countDown();
                     if (recordEvent.succeeded()) {
@@ -97,6 +99,14 @@ public class VertxServer implements Server {
         );
     }
 
+    private Record createRecord(int port) {
+        return HttpEndpoint.createRecord(
+                serviceName(),
+                WebUtils.getLocalAddress(),
+                port,
+                root());
+    }
+
     @Override
     public void stop() {
         httpServer.close(event -> {
@@ -107,11 +117,11 @@ public class VertxServer implements Server {
         });
     }
 
-    private void removeExistingServiceRecordsIfPresent(ServiceDiscovery serviceDiscovery) {
+    private void removeExistingServiceRecordsIfPresent(ServiceDiscovery serviceDiscovery, Record newRecord) {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         try {
             serviceDiscovery.getRecords(
-                    record -> serviceName().equals(record.getName()),
+                    existingRecord -> sameRecord(existingRecord, newRecord),
                     true,
                     event -> {
                         if (event.succeeded()) {
@@ -148,9 +158,16 @@ public class VertxServer implements Server {
         }
     }
 
+    private boolean sameRecord(Record existingRecord, Record newRecord) {
+        return  Objects.equals(newRecord.getName(), existingRecord.getName()) &&
+                Objects.equals(newRecord.getLocation(), existingRecord.getLocation()) &&
+                Objects.equals(newRecord.getType(), existingRecord.getType());
+    }
+
     private void closeDiscovery(ServiceDiscovery serviceDiscovery) {
         try {
-            removeExistingServiceRecordsIfPresent(serviceDiscovery);
+            log.info("Closing service discovery...");
+            removeExistingServiceRecordsIfPresent(serviceDiscovery, record);
             serviceDiscovery.close();
         } catch (Throwable e) {
             log.warn("Error when closing service discovery: " + e);
