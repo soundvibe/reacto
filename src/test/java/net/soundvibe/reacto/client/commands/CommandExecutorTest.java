@@ -107,8 +107,8 @@ public class CommandExecutorTest {
                 .setPort(8383)
                 .setSsl(false)
                 .setReuseAddress(true));
-        vertxServer = new VertxServer(Router.router(vertx), mainHttpServer, "dist/", mainCommands, Optional.of(serviceDiscovery));
-        fallbackVertxServer = new VertxServer(Router.router(vertx), fallbackHttpServer, "distFallback/", fallbackCommands,
+        vertxServer = new VertxServer("dist", Router.router(vertx), mainHttpServer, "dist/", mainCommands, Optional.of(serviceDiscovery));
+        fallbackVertxServer = new VertxServer("distFallback", Router.router(vertx), fallbackHttpServer, "distFallback/", fallbackCommands,
                 Optional.of(serviceDiscovery));
         fallbackVertxServer.start();
         vertxServer.start();
@@ -258,12 +258,12 @@ public class CommandExecutorTest {
     @Test
     public void shouldReceiveOneEventAndThenFail() throws Exception {
         final Vertx vertx = Vertx.vertx();
-        HttpServer server = vertx.createHttpServer(new HttpServerOptions()
+        final HttpServer server = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(8183)
                 .setSsl(false)
                 .setReuseAddress(true));
 
-        final VertxServer reactoServer = new VertxServer(Router.router(vertx), server, "distTest/",
+        final VertxServer reactoServer = new VertxServer("distTest", Router.router(vertx), server, "distTest/",
                 CommandRegistry.of(COMMAND_EMIT_AND_FAIL,
                 command -> Observable.create(subscriber -> {
                     subscriber.onNext(Event.create("ok"));
@@ -278,13 +278,18 @@ public class CommandExecutorTest {
 
         reactoServer.start();
 
-        executor.execute(Command.create(COMMAND_EMIT_AND_FAIL))
-                .subscribe(testSubscriber);
+        try {
+            executor.execute(Command.create(COMMAND_EMIT_AND_FAIL))
+                    .subscribe(testSubscriber);
 
-        testSubscriber.awaitTerminalEvent(500L, TimeUnit.MILLISECONDS);
-        //testSubscriber.assertValue();
-        //shut down main node
-        reactoServer.stop();
+            testSubscriber.awaitTerminalEvent(500L, TimeUnit.MILLISECONDS);
+
+
+        } finally {
+            reactoServer.stop();
+            Thread.sleep(100L);
+        }
+
         assertEquals(Event.create("ok"), testSubscriber.getOnNextEvents().get(0));
         assertActualHystrixError(ConnectionClosedUnexpectedly.class, connectionClosedUnexpectedly ->
                 assertTrue(connectionClosedUnexpectedly.getMessage()
@@ -298,8 +303,9 @@ public class CommandExecutorTest {
 
         sut.execute(command1Arg(TEST_COMMAND, "foo"))
                 .subscribe(testSubscriber);
-
         assertCompletedSuccessfully();
+
+        System.out.println("1");
         testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
 
 

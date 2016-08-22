@@ -32,6 +32,10 @@ public final class CommandRegistry implements Iterable<Pair<String, Function<Com
         return new CommandRegistry().and(commandName, onInvoke);
     }
 
+    public static CommandRegistry empty() {
+        return new CommandRegistry();
+    }
+
     public Optional<Function<Command, Observable<Event>>> findCommand(String address) {
         return Optional.ofNullable(commands.get(address));
     }

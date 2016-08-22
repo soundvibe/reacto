@@ -37,7 +37,7 @@ public class HystrixEventStreamHandlerTest {
         final Router router = Router.router(vertx);
         router.route("/test/hystrix.stream")
                 .handler(new SSEHandler(HystrixEventStreamHandler::handle));
-        vertxServer = new VertxServer(router, vertx.createHttpServer(new HttpServerOptions().setPort(8282)), "test",
+        vertxServer = new VertxServer("test", router, vertx.createHttpServer(new HttpServerOptions().setPort(8282)), "test",
                CommandRegistry.of("bla", o -> Observable.empty()), Optional.empty());
         vertxServer.start();
         lastData = new AtomicReference<>();

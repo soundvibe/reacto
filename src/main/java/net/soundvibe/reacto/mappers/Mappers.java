@@ -18,6 +18,7 @@ import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.client.commands.Nodes;
 import net.soundvibe.reacto.types.Pair;
+import net.soundvibe.reacto.utils.WebUtils;
 
 import java.io.*;
 import java.net.URI;
@@ -130,7 +131,7 @@ public interface Mappers {
                     throw new CannotDiscoverService("Unable to find service: " + serviceName, throwable);
                 }
             }
-            return () -> httpClient.websocketStream(serviceName);
+            return () -> httpClient.websocketStream(WebUtils.includeStartDelimiter(WebUtils.includeEndDelimiter(serviceName)));
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

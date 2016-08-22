@@ -113,7 +113,7 @@ public class VertxWebSocketEventHandler implements EventHandler {
     }
 
     private static void sendCommandToExecutor(Command command, WebSocket webSocket) {
-        log.debug("Sending command to executor: " + command);
+        log.info("Sending command to executor: " + command);
         final byte[] bytes = Mappers.commandToBytes(command);
         webSocket.writeBinaryMessage(Buffer.buffer(bytes));
     }

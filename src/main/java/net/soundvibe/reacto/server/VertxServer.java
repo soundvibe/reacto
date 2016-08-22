@@ -26,6 +26,7 @@ public class VertxServer implements Server {
 
     private static final Logger log = LoggerFactory.getLogger(VertxServer.class);
 
+    private final String serviceName;
     private final String root;
     private final CommandRegistry commands;
     private final HttpServer httpServer;
@@ -33,13 +34,15 @@ public class VertxServer implements Server {
     private final Optional<ServiceDiscovery> serviceDiscovery;
     private Record record;
 
-    public VertxServer(Router router, HttpServer httpServer, String root, CommandRegistry commands,
+    public VertxServer(String serviceName, Router router, HttpServer httpServer, String root, CommandRegistry commands,
                        Optional<ServiceDiscovery> serviceDiscovery) {
+        Objects.requireNonNull(serviceName, "serviceName cannot be null");
         Objects.requireNonNull(router, "Router cannot be null");
         Objects.requireNonNull(httpServer, "HttpServer cannot be null");
         Objects.requireNonNull(root, "Root cannot be null");
         Objects.requireNonNull(commands, "CommandRegistry cannot be null");
         Objects.requireNonNull(serviceDiscovery, "ServiceDiscovery cannot be null");
+        this.serviceName = serviceName;
         this.router = router;
         this.httpServer = httpServer;
         this.root = root;
@@ -182,7 +185,7 @@ public class VertxServer implements Server {
     }
 
     private String serviceName() {
-        return WebUtils.excludeEndDelimiter(WebUtils.excludeStartDelimiter(root));
+        return WebUtils.excludeEndDelimiter(WebUtils.excludeStartDelimiter(serviceName));
     }
 
     private String root() {
