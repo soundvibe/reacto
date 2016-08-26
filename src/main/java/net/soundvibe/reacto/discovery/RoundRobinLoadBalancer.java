@@ -16,11 +16,9 @@ public final class RoundRobinLoadBalancer implements LoadBalancer {
     public Record balance(List<Record> records) {
         return records.get(cachedRecords.compute(records.get(0).getName(), (name, lastIndex) -> {
             if (lastIndex == null) {
-                System.out.println("Index of " + name + ": " +  0);
                 return 0;
             }
             final int newIndex = lastIndex + 1;
-            System.out.println("Index of " + name + ": " + newIndex);
             return newIndex >= records.size() ? 0 : newIndex;
         }));
     }

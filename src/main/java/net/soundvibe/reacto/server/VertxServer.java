@@ -4,8 +4,8 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
-import io.vertx.servicediscovery.Status;
 import io.vertx.servicediscovery.types.HttpEndpoint;
+import net.soundvibe.reacto.discovery.DiscoverableServices;
 import net.soundvibe.reacto.server.handlers.SSEHandler;
 import net.soundvibe.reacto.server.handlers.WebSocketCommandHandler;
 import io.vertx.core.http.HttpServer;
@@ -13,9 +13,7 @@ import io.vertx.ext.web.Router;
 import net.soundvibe.reacto.server.handlers.CommandHandler;
 import net.soundvibe.reacto.server.handlers.HystrixEventStreamHandler;
 import net.soundvibe.reacto.utils.WebUtils;
-import rx.Observable;
 
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -66,10 +64,10 @@ public class VertxServer implements Server {
                 }
                 final ServiceDiscovery discovery = serviceDiscovery.get();
                 record = createRecord(event.result().actualPort());
-                startHeartBeat(countDownLatch, record, discovery);
+                DiscoverableServices.startHeartBeat(countDownLatch::countDown, record, discovery);
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                     log.info("Executing shutdown hook...");
-                    closeDiscovery(discovery);
+                    DiscoverableServices.closeDiscovery(discovery, record);
                 }));
             }
             if (event.failed()) {
@@ -81,44 +79,6 @@ public class VertxServer implements Server {
             countDownLatch.await(1L, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    private void startHeartBeat(final CountDownLatch countDownLatch, Record record, ServiceDiscovery serviceDiscovery) {
-        new Timer("service-discovery-heartbeat", true).scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                record.getMetadata().put(ServiceRecords.LAST_UPDATED, Instant.now());
-                publishRecord(countDownLatch::countDown, record, serviceDiscovery);
-            }
-        }, 0L, TimeUnit.MINUTES.toMillis(1L));
-    }
-
-    private void publishRecord(Runnable doOnPublish, Record record, ServiceDiscovery serviceDiscovery) {
-        removeExistingServiceRecordsIfPresent(serviceDiscovery, record);
-        if (record.getRegistration() != null) {
-            serviceDiscovery.update(record, recordEvent -> {
-                doOnPublish.run();
-                if (recordEvent.succeeded()) {
-                    log.info("Service has been updated successfully: " + recordEvent.result().toJson());
-                }
-                if (recordEvent.failed()) {
-                    log.error("Error when trying to updated the service: " + recordEvent.cause(), recordEvent.cause());
-                }
-            });
-        } else {
-            serviceDiscovery.publish(
-                    record,
-                    recordEvent -> {
-                        doOnPublish.run();
-                        if (recordEvent.succeeded()) {
-                            log.info("Service has been published successfully: " + recordEvent.result().toJson());
-                        }
-                        if (recordEvent.failed()) {
-                            log.error("Error when trying to publish the service: " + recordEvent.cause(), recordEvent.cause());
-                        }
-                    }
-            );
         }
     }
 
@@ -135,58 +95,9 @@ public class VertxServer implements Server {
         httpServer.close(event -> {
             if (event.succeeded()) {
                 log.info("Server has stopped on port " + httpServer.actualPort());
-                serviceDiscovery.ifPresent(this::closeDiscovery);
+                serviceDiscovery.ifPresent(discovery -> DiscoverableServices.closeDiscovery(discovery, record));
             }
         });
-    }
-
-    private void removeExistingServiceRecordsIfPresent(ServiceDiscovery serviceDiscovery, Record newRecord) {
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
-        try {
-            serviceDiscovery.getRecords(
-                    existingRecord -> ServiceRecords.isDown(existingRecord, newRecord),
-                    false,
-                    event -> {
-                        if (event.succeeded()) {
-                            Observable.from(event.result())
-                                    .doOnNext(record -> serviceDiscovery.release(serviceDiscovery.getReference(record)))
-                                    .flatMap(record -> Observable.create(subscriber ->
-                                        serviceDiscovery.update(record.setStatus(Status.DOWN), e -> {
-                                            if (e.failed() && (!subscriber.isUnsubscribed())) {
-                                                subscriber.onError(e.cause());
-                                                return;
-                                            }
-                                            if (e.succeeded() && (!subscriber.isUnsubscribed())) {
-                                                    subscriber.onNext(record);
-                                                    subscriber.onCompleted();
-                                            }
-                                        })))
-                                    .subscribe(record -> log.info("Record status set to DOWN: " + record),
-                                            throwable -> {
-                                                log.error("Error when setting record status: " + throwable);
-                                                countDownLatch.countDown();
-                                            },
-                                            countDownLatch::countDown);
-                        }
-                        if (event.failed()) {
-                            log.info("No matching records: " + event.cause());
-                            countDownLatch.countDown();
-                        }
-            });
-            countDownLatch.await(1L, TimeUnit.MINUTES);
-        } catch (Throwable e) {
-            log.warn("Error when removing duplicates on service discovery: " + e);
-        }
-    }
-
-    private void closeDiscovery(ServiceDiscovery serviceDiscovery) {
-        try {
-            log.info("Closing service discovery...");
-            removeExistingServiceRecordsIfPresent(serviceDiscovery, record);
-            serviceDiscovery.close();
-        } catch (Throwable e) {
-            log.warn("Error when closing service discovery: " + e);
-        }
     }
 
     private void setupRoutes() {
