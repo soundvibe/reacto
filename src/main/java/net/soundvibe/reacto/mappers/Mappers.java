@@ -17,17 +17,15 @@ import net.soundvibe.reacto.internal.RuntimeProtocolBufferException;
 import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.client.commands.Nodes;
-import net.soundvibe.reacto.types.Pair;
-import net.soundvibe.reacto.utils.WebUtils;
+import rx.Observable;
 
 import java.io.*;
 import java.net.URI;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import static net.soundvibe.reacto.utils.WebUtils.*;
 
 /**
  * @author Linas on 2015.10.25.
@@ -93,47 +91,25 @@ public interface Mappers {
                         .orElse(eventHandlers));
     }
 
-    static Supplier<Optional<EventHandlers>> mapToEventHandlers(Services services,
-                                                                Function<String, EventHandler> eventHandlerFactory) {
-        return () -> Optional.ofNullable(services.mainServiceName)
-                .map(eventHandlerFactory)
-                .map(mainEventHandler -> new EventHandlers(mainEventHandler, Optional.empty()))
-                .map(eventHandlers -> services.fallbackServiceName
-                        .map(eventHandlerFactory)
-                        .map(eventHandlers::copy)
-                        .orElse(eventHandlers));
-    }
-
-    static Supplier<WebSocketStream> serviceSupplier(String serviceName, ServiceDiscovery serviceDiscovery) {
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<HttpClient> reference = new AtomicReference<>();
-        final AtomicReference<Throwable> exception = new AtomicReference<>();
-
-        HttpEndpoint.getClient(serviceDiscovery, new JsonObject().put("name", serviceName),
-                asyncClient -> {
-                    if (asyncClient.succeeded()) {
-                        final HttpClient httpClient = asyncClient.result();
-                        reference.set(httpClient);
+    static Observable<WebSocketStream> findService(String serviceName, ServiceDiscovery serviceDiscovery) {
+        return Observable.<HttpClient>create(subscriber -> {
+            subscriber.onStart();
+            HttpEndpoint.getClient(serviceDiscovery, new JsonObject().put("name", serviceName),
+                    asyncClient -> {
+                        if (asyncClient.succeeded()) {
+                            final HttpClient httpClient = asyncClient.result();
+                            if (!subscriber.isUnsubscribed()) {
+                                subscriber.onNext(httpClient);
+                                subscriber.onCompleted();
+                            }
+                        }
+                        if (asyncClient.failed()) {
+                            if (!subscriber.isUnsubscribed()) {
+                                subscriber.onError(new CannotDiscoverService("Unable to find service: " + serviceName, asyncClient.cause()));
+                            }
+                        }
                     }
-                    if (asyncClient.failed()) {
-                        exception.set(asyncClient.cause());
-                    }
-                    countDownLatch.countDown();
-                });
-        try {
-            countDownLatch.await(1L, TimeUnit.MINUTES);
-            final HttpClient httpClient = reference.get();
-            if (httpClient == null) {
-                final Throwable throwable = exception.get();
-                if (throwable == null) {
-                    throw new CannotDiscoverService("Unable to find service: " + serviceName);
-                } else {
-                    throw new CannotDiscoverService("Unable to find service: " + serviceName, throwable);
-                }
-            }
-            return () -> httpClient.websocketStream(WebUtils.includeStartDelimiter(WebUtils.includeEndDelimiter(serviceName)));
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+            );
+        }).map(httpClient -> httpClient.websocketStream(includeStartDelimiter(includeEndDelimiter(serviceName))));
     }
 }

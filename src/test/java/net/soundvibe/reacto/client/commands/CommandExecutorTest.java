@@ -2,6 +2,7 @@ package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
 import io.vertx.servicediscovery.ServiceDiscovery;
+import net.soundvibe.reacto.client.errors.CannotDiscoverService;
 import net.soundvibe.reacto.utils.models.CustomError;
 import net.soundvibe.reacto.client.errors.CommandNotFound;
 import net.soundvibe.reacto.server.CommandRegistry;
@@ -107,7 +108,12 @@ public class CommandExecutorTest {
                 .setPort(8383)
                 .setSsl(false)
                 .setReuseAddress(true));
-        vertxServer = new VertxServer("dist", Router.router(vertx), mainHttpServer, "dist/", mainCommands, Optional.of(serviceDiscovery));
+
+        final Router router = Router.router(vertx);
+        router.route("/health").handler(event -> event.response().end("ok"));
+
+        vertxServer = new VertxServer("dist", router
+                , mainHttpServer, "dist/", mainCommands, Optional.of(serviceDiscovery));
         fallbackVertxServer = new VertxServer("distFallback", Router.router(vertx), fallbackHttpServer, "distFallback/", fallbackCommands,
                 Optional.of(serviceDiscovery));
         fallbackVertxServer.start();
@@ -298,21 +304,32 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldFindServiceAndExecuteCommand() throws Exception {
-        final CommandExecutor sut = CommandExecutors.find(Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery));
-        assertNotNull(sut);
-
-        sut.execute(command1Arg(TEST_COMMAND, "foo"))
+        CommandExecutors.find(Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery))
+                .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
                 .subscribe(testSubscriber);
+
         assertCompletedSuccessfully();
 
-        System.out.println("1");
         testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
 
 
-        sut.execute(command1Arg(TEST_COMMAND, "foo"))
+        CommandExecutors.find(Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery))
+                .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
                 .subscribe(testSubscriber);
         assertCompletedSuccessfully();
         testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
+    }
+
+
+    @Test
+    public void shouldNotFindService() throws Exception {
+        final TestSubscriber<CommandExecutor> subscriber = new TestSubscriber<>();
+
+        CommandExecutors.find(Services.ofMain("NotExists", serviceDiscovery))
+            .subscribe(subscriber);
+
+        subscriber.awaitTerminalEvent();
+        subscriber.assertError(CannotDiscoverService.class);
     }
 
     private void assertCompletedSuccessfully() {

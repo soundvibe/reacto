@@ -7,26 +7,25 @@ import rx.Observable;
 
 import java.util.Objects;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
 /**
  * @author OZY on 2015.11.23.
  */
 public class VertxDiscoverableEventHandler implements EventHandler {
 
-    private final Supplier<WebSocketStream> supplier;
+    private final WebSocketStream webSocketStream;
     private final BiFunction<WebSocketStream, Command, Observable<Event>> eventHandler;
 
-    public VertxDiscoverableEventHandler(Supplier<WebSocketStream> supplier,
+    public VertxDiscoverableEventHandler(WebSocketStream webSocketStream,
                                          BiFunction<WebSocketStream, Command, Observable<Event>> eventHandler) {
-        Objects.requireNonNull(supplier, "supplier cannot be null");
+        Objects.requireNonNull(webSocketStream, "Observable cannot be null");
         Objects.requireNonNull(eventHandler, "eventHandler cannot be null");
-        this.supplier = supplier;
+        this.webSocketStream = webSocketStream;
         this.eventHandler = eventHandler;
     }
 
     @Override
     public Observable<Event> toObservable(Command command) {
-        return eventHandler.apply(supplier.get(), command);
+        return eventHandler.apply(webSocketStream, command);
     }
 }
