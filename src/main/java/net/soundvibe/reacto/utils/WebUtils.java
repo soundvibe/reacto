@@ -34,10 +34,10 @@ public interface WebUtils {
 
     static String getLocalAddress() {
         try {
-            return InetAddress.getLocalHost().getHostName();
+            return InetAddress.getLocalHost().getHostAddress();
         } catch (UnknownHostException e) {
             try {
-                return InetAddress.getLocalHost().getHostAddress();
+                return InetAddress.getLocalHost().getHostName();
             } catch (UnknownHostException e1) {
                 return "localhost";
             }
