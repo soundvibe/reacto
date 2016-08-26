@@ -8,7 +8,6 @@ import net.soundvibe.reacto.mappers.Mappers;
 import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.types.*;
 import rx.*;
-import rx.functions.Action0;
 import rx.schedulers.Schedulers;
 
 import java.util.Optional;

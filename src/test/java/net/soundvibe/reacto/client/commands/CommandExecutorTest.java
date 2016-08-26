@@ -58,10 +58,12 @@ public class CommandExecutorTest {
     private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(
             Nodes.ofMain(MAIN_NODE), CommandExecutors.defaultHystrixSetter());
     private final CommandExecutor mainNodeAndFallbackExecutor = CommandExecutors.webSocket(Nodes.ofMainAndFallback(MAIN_NODE, FALLBACK_NODE));
+    private static CommandRegistry mainCommands;
+    private static Vertx vertx;
 
     @BeforeClass
     public static void setUp() throws Exception {
-        CommandRegistry mainCommands = CommandRegistry.of(TEST_COMMAND, cmd ->
+        mainCommands = CommandRegistry.of(TEST_COMMAND, cmd ->
                     event1Arg("Called command with arg: " + cmd.get("arg")).toObservable()
                 )
                 .and(TEST_COMMAND_MANY, o -> Observable.just(
@@ -90,13 +92,12 @@ public class CommandExecutorTest {
                         System.out.println(e.getMessage());
                         subscriber.onError(e);
                     }
-                }))
-                ;
+                }));
 
         CommandRegistry fallbackCommands = CommandRegistry.of(TEST_FAIL_BUT_FALLBACK_COMMAND,
                 o -> event1Arg("Recovered: " + o.get("arg")).toObservable());
 
-        Vertx vertx = Vertx.vertx();
+        vertx = Vertx.vertx();
         serviceDiscovery = ServiceDiscovery.create(vertx);
 
         mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
@@ -330,6 +331,46 @@ public class CommandExecutorTest {
 
         subscriber.awaitTerminalEvent();
         subscriber.assertError(CannotDiscoverService.class);
+    }
+
+    @Test
+    public void shouldFindServicesAndBalanceTheLoad() throws Exception {
+        //start new service
+        final HttpServer server = vertx.createHttpServer(new HttpServerOptions()
+                .setPort(8183)
+                .setSsl(false)
+                .setReuseAddress(true));
+
+        final VertxServer reactoServer = new VertxServer("dist", Router.router(vertx), server, "dist/",
+                CommandRegistry.of(TEST_COMMAND, cmd ->
+                        event1Arg("Called command from second server with arg: " + cmd.get("arg")).toObservable()),
+                Optional.of(serviceDiscovery));
+        reactoServer.start();
+
+        try {
+            final Services services = Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery);
+
+            CommandExecutors.find(services)
+                    .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
+                    .subscribe(testSubscriber);
+
+            assertCompletedSuccessfully();
+
+            testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
+
+            TestSubscriber<Event> eventTestSubscriber = new TestSubscriber<>();
+
+            CommandExecutors.find(services)
+                    .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "bar")))
+                    .subscribe(eventTestSubscriber);
+            eventTestSubscriber.awaitTerminalEvent();
+            eventTestSubscriber.assertNoErrors();
+            eventTestSubscriber.assertCompleted();
+            eventTestSubscriber.assertValue(event1Arg("Called command from second server with arg: bar"));
+        } finally {
+            reactoServer.stop();
+            Thread.sleep(100L);
+        }
     }
 
     private void assertCompletedSuccessfully() {

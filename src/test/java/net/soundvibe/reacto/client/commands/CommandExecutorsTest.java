@@ -1,10 +1,8 @@
 package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
-import io.vertx.servicediscovery.ServiceDiscovery;
 import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.types.Event;
-import net.soundvibe.reacto.utils.Factories;
 import org.junit.Test;
 import rx.Observable;
 import rx.observers.TestSubscriber;

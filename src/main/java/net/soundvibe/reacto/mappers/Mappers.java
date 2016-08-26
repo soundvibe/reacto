@@ -1,13 +1,6 @@
 package net.soundvibe.reacto.mappers;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.WebSocketStream;
-import io.vertx.core.json.JsonObject;
-import io.vertx.servicediscovery.ServiceDiscovery;
-import io.vertx.servicediscovery.types.HttpEndpoint;
-import net.soundvibe.reacto.client.commands.Services;
-import net.soundvibe.reacto.client.errors.CannotDiscoverService;
 import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.client.events.EventHandlers;
 import net.soundvibe.reacto.internal.InternalEvent;
@@ -17,15 +10,12 @@ import net.soundvibe.reacto.internal.RuntimeProtocolBufferException;
 import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.client.commands.Nodes;
-import rx.Observable;
 
 import java.io.*;
 import java.net.URI;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import static net.soundvibe.reacto.utils.WebUtils.*;
 
 /**
  * @author Linas on 2015.10.25.
@@ -89,27 +79,5 @@ public interface Mappers {
                         .map(eventHandlerFactory)
                         .map(eventHandlers::copy)
                         .orElse(eventHandlers));
-    }
-
-    static Observable<WebSocketStream> findService(String serviceName, ServiceDiscovery serviceDiscovery) {
-        return Observable.<HttpClient>create(subscriber -> {
-            subscriber.onStart();
-            HttpEndpoint.getClient(serviceDiscovery, new JsonObject().put("name", serviceName),
-                    asyncClient -> {
-                        if (asyncClient.succeeded()) {
-                            final HttpClient httpClient = asyncClient.result();
-                            if (!subscriber.isUnsubscribed()) {
-                                subscriber.onNext(httpClient);
-                                subscriber.onCompleted();
-                            }
-                        }
-                        if (asyncClient.failed()) {
-                            if (!subscriber.isUnsubscribed()) {
-                                subscriber.onError(new CannotDiscoverService("Unable to find service: " + serviceName, asyncClient.cause()));
-                            }
-                        }
-                    }
-            );
-        }).map(httpClient -> httpClient.websocketStream(includeStartDelimiter(includeEndDelimiter(serviceName))));
     }
 }

@@ -6,6 +6,9 @@ import net.soundvibe.reacto.client.errors.CannotDiscoverService;
 import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.client.events.EventHandlers;
 import net.soundvibe.reacto.client.events.VertxDiscoverableEventHandler;
+import net.soundvibe.reacto.discovery.DiscoverableServices;
+import net.soundvibe.reacto.discovery.LoadBalancer;
+import net.soundvibe.reacto.discovery.LoadBalancers;
 import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.client.events.VertxWebSocketEventHandler;
 import net.soundvibe.reacto.types.Command;
@@ -14,7 +17,6 @@ import net.soundvibe.reacto.types.Pair;
 import rx.Observable;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 /**
@@ -41,16 +43,20 @@ public interface CommandExecutors {
     }
 
     static Observable<CommandExecutor> find(Services services) {
-        return Mappers.findService(services.mainServiceName, services.serviceDiscovery)
+        return find(services, LoadBalancers.ROUND_ROBIN);
+    }
+
+    static Observable<CommandExecutor> find(Services services, LoadBalancer loadBalancer) {
+        return DiscoverableServices.find(services.mainServiceName, services.serviceDiscovery, loadBalancer)
                 .map(webSocketStream -> Pair.of(true, webSocketStream))
                 .onErrorResumeNext(throwable -> services.fallbackServiceName.isPresent() ?
-                        Mappers.findService(services.fallbackServiceName.get(), services.serviceDiscovery)
+                        DiscoverableServices.find(services.fallbackServiceName.get(), services.serviceDiscovery, loadBalancer)
                             .map(webSocketStream -> Pair.of(false, webSocketStream)):
                         Observable.error(new CannotDiscoverService("Cannot find any of " + services, throwable))
                 )
                 .flatMap(pair -> Observable.just(pair.value)
                                 .concatWith(pair.key && services.fallbackServiceName.isPresent() ?
-                                        Mappers.findService(services.fallbackServiceName.get(), services.serviceDiscovery)
+                                        DiscoverableServices.find(services.fallbackServiceName.get(), services.serviceDiscovery, loadBalancer)
                                             .onExceptionResumeNext(Observable.empty()):
                                         Observable.empty())
                 )
