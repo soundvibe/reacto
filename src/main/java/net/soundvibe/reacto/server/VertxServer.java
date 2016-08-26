@@ -4,6 +4,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
+import io.vertx.servicediscovery.Status;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.server.handlers.SSEHandler;
 import net.soundvibe.reacto.server.handlers.WebSocketCommandHandler;
@@ -14,8 +15,8 @@ import net.soundvibe.reacto.server.handlers.HystrixEventStreamHandler;
 import net.soundvibe.reacto.utils.WebUtils;
 import rx.Observable;
 
-import java.util.Objects;
-import java.util.Optional;
+import java.time.Instant;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -63,21 +64,18 @@ public class VertxServer implements Server {
                     countDownLatch.countDown();
                     return;
                 }
+                final ServiceDiscovery discovery = serviceDiscovery.get();
                 record = createRecord(event.result().actualPort());
-                final Thread thread = new Thread(() -> publishRecord(countDownLatch, record, serviceDiscovery.get()));
-                thread.setDaemon(true);
-                thread.start();
-
+                startHeartBeat(countDownLatch, record, discovery);
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                     log.info("Executing shutdown hook...");
-                    closeDiscovery(serviceDiscovery.get());
+                    closeDiscovery(discovery);
                 }));
             }
             if (event.failed()) {
                 log.error("Error when starting the server: " + event.cause(), event.cause());
                 countDownLatch.countDown();
             }
-
         });
         try {
             countDownLatch.await(1L, TimeUnit.MINUTES);
@@ -86,20 +84,42 @@ public class VertxServer implements Server {
         }
     }
 
-    private void publishRecord(CountDownLatch countDownLatch, Record record, ServiceDiscovery serviceDiscovery) {
+    private void startHeartBeat(final CountDownLatch countDownLatch, Record record, ServiceDiscovery serviceDiscovery) {
+        new Timer("service-discovery-heartbeat", true).scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                record.getMetadata().put(ServiceRecords.LAST_UPDATED, Instant.now());
+                publishRecord(countDownLatch::countDown, record, serviceDiscovery);
+            }
+        }, 0L, TimeUnit.MINUTES.toMillis(1L));
+    }
+
+    private void publishRecord(Runnable doOnPublish, Record record, ServiceDiscovery serviceDiscovery) {
         removeExistingServiceRecordsIfPresent(serviceDiscovery, record);
-        serviceDiscovery.publish(
-                record,
-                recordEvent -> {
-                    countDownLatch.countDown();
-                    if (recordEvent.succeeded()) {
-                        log.info("Service has been published successfully: " + recordEvent.result().toJson());
-                    }
-                    if (recordEvent.failed()) {
-                        log.error("Error when trying to publish the service: " + recordEvent.cause(), recordEvent.cause());
-                    }
+        if (record.getRegistration() != null) {
+            serviceDiscovery.update(record, recordEvent -> {
+                doOnPublish.run();
+                if (recordEvent.succeeded()) {
+                    log.info("Service has been updated successfully: " + recordEvent.result().toJson());
                 }
-        );
+                if (recordEvent.failed()) {
+                    log.error("Error when trying to updated the service: " + recordEvent.cause(), recordEvent.cause());
+                }
+            });
+        } else {
+            serviceDiscovery.publish(
+                    record,
+                    recordEvent -> {
+                        doOnPublish.run();
+                        if (recordEvent.succeeded()) {
+                            log.info("Service has been published successfully: " + recordEvent.result().toJson());
+                        }
+                        if (recordEvent.failed()) {
+                            log.error("Error when trying to publish the service: " + recordEvent.cause(), recordEvent.cause());
+                        }
+                    }
+            );
+        }
     }
 
     private Record createRecord(int port) {
@@ -124,28 +144,26 @@ public class VertxServer implements Server {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         try {
             serviceDiscovery.getRecords(
-                    existingRecord -> sameRecord(existingRecord, newRecord),
-                    true,
+                    existingRecord -> ServiceRecords.isDown(existingRecord, newRecord),
+                    false,
                     event -> {
                         if (event.succeeded()) {
                             Observable.from(event.result())
                                     .doOnNext(record -> serviceDiscovery.release(serviceDiscovery.getReference(record)))
-                                    .flatMap(record -> Observable.create(subscriber -> {
-                                                serviceDiscovery.unpublish(record.getRegistration(), e -> {
-                                                    if (e.failed()) {
-                                                        subscriber.onError(e.cause());
-                                                        return;
-                                                    }
-
-                                                    if (e.succeeded()) {
-                                                        subscriber.onNext(record);
-                                                        subscriber.onCompleted();
-                                                    }
-                                                });
-                                            }))
-                                    .subscribe(record -> log.info("Record unpublished: " + record),
+                                    .flatMap(record -> Observable.create(subscriber ->
+                                        serviceDiscovery.update(record.setStatus(Status.DOWN), e -> {
+                                            if (e.failed() && (!subscriber.isUnsubscribed())) {
+                                                subscriber.onError(e.cause());
+                                                return;
+                                            }
+                                            if (e.succeeded() && (!subscriber.isUnsubscribed())) {
+                                                    subscriber.onNext(record);
+                                                    subscriber.onCompleted();
+                                            }
+                                        })))
+                                    .subscribe(record -> log.info("Record status set to DOWN: " + record),
                                             throwable -> {
-                                                log.error("Error when unpublishing record: " + throwable);
+                                                log.error("Error when setting record status: " + throwable);
                                                 countDownLatch.countDown();
                                             },
                                             countDownLatch::countDown);
@@ -159,12 +177,6 @@ public class VertxServer implements Server {
         } catch (Throwable e) {
             log.warn("Error when removing duplicates on service discovery: " + e);
         }
-    }
-
-    private boolean sameRecord(Record existingRecord, Record newRecord) {
-        return  Objects.equals(newRecord.getName(), existingRecord.getName()) &&
-                Objects.equals(newRecord.getLocation(), existingRecord.getLocation()) &&
-                Objects.equals(newRecord.getType(), existingRecord.getType());
     }
 
     private void closeDiscovery(ServiceDiscovery serviceDiscovery) {
