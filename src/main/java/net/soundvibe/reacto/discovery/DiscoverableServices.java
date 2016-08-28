@@ -6,6 +6,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.servicediscovery.*;
 import net.soundvibe.reacto.client.errors.CannotDiscoverService;
 import net.soundvibe.reacto.server.ServiceRecords;
+import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
 import java.time.Instant;
@@ -14,6 +15,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static net.soundvibe.reacto.utils.WebUtils.*;
 
@@ -23,6 +25,8 @@ import static net.soundvibe.reacto.utils.WebUtils.*;
 public final class DiscoverableServices {
 
     private static final Logger log = LoggerFactory.getLogger(DiscoverableServices.class);
+
+    private static final AtomicBoolean isClosed = new AtomicBoolean(false);
 
     public static Observable<WebSocketStream> find(String serviceName, ServiceDiscovery serviceDiscovery, LoadBalancer loadBalancer) {
         return Observable.<HttpClient>create(subscriber ->
@@ -51,8 +55,15 @@ public final class DiscoverableServices {
             @Override
             public void run() {
                 try {
-                    record.getMetadata().put(ServiceRecords.LAST_UPDATED, Instant.now());
-                    publishRecord(doOnPublish, record, serviceDiscovery);
+                    if (!isClosed.get()) {
+                        publishRecord(record, serviceDiscovery)
+                                .doOnTerminate(doOnPublish::run)
+                                .subscribe(rec -> log.info("Heartbeat published record: " + rec),
+                                        throwable -> log.error("Error while trying to publish the record on heartbeat: " + throwable),
+                                        () -> log.info("Heartbeat completed successfully"));
+                    } else {
+                        log.info("Skipping heartbeat because service discovery is closed");
+                    }
                 } catch (Throwable e) {
                     log.error("Error while trying to publish the record on heartbeat: " + e);
                 }
@@ -60,46 +71,70 @@ public final class DiscoverableServices {
         }, 0L, TimeUnit.MINUTES.toMillis(1L));
     }
 
-     private static void publishRecord(Runnable doOnPublish, Record record, ServiceDiscovery serviceDiscovery) {
-        removeExistingServiceRecordsIfPresent(serviceDiscovery, record);
-        if (record.getRegistration() != null) {
-            serviceDiscovery.update(record, recordEvent -> {
-                doOnPublish.run();
-                if (recordEvent.succeeded()) {
-                    log.info("Service has been updated successfully: " + recordEvent.result().toJson());
-                }
-                if (recordEvent.failed()) {
-                    log.error("Error when trying to updated the service: " + recordEvent.cause(), recordEvent.cause());
-                }
-            });
-        } else {
-            serviceDiscovery.publish(
-                    record,
-                    recordEvent -> {
-                        doOnPublish.run();
-                        if (recordEvent.succeeded()) {
-                            log.info("Service has been published successfully: " + recordEvent.result().toJson());
-                        }
-                        if (recordEvent.failed()) {
-                            log.error("Error when trying to publish the service: " + recordEvent.cause(), recordEvent.cause());
-                        }
+
+    private static Observable<Record> publishRecord(Record record, ServiceDiscovery serviceDiscovery) {
+        return Observable.just(record)
+                .subscribeOn(Factories.COMPUTATION)
+                .doOnNext(rec -> updateServiceRecordsStatus(serviceDiscovery, rec, Status.DOWN))
+                .map(rec -> {
+                    rec.getMetadata().put(ServiceRecords.LAST_UPDATED, Instant.now());
+                    return rec.setStatus(Status.UP);
+                })
+                .flatMap(rec -> Observable.create(subscriber -> {
+                    if (rec.getRegistration() != null) {
+                        serviceDiscovery.update(record, recordEvent -> {
+                            if (recordEvent.succeeded()) {
+                                log.info("Service has been updated successfully: " + recordEvent.result().toJson());
+                                if (!subscriber.isUnsubscribed()) {
+                                    subscriber.onNext(recordEvent.result());
+                                    subscriber.onCompleted();
+                                }
+                            }
+                            if (recordEvent.failed()) {
+                                log.error("Error when trying to updated the service: " + recordEvent.cause(), recordEvent.cause());
+                                if (!subscriber.isUnsubscribed()) {
+                                    subscriber.onError(recordEvent.cause());
+                                }
+                            }
+                        });
+                    } else {
+                        serviceDiscovery.publish(rec, recordEvent -> {
+                            if (recordEvent.succeeded()) {
+                                log.info("Service has been published successfully: " + recordEvent.result().toJson());
+                                if (!subscriber.isUnsubscribed()) {
+                                    subscriber.onNext(recordEvent.result());
+                                    subscriber.onCompleted();
+                                }
+                            }
+                            if (recordEvent.failed()) {
+                                log.error("Error when trying to publish the service: " + recordEvent.cause(), recordEvent.cause());
+                                if (!subscriber.isUnsubscribed()) {
+                                    subscriber.onError(recordEvent.cause());
+                                }
+                            }
+                        });
                     }
-            );
-        }
+                }));
+    }
+
+    public static Observable<Record> startDiscovery(ServiceDiscovery serviceDiscovery, Record record) {
+        log.info("Starting service discovery...");
+        return publishRecord(record, serviceDiscovery)
+                .doOnCompleted(() -> isClosed.set(false));
     }
 
     public static void closeDiscovery(ServiceDiscovery serviceDiscovery, Record record) {
         try {
             log.info("Closing service discovery...");
-            DiscoverableServices.removeExistingServiceRecordsIfPresent(serviceDiscovery, record);
+            DiscoverableServices.updateServiceRecordsStatus(serviceDiscovery, record, Status.DOWN);
             serviceDiscovery.close();
+            isClosed.set(true);
         } catch (Throwable e) {
             log.warn("Error when closing service discovery: " + e);
         }
     }
 
-
-    private static void removeExistingServiceRecordsIfPresent(ServiceDiscovery serviceDiscovery, Record newRecord) {
+    private static void updateServiceRecordsStatus(ServiceDiscovery serviceDiscovery, Record newRecord, Status status) {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         try {
             serviceDiscovery.getRecords(
@@ -110,7 +145,7 @@ public final class DiscoverableServices {
                             Observable.from(event.result())
                                     .doOnNext(record -> serviceDiscovery.release(serviceDiscovery.getReference(record)))
                                     .flatMap(record -> Observable.create(subscriber ->
-                                            serviceDiscovery.update(record.setStatus(Status.DOWN), e -> {
+                                            serviceDiscovery.update(record.setStatus(status), e -> {
                                                 if (e.failed() && (!subscriber.isUnsubscribed())) {
                                                     subscriber.onError(e.cause());
                                                     return;

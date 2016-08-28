@@ -12,7 +12,9 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
 import net.soundvibe.reacto.server.handlers.CommandHandler;
 import net.soundvibe.reacto.server.handlers.HystrixEventStreamHandler;
+import net.soundvibe.reacto.utils.Factories;
 import net.soundvibe.reacto.utils.WebUtils;
+import rx.Observable;
 
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -23,6 +25,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class VertxServer implements Server {
 
+    public static final int INTERNAL_SERVER_ERROR = 500;
     private static final Logger log = LoggerFactory.getLogger(VertxServer.class);
 
     private final String serviceName;
@@ -104,6 +107,37 @@ public class VertxServer implements Server {
         httpServer.websocketHandler(new WebSocketCommandHandler(new CommandHandler(commands)));
         router.route(root() + "hystrix.stream")
                 .handler(new SSEHandler(HystrixEventStreamHandler::handle));
+        router.route(root() + "service-discovery/close").handler(ctx ->
+                        Observable.just(serviceDiscovery)
+                                .subscribeOn(Factories.COMPUTATION)
+                                .filter(Optional::isPresent)
+                                .map(Optional::get)
+                                .subscribe(discovery -> DiscoverableServices.closeDiscovery(discovery, record)
+                                        , throwable -> ctx.response()
+                                            .setStatusCode(INTERNAL_SERVER_ERROR)
+                                            .setStatusMessage(throwable.toString())
+                                            .end()
+                                        ,() -> {
+                                            if (serviceDiscovery.isPresent()) {
+                                                ctx.response().end("Unpublished record: " + record);
+                                            } else {
+                                                ctx.response().end("Service discovery is disabled");
+                                            }}));
+        router.route(root() + "service-discovery/start").handler(ctx ->
+            Observable.just(serviceDiscovery)
+                .subscribeOn(Factories.COMPUTATION)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .flatMap(discovery -> DiscoverableServices.startDiscovery(discovery, record))
+                    .subscribe(rec -> ctx.response().end("Published record: " + rec)
+                            , throwable -> ctx.response()
+                                    .setStatusCode(INTERNAL_SERVER_ERROR)
+                                    .setStatusMessage(throwable.toString())
+                                    .end()
+                            ,() -> {
+                                if (!serviceDiscovery.isPresent()) {
+                                    ctx.response().end("Service discovery is disabled");
+                                }}));
         httpServer.requestHandler(router::accept);
     }
 
