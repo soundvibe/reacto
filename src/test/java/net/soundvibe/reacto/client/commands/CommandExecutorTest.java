@@ -1,8 +1,16 @@
 package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
+import io.vertx.core.http.*;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
+import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
+import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.client.errors.CannotDiscoverService;
+import net.soundvibe.reacto.discovery.DiscoverableService;
+import net.soundvibe.reacto.discovery.DiscoverableServices;
+import net.soundvibe.reacto.discovery.LoadBalancers;
 import net.soundvibe.reacto.utils.models.CustomError;
 import net.soundvibe.reacto.client.errors.CommandNotFound;
 import net.soundvibe.reacto.server.CommandRegistry;
@@ -12,8 +20,6 @@ import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.types.MetaData;
 import net.soundvibe.reacto.types.Pair;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpServer;
-import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.web.Router;
 import net.soundvibe.reacto.client.errors.ConnectionClosedUnexpectedly;
 import org.junit.AfterClass;
@@ -53,6 +59,7 @@ public class CommandExecutorTest {
     private static VertxServer vertxServer;
     private static VertxServer fallbackVertxServer;
     private static ServiceDiscovery serviceDiscovery;
+    private static DiscoverableService discoverableService;
 
     private final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
     private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(
@@ -99,6 +106,7 @@ public class CommandExecutorTest {
 
         vertx = Vertx.vertx();
         serviceDiscovery = ServiceDiscovery.create(vertx);
+        discoverableService = new DiscoverableService(serviceDiscovery);
 
         mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(8282)
@@ -114,9 +122,9 @@ public class CommandExecutorTest {
         router.route("/health").handler(event -> event.response().end("ok"));
 
         vertxServer = new VertxServer("dist", router
-                , mainHttpServer, "dist/", mainCommands, Optional.of(serviceDiscovery));
+                , mainHttpServer, "dist/", mainCommands, discoverableService);
         fallbackVertxServer = new VertxServer("distFallback", Router.router(vertx), fallbackHttpServer, "distFallback/", fallbackCommands,
-                Optional.of(serviceDiscovery));
+                new DiscoverableService(serviceDiscovery));
         fallbackVertxServer.start();
         vertxServer.start();
     }
@@ -279,7 +287,7 @@ public class CommandExecutorTest {
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-                })), Optional.empty());
+                })));
 
         final CommandExecutor executor = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:8183/distTest/"), 5000);
 
@@ -344,7 +352,7 @@ public class CommandExecutorTest {
         final VertxServer reactoServer = new VertxServer("dist", Router.router(vertx), server, "dist/",
                 CommandRegistry.of(TEST_COMMAND, cmd ->
                         event1Arg("Called command from second server with arg: " + cmd.get("arg")).toObservable()),
-                Optional.of(serviceDiscovery));
+                new DiscoverableService(discoverableService.serviceDiscovery));
         reactoServer.start();
 
         try {
@@ -371,6 +379,60 @@ public class CommandExecutorTest {
             reactoServer.stop();
             Thread.sleep(100L);
         }
+    }
+
+    @Test
+    public void shouldCloseOpenServiceDiscovery() throws Exception {
+        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
+        final HttpClient httpClient = Vertx.vertx().createHttpClient(new HttpClientOptions().setSsl(false));
+
+        Observable.<String>create(subscriber ->
+                httpClient.getNow(8282, "localhost", "/dist/service-discovery/close",
+                   response -> response
+                            .exceptionHandler(subscriber::onError)
+                            .bodyHandler(buffer -> {
+                                subscriber.onNext(buffer.toString());
+                                subscriber.onCompleted();
+                            })))
+                .subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNoErrors();
+        final Record actual = new Record(new JsonObject(testSubscriber.getOnNextEvents().get(0)));
+        assertEquals("dist", actual.getName());
+        assertEquals(HttpEndpoint.TYPE, actual.getType());
+
+        TestSubscriber<WebSocketStream> testSubscriber2 = new TestSubscriber<>();
+
+        DiscoverableServices.find("dist", serviceDiscovery, LoadBalancers.ROUND_ROBIN)
+                .subscribe(testSubscriber2);
+
+        testSubscriber2.awaitTerminalEvent();
+        testSubscriber2.assertNoErrors();
+        testSubscriber2.assertNoValues();
+
+        TestSubscriber<String> startSubscriber = new TestSubscriber<>();
+        Observable.<String>create(subscriber ->
+                httpClient.getNow(8282, "localhost", "/dist/service-discovery/start",
+                        response -> response
+                                .exceptionHandler(subscriber::onError)
+                                .bodyHandler(buffer -> {
+                                    subscriber.onNext(buffer.toString());
+                                    subscriber.onCompleted();
+                                })))
+                .subscribe(startSubscriber);
+
+        startSubscriber.awaitTerminalEvent();
+        startSubscriber.assertNoErrors();
+
+        TestSubscriber<WebSocketStream> testSubscriber3 = new TestSubscriber<>();
+
+        DiscoverableServices.find("dist", serviceDiscovery, LoadBalancers.ROUND_ROBIN)
+                .subscribe(testSubscriber3);
+
+        testSubscriber3.awaitTerminalEvent();
+        testSubscriber3.assertNoErrors();
+        testSubscriber3.assertValueCount(1);
     }
 
     private void assertCompletedSuccessfully() {

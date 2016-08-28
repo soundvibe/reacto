@@ -20,11 +20,19 @@ public interface ServiceRecords {
     }
 
     static boolean isDown(Record existingRecord, Record newRecord) {
+        final Instant now = Instant.now();
         return  Objects.equals(newRecord.getName(), existingRecord.getName()) &&
-                (Duration.between(existingRecord.getMetadata().getInstant(LAST_UPDATED, Instant.now()),
-                        newRecord.getMetadata().getInstant(LAST_UPDATED, Instant.now()))
+                (Duration.between(existingRecord.getMetadata().getInstant(LAST_UPDATED, now),
+                        newRecord.getMetadata().getInstant(LAST_UPDATED, now))
                         .toMinutes() >= 4L) &&
                 Objects.equals(newRecord.getType(), existingRecord.getType());
+    }
+
+    static boolean isUpdatedRecently(Record record) {
+        final Instant now = Instant.now();
+        return Duration.between(record.getMetadata().getInstant(LAST_UPDATED, now),
+                now)
+                .toMinutes() < 4L;
     }
 
 }

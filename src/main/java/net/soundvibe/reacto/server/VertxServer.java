@@ -3,18 +3,12 @@ package net.soundvibe.reacto.server;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.servicediscovery.Record;
-import io.vertx.servicediscovery.ServiceDiscovery;
 import io.vertx.servicediscovery.types.HttpEndpoint;
-import net.soundvibe.reacto.discovery.DiscoverableServices;
-import net.soundvibe.reacto.server.handlers.SSEHandler;
-import net.soundvibe.reacto.server.handlers.WebSocketCommandHandler;
+import net.soundvibe.reacto.discovery.DiscoverableService;
+import net.soundvibe.reacto.server.handlers.*;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
-import net.soundvibe.reacto.server.handlers.CommandHandler;
-import net.soundvibe.reacto.server.handlers.HystrixEventStreamHandler;
-import net.soundvibe.reacto.utils.Factories;
 import net.soundvibe.reacto.utils.WebUtils;
-import rx.Observable;
 
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -33,11 +27,20 @@ public class VertxServer implements Server {
     private final CommandRegistry commands;
     private final HttpServer httpServer;
     private final Router router;
-    private final Optional<ServiceDiscovery> serviceDiscovery;
+    private final Optional<DiscoverableService> serviceDiscovery;
     private Record record;
 
+    public VertxServer(String serviceName, Router router, HttpServer httpServer, String root, CommandRegistry commands) {
+        this(serviceName, router, httpServer, root, commands, Optional.empty());
+    }
+
     public VertxServer(String serviceName, Router router, HttpServer httpServer, String root, CommandRegistry commands,
-                       Optional<ServiceDiscovery> serviceDiscovery) {
+                       DiscoverableService serviceDiscovery) {
+        this(serviceName, router, httpServer, root, commands, Optional.of(serviceDiscovery));
+    }
+
+    private VertxServer(String serviceName, Router router, HttpServer httpServer, String root, CommandRegistry commands,
+                        Optional<DiscoverableService> serviceDiscovery) {
         Objects.requireNonNull(serviceName, "serviceName cannot be null");
         Objects.requireNonNull(router, "Router cannot be null");
         Objects.requireNonNull(httpServer, "HttpServer cannot be null");
@@ -65,12 +68,16 @@ public class VertxServer implements Server {
                     countDownLatch.countDown();
                     return;
                 }
-                final ServiceDiscovery discovery = serviceDiscovery.get();
+                final DiscoverableService discovery = serviceDiscovery.get();
                 record = createRecord(event.result().actualPort());
-                DiscoverableServices.startHeartBeat(countDownLatch::countDown, record, discovery);
+                discovery.startDiscovery(record)
+                        .doOnCompleted(() -> discovery.startHeartBeat(countDownLatch::countDown, record))
+                        .doOnTerminate(countDownLatch::countDown)
+                        .subscribe();
+
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                     log.info("Executing shutdown hook...");
-                    DiscoverableServices.closeDiscovery(discovery, record);
+                    discovery.closeDiscovery(record).subscribe();
                 }));
             }
             if (event.failed()) {
@@ -98,7 +105,7 @@ public class VertxServer implements Server {
         httpServer.close(event -> {
             if (event.succeeded()) {
                 log.info("Server has stopped on port " + httpServer.actualPort());
-                serviceDiscovery.ifPresent(discovery -> DiscoverableServices.closeDiscovery(discovery, record));
+                serviceDiscovery.ifPresent(discovery -> discovery.closeDiscovery(record).subscribe());
             }
         });
     }
@@ -107,37 +114,11 @@ public class VertxServer implements Server {
         httpServer.websocketHandler(new WebSocketCommandHandler(new CommandHandler(commands)));
         router.route(root() + "hystrix.stream")
                 .handler(new SSEHandler(HystrixEventStreamHandler::handle));
-        router.route(root() + "service-discovery/close").handler(ctx ->
-                        Observable.just(serviceDiscovery)
-                                .subscribeOn(Factories.COMPUTATION)
-                                .filter(Optional::isPresent)
-                                .map(Optional::get)
-                                .subscribe(discovery -> DiscoverableServices.closeDiscovery(discovery, record)
-                                        , throwable -> ctx.response()
-                                            .setStatusCode(INTERNAL_SERVER_ERROR)
-                                            .setStatusMessage(throwable.toString())
-                                            .end()
-                                        ,() -> {
-                                            if (serviceDiscovery.isPresent()) {
-                                                ctx.response().end("Unpublished record: " + record);
-                                            } else {
-                                                ctx.response().end("Service discovery is disabled");
-                                            }}));
-        router.route(root() + "service-discovery/start").handler(ctx ->
-            Observable.just(serviceDiscovery)
-                .subscribeOn(Factories.COMPUTATION)
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .flatMap(discovery -> DiscoverableServices.startDiscovery(discovery, record))
-                    .subscribe(rec -> ctx.response().end("Published record: " + rec)
-                            , throwable -> ctx.response()
-                                    .setStatusCode(INTERNAL_SERVER_ERROR)
-                                    .setStatusMessage(throwable.toString())
-                                    .end()
-                            ,() -> {
-                                if (!serviceDiscovery.isPresent()) {
-                                    ctx.response().end("Service discovery is disabled");
-                                }}));
+
+        serviceDiscovery.ifPresent(discovery ->
+                router.route(root() + "service-discovery/:action")
+                        .produces("application/json")
+                        .handler(new ServiceDiscoveryHandler(discovery, () -> record)));
         httpServer.requestHandler(router::accept);
     }
 

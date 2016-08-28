@@ -1,6 +1,12 @@
 package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
+import io.vertx.core.Vertx;
+import io.vertx.servicediscovery.Record;
+import io.vertx.servicediscovery.ServiceDiscovery;
+import io.vertx.servicediscovery.types.HttpEndpoint;
+import net.soundvibe.reacto.client.errors.CannotDiscoverService;
+import net.soundvibe.reacto.discovery.DiscoverableService;
 import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.types.Event;
 import org.junit.Test;
@@ -45,5 +51,31 @@ public class CommandExecutorsTest {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
         testSubscriber.assertValue(Event.create("ok"));
+    }
+
+    @Test
+    public void shouldEmitErrorWhenFindIsUnableToGetServices() throws Exception {
+        TestSubscriber<CommandExecutor> subscriber = new TestSubscriber<>();
+        TestSubscriber<Record> recordTestSubscriber = new TestSubscriber<>();
+        TestSubscriber<Record> closeSubscriber = new TestSubscriber<>();
+        final ServiceDiscovery serviceDiscovery = ServiceDiscovery.create(Vertx.vertx());
+        final DiscoverableService discoverableService = new DiscoverableService(serviceDiscovery);
+
+        final Record record = HttpEndpoint.createRecord("testService", "localhost", 8123, "test/");
+        discoverableService.startDiscovery(record)
+                .subscribe(recordTestSubscriber);
+
+        recordTestSubscriber.awaitTerminalEvent();
+        recordTestSubscriber.assertNoErrors();
+
+        discoverableService.closeDiscovery(record).subscribe(closeSubscriber);
+        closeSubscriber.awaitTerminalEvent();
+        closeSubscriber.assertNoErrors();
+
+        CommandExecutors.find(Services.ofMain("sdsd", serviceDiscovery))
+                .subscribe(subscriber);
+
+        subscriber.awaitTerminalEvent();
+        subscriber.assertError(CannotDiscoverService.class);
     }
 }
