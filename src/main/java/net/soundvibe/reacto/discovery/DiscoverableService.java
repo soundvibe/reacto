@@ -18,6 +18,7 @@ import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
+import java.util.function.Predicate;
 
 /**
  * @author OZY on 2016.08.28.
@@ -39,16 +40,33 @@ public final class DiscoverableService {
         return CommandExecutors.find(Services.ofMain(serviceName, serviceDiscovery));
     }
 
+    public Observable<CommandExecutor> find(String serviceName, Predicate<Record> filter) {
+        return CommandExecutors.find(Services.ofMain(serviceName, serviceDiscovery), filter);
+    }
+
+
     public Observable<CommandExecutor> find(String serviceName, LoadBalancer loadBalancer) {
         return CommandExecutors.find(Services.ofMain(serviceName, serviceDiscovery), loadBalancer);
+    }
+
+    public Observable<CommandExecutor> find(String serviceName, LoadBalancer loadBalancer, Predicate<Record> filter) {
+        return CommandExecutors.find(Services.ofMain(serviceName, serviceDiscovery), loadBalancer, filter);
     }
 
     public Observable<CommandExecutor> find(String mainServiceName, String fallbackServiceName) {
         return CommandExecutors.find(Services.ofMainAndFallback(mainServiceName, fallbackServiceName, serviceDiscovery));
     }
 
+    public Observable<CommandExecutor> find(String mainServiceName, String fallbackServiceName, Predicate<Record> filter) {
+        return CommandExecutors.find(Services.ofMainAndFallback(mainServiceName, fallbackServiceName, serviceDiscovery), filter);
+    }
+
     public Observable<CommandExecutor> find(String mainServiceName, String fallbackServiceName, LoadBalancer loadBalancer) {
         return CommandExecutors.find(Services.ofMainAndFallback(mainServiceName, fallbackServiceName, serviceDiscovery), loadBalancer);
+    }
+
+    public Observable<CommandExecutor> find(String mainServiceName, String fallbackServiceName, LoadBalancer loadBalancer, Predicate<Record> filter) {
+        return CommandExecutors.find(Services.ofMainAndFallback(mainServiceName, fallbackServiceName, serviceDiscovery), loadBalancer, filter);
     }
 
     public void startHeartBeat(Runnable doOnPublish, Record record) {

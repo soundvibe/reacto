@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.server;
 
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.servicediscovery.Record;
@@ -22,37 +23,21 @@ public class VertxServer implements Server {
     public static final int INTERNAL_SERVER_ERROR = 500;
     private static final Logger log = LoggerFactory.getLogger(VertxServer.class);
 
-    private final String serviceName;
-    private final String root;
+    private final ServiceOptions serviceOptions;
     private final CommandRegistry commands;
     private final HttpServer httpServer;
     private final Router router;
-    private final Optional<DiscoverableService> serviceDiscovery;
     private Record record;
 
-    public VertxServer(String serviceName, Router router, HttpServer httpServer, String root, CommandRegistry commands) {
-        this(serviceName, router, httpServer, root, commands, Optional.empty());
-    }
-
-    public VertxServer(String serviceName, Router router, HttpServer httpServer, String root, CommandRegistry commands,
-                       DiscoverableService serviceDiscovery) {
-        this(serviceName, router, httpServer, root, commands, Optional.of(serviceDiscovery));
-    }
-
-    private VertxServer(String serviceName, Router router, HttpServer httpServer, String root, CommandRegistry commands,
-                        Optional<DiscoverableService> serviceDiscovery) {
-        Objects.requireNonNull(serviceName, "serviceName cannot be null");
+    public VertxServer(ServiceOptions serviceOptions, Router router, HttpServer httpServer, CommandRegistry commands) {
+        Objects.requireNonNull(serviceOptions, "serviceOptions cannot be null");
         Objects.requireNonNull(router, "Router cannot be null");
         Objects.requireNonNull(httpServer, "HttpServer cannot be null");
-        Objects.requireNonNull(root, "Root cannot be null");
         Objects.requireNonNull(commands, "CommandRegistry cannot be null");
-        Objects.requireNonNull(serviceDiscovery, "ServiceDiscovery cannot be null");
-        this.serviceName = serviceName;
+        this.serviceOptions = serviceOptions;
         this.router = router;
         this.httpServer = httpServer;
-        this.root = root;
         this.commands = commands;
-        this.serviceDiscovery = serviceDiscovery;
     }
 
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
@@ -65,11 +50,11 @@ public class VertxServer implements Server {
             if (event.succeeded()) {
                 log.info("VertxServer has started successfully on port " + event.result().actualPort());
 
-                if (!serviceDiscovery.isPresent()) {
+                if (!serviceOptions.serviceDiscovery.isPresent()) {
                     countDownLatch.countDown();
                     return;
                 }
-                final DiscoverableService discovery = serviceDiscovery.get();
+                final DiscoverableService discovery = serviceOptions.serviceDiscovery.get();
                 record = createRecord(event.result().actualPort());
                 discovery.startDiscovery(record)
                         .doOnCompleted(() -> discovery.startHeartBeat(countDownLatch::countDown, record))
@@ -98,7 +83,8 @@ public class VertxServer implements Server {
                 serviceName(),
                 WebUtils.getLocalAddress(),
                 port,
-                root());
+                root(),
+                new JsonObject().put("version", serviceOptions.version));
     }
 
     @Override
@@ -106,7 +92,7 @@ public class VertxServer implements Server {
         httpServer.close(event -> {
             if (event.succeeded()) {
                 log.info("Server has stopped on port " + httpServer.actualPort());
-                serviceDiscovery.ifPresent(discovery -> discovery.closeDiscovery(record).subscribe());
+                serviceOptions.serviceDiscovery.ifPresent(discovery -> discovery.closeDiscovery(record).subscribe());
             }
         });
     }
@@ -116,7 +102,7 @@ public class VertxServer implements Server {
         router.route(root() + "hystrix.stream")
                 .handler(new SSEHandler(HystrixEventStreamHandler::handle));
 
-        serviceDiscovery.ifPresent(discovery ->
+        serviceOptions.serviceDiscovery.ifPresent(discovery ->
                 router.route(root() + "service-discovery/:action")
                         .produces("application/json")
                         .handler(new ServiceDiscoveryHandler(discovery, () -> record)));
@@ -124,10 +110,10 @@ public class VertxServer implements Server {
     }
 
     private String serviceName() {
-        return WebUtils.excludeEndDelimiter(WebUtils.excludeStartDelimiter(serviceName));
+        return WebUtils.excludeEndDelimiter(WebUtils.excludeStartDelimiter(serviceOptions.serviceName));
     }
 
     private String root() {
-        return WebUtils.includeEndDelimiter(WebUtils.includeStartDelimiter(root));
+        return WebUtils.includeEndDelimiter(WebUtils.includeStartDelimiter(serviceOptions.root));
     }
 }

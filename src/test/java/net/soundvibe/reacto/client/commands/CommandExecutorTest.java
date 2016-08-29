@@ -10,6 +10,7 @@ import net.soundvibe.reacto.client.errors.CannotDiscoverService;
 import net.soundvibe.reacto.discovery.DiscoverableService;
 import net.soundvibe.reacto.discovery.DiscoverableServices;
 import net.soundvibe.reacto.discovery.LoadBalancers;
+import net.soundvibe.reacto.server.ServiceOptions;
 import net.soundvibe.reacto.utils.models.CustomError;
 import net.soundvibe.reacto.client.errors.CommandNotFound;
 import net.soundvibe.reacto.server.CommandRegistry;
@@ -119,10 +120,10 @@ public class CommandExecutorTest {
         final Router router = Router.router(vertx);
         router.route("/health").handler(event -> event.response().end("ok"));
 
-        vertxServer = new VertxServer("dist", router
-                , mainHttpServer, "dist/", mainCommands, discoverableService);
-        fallbackVertxServer = new VertxServer("distFallback", Router.router(vertx), fallbackHttpServer, "distFallback/", fallbackCommands,
-                new DiscoverableService(serviceDiscovery));
+        vertxServer = new VertxServer(new ServiceOptions("dist", "dist/", "0.1", discoverableService)
+                , router, mainHttpServer, mainCommands);
+        fallbackVertxServer = new VertxServer(new ServiceOptions("distFallback","distFallback/", "0.1", new DiscoverableService(serviceDiscovery))
+                , Router.router(vertx), fallbackHttpServer,  fallbackCommands);
         fallbackVertxServer.start();
         vertxServer.start();
     }
@@ -276,7 +277,8 @@ public class CommandExecutorTest {
                 .setSsl(false)
                 .setReuseAddress(true));
 
-        final VertxServer reactoServer = new VertxServer("distTest", Router.router(vertx), server, "distTest/",
+        final VertxServer reactoServer = new VertxServer(new ServiceOptions("distTest", "distTest/")
+                , Router.router(vertx), server,
                 CommandRegistry.of(COMMAND_EMIT_AND_FAIL,
                 command -> Observable.create(subscriber -> {
                     subscriber.onNext(Event.create("ok"));
@@ -347,10 +349,10 @@ public class CommandExecutorTest {
                 .setSsl(false)
                 .setReuseAddress(true));
 
-        final VertxServer reactoServer = new VertxServer("dist", Router.router(vertx), server, "dist/",
+        final VertxServer reactoServer = new VertxServer(new ServiceOptions("dist", "dist/", new DiscoverableService(discoverableService.serviceDiscovery))
+                , Router.router(vertx), server,
                 CommandRegistry.of(TEST_COMMAND, cmd ->
-                        event1Arg("Called command from second server with arg: " + cmd.get("arg")).toObservable()),
-                new DiscoverableService(discoverableService.serviceDiscovery));
+                        event1Arg("Called command from second server with arg: " + cmd.get("arg")).toObservable()));
         reactoServer.start();
 
         try {
