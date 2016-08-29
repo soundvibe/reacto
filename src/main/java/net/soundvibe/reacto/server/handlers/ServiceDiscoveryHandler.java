@@ -4,7 +4,6 @@ import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.servicediscovery.Record;
 import net.soundvibe.reacto.discovery.DiscoverableService;
-import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
 
@@ -36,7 +35,6 @@ public class ServiceDiscoveryHandler implements Handler<RoutingContext> {
         switch (action) {
             case "start" : {
                 Observable.just(serviceDiscovery)
-                        .subscribeOn(Factories.COMPUTATION)
                         .filter(discovery -> record.get() != null)
                         .flatMap(discovery -> discovery.startDiscovery(record.get()))
                         .subscribe(rec -> ctx.response().end(rec.toJson().toString())

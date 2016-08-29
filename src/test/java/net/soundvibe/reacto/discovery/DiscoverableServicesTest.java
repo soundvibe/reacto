@@ -1,16 +1,15 @@
 package net.soundvibe.reacto.discovery;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.http.WebSocketStream;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import io.vertx.servicediscovery.types.HttpEndpoint;
+import net.soundvibe.reacto.client.commands.CommandExecutor;
+import net.soundvibe.reacto.client.errors.CannotDiscoverService;
 import net.soundvibe.reacto.utils.WebUtils;
 import org.junit.Test;
 import rx.Observable;
 import rx.observers.TestSubscriber;
-
-import static org.junit.Assert.*;
 
 /**
  * @author OZY on 2016.08.28.
@@ -84,12 +83,18 @@ public class DiscoverableServicesTest {
     }
 
     private void assertDiscoveredServices(int count) {
-        TestSubscriber<WebSocketStream> testSubscriber = new TestSubscriber<>();
-        DiscoverableServices.find(TEST_SERVICE, sut.serviceDiscovery, LoadBalancers.ROUND_ROBIN)
+        TestSubscriber<CommandExecutor> testSubscriber = new TestSubscriber<>();
+
+        sut.find(TEST_SERVICE)
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNoErrors();
-        testSubscriber.assertValueCount(count);
+
+        if (count > 0) {
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(count);
+        } else {
+            testSubscriber.assertError(CannotDiscoverService.class);
+        }
     }
 }

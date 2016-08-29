@@ -21,11 +21,16 @@ public final class Services {
     }
 
     public static Services ofMain(String mainServiceName, ServiceDiscovery serviceDiscovery) {
+        Objects.requireNonNull(mainServiceName, "mainServiceName cannot be null");
+        Objects.requireNonNull(serviceDiscovery, "serviceDiscovery cannot be null");
         return new Services(mainServiceName, Optional.empty(), serviceDiscovery);
     }
 
     public static Services ofMainAndFallback(String mainServiceName, String fallbackServiceName, ServiceDiscovery serviceDiscovery) {
-        return new Services(mainServiceName, Optional.ofNullable(fallbackServiceName), serviceDiscovery);
+        Objects.requireNonNull(mainServiceName, "mainServiceName cannot be null");
+        Objects.requireNonNull(fallbackServiceName, "fallbackServiceName cannot be null");
+        Objects.requireNonNull(serviceDiscovery, "serviceDiscovery cannot be null");
+        return new Services(mainServiceName, Optional.of(fallbackServiceName), serviceDiscovery);
     }
 
     @Override

@@ -25,8 +25,9 @@ public final class DiscoverableServices {
                         if (asyncClients.succeeded() && !subscriber.isUnsubscribed()) {
                             final List<Record> records = asyncClients.result();
                             if (!records.isEmpty()) {
-                                records.sort((rec1, rec2) -> rec1.getMetadata().getInstant(ServiceRecords.LAST_UPDATED, Instant.now())
-                                        .compareTo(rec2.getMetadata().getInstant(ServiceRecords.LAST_UPDATED, Instant.now())));
+                                final Instant now = Instant.now();
+                                records.sort((rec1, rec2) -> rec1.getMetadata().getInstant(ServiceRecords.LAST_UPDATED, now)
+                                        .compareTo(rec2.getMetadata().getInstant(ServiceRecords.LAST_UPDATED, now)));
                                 final Record record = loadBalancer.balance(records);
                                 subscriber.onNext(serviceDiscovery.getReference(record).get());
                             }

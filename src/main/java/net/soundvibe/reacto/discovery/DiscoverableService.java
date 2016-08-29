@@ -5,6 +5,9 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import io.vertx.servicediscovery.Status;
+import net.soundvibe.reacto.client.commands.CommandExecutor;
+import net.soundvibe.reacto.client.commands.CommandExecutors;
+import net.soundvibe.reacto.client.commands.Services;
 import net.soundvibe.reacto.server.ServiceRecords;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
@@ -30,6 +33,22 @@ public final class DiscoverableService {
 
     public DiscoverableService(ServiceDiscovery serviceDiscovery) {
         this.serviceDiscovery = serviceDiscovery;
+    }
+
+    public Observable<CommandExecutor> find(String serviceName) {
+        return CommandExecutors.find(Services.ofMain(serviceName, serviceDiscovery));
+    }
+
+    public Observable<CommandExecutor> find(String serviceName, LoadBalancer loadBalancer) {
+        return CommandExecutors.find(Services.ofMain(serviceName, serviceDiscovery), loadBalancer);
+    }
+
+    public Observable<CommandExecutor> find(String mainServiceName, String fallbackServiceName) {
+        return CommandExecutors.find(Services.ofMainAndFallback(mainServiceName, fallbackServiceName, serviceDiscovery));
+    }
+
+    public Observable<CommandExecutor> find(String mainServiceName, String fallbackServiceName, LoadBalancer loadBalancer) {
+        return CommandExecutors.find(Services.ofMainAndFallback(mainServiceName, fallbackServiceName, serviceDiscovery), loadBalancer);
     }
 
     public void startHeartBeat(Runnable doOnPublish, Record record) {

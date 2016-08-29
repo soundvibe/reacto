@@ -17,7 +17,6 @@ import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertTrue;

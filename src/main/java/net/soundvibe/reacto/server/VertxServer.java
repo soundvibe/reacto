@@ -55,6 +55,7 @@ public class VertxServer implements Server {
         this.serviceDiscovery = serviceDiscovery;
     }
 
+    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Override
     public void start() {
         setupRoutes();
