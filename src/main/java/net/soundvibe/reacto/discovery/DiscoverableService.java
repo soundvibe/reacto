@@ -134,6 +134,39 @@ public final class DiscoverableService {
                 }));
     }
 
+    public Observable<Record> removeRecordsWithStatus(Status status) {
+        return Observable.create(subscriber ->
+                serviceDiscovery.getRecords(
+                        record -> status.equals(record.getStatus()),
+                        true,
+                        event -> {
+                            if (event.succeeded()) {
+                                if (event.result().isEmpty() && !subscriber.isUnsubscribed()) {
+                                    subscriber.onCompleted();
+                                    return;
+                                }
+                                Observable.from(event.result())
+                                        .flatMap(record -> Observable.<Record>create(subscriber1 ->
+                                            serviceDiscovery.unpublish(record.getRegistration(), e -> {
+                                                if (e.failed() && (!subscriber.isUnsubscribed())) {
+                                                    subscriber.onError(e.cause());
+                                                    return;
+                                                }
+                                                if (e.succeeded() && (!subscriber.isUnsubscribed())) {
+                                                    subscriber.onNext(record);
+                                                    subscriber.onCompleted();
+                                                }
+                                            })
+                                        ))
+                                        .subscribe(subscriber);
+                            }
+                            if (event.failed()) {
+                                log.info("No matching records: " + event.cause());
+                                subscriber.onError(event.cause());
+                            }
+                        }));
+    }
+
     public Observable<Record> startDiscovery(Record record) {
         log.info("Starting service discovery...");
         return isClosed() ? publishRecord(record)

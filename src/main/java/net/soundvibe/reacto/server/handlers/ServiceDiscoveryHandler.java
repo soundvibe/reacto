@@ -3,7 +3,9 @@ package net.soundvibe.reacto.server.handlers;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.servicediscovery.Record;
+import io.vertx.servicediscovery.Status;
 import net.soundvibe.reacto.discovery.DiscoverableService;
+import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
 
@@ -54,6 +56,18 @@ public class ServiceDiscoveryHandler implements Handler<RoutingContext> {
                                         .setStatusCode(INTERNAL_SERVER_ERROR)
                                         .setStatusMessage(throwable.toString())
                                         .end());
+                break;
+            }
+            case "clean": {
+                Observable.just(serviceDiscovery)
+                        .subscribeOn(Factories.SINGLE_THREAD)
+                        .flatMap(discovery -> discovery.removeRecordsWithStatus(Status.DOWN))
+                        .subscribe(record -> ctx.response().write(record.toJson().toString())
+                                , throwable -> ctx.response()
+                                        .setStatusCode(INTERNAL_SERVER_ERROR)
+                                        .setStatusMessage(throwable.toString())
+                                        .end(),
+                                () -> ctx.response().end());
                 break;
             }
         }
