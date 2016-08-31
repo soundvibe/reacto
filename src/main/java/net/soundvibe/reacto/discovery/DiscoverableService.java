@@ -95,9 +95,9 @@ public final class DiscoverableService {
         }, intervalInMs, intervalInMs);
     }
 
-    private Observable<Record> publishRecord(Record record) {
+    public Observable<Record> publishRecord(Record record) {
         return Observable.just(record)
-                .flatMap(rec -> updateServiceRecordsStatus(rec, Status.DOWN, ServiceRecords::isDown))
+                .flatMap(rec -> removeIf(rec, (existingRecord, newRecord) -> ServiceRecords.isDown(existingRecord)))
                 .map(rec -> {
                     rec.getMetadata().put(ServiceRecords.LAST_UPDATED, Instant.now());
                     return rec.setStatus(Status.UP);
@@ -186,19 +186,19 @@ public final class DiscoverableService {
                 Observable.just(record)
                         .subscribeOn(Factories.SINGLE_THREAD)
                         .observeOn(Factories.SINGLE_THREAD)
-                .flatMap(rec -> updateServiceRecordsStatus(rec, Status.DOWN, ServiceRecords::AreEquals))
+                .flatMap(rec -> removeIf(rec, ServiceRecords::AreEquals))
                 .doOnCompleted(() -> serviceDiscovery.release(serviceDiscovery.getReference(record)))
                 .doOnCompleted(serviceDiscovery::close)
                 .doOnCompleted(() -> isClosed.set(true)) :
                 Observable.error(new IllegalStateException("Service discovery is already closed"));
     }
 
-    private Observable<Record> updateServiceRecordsStatus(Record newRecord, Status status,
-                                                   BiFunction<Record, Record, Boolean> filter) {
+    private Observable<Record> removeIf(Record newRecord,
+                                        BiFunction<Record, Record, Boolean> filter) {
         return Observable.create(subscriber ->
             serviceDiscovery.getRecords(
-                    record -> filter.apply(record, newRecord),
-                    false,
+                    existingRecord -> filter.apply(existingRecord, newRecord),
+                    true,
                     event -> {
                         if (event.succeeded()) {
                             if (event.result().isEmpty() && !subscriber.isUnsubscribed()) {
@@ -221,7 +221,11 @@ public final class DiscoverableService {
                                         });
                                     }))
                                     .subscribe(record -> log.info("Record was unpublished: " + record),
-                                            throwable -> log.error("Error while trying to unpublish the record: " + throwable),
+                                            throwable -> {
+                                                log.error("Error while trying to unpublish the record: " + throwable);
+                                                subscriber.onNext(newRecord);
+                                                subscriber.onCompleted();
+                                            },
                                             () -> {
                                                 subscriber.onNext(newRecord);
                                                 subscriber.onCompleted();

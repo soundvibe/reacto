@@ -90,13 +90,13 @@ public class DiscoverableServicesTest {
     }
 
     @Test
-    public void shouldRemoveDownRecords() throws Exception {
-        shouldCloseDiscovery();
+    public void shouldRemoveDownRecordsWhenDoingSimplePublish() throws Exception {
+        shouldStartDiscovery();
 
         final Record record = HttpEndpoint.createRecord(
                 TEST_SERVICE,
                 WebUtils.getLocalAddress(),
-                8181,
+                8888,
                 ROOT);
 
         serviceDiscovery.publish(record, event -> {});
@@ -108,8 +108,13 @@ public class DiscoverableServicesTest {
         assertEquals("Should be one service down", 1, recordList.size());
         TestSubscriber<Record> testSubscriber = new TestSubscriber<>();
 
-        sut.removeRecordsWithStatus(Status.DOWN)
-                .subscribe(testSubscriber);
+        final Record newRecord = HttpEndpoint.createRecord(
+                TEST_SERVICE,
+                WebUtils.getLocalAddress(),
+                9999,
+                ROOT);
+
+        sut.publishRecord(newRecord).subscribe(testSubscriber);
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
         testSubscriber.assertValueCount(1);

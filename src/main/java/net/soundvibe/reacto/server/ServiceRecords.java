@@ -1,6 +1,7 @@
 package net.soundvibe.reacto.server;
 
 import io.vertx.servicediscovery.Record;
+import io.vertx.servicediscovery.Status;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -19,13 +20,8 @@ public interface ServiceRecords {
                 Objects.equals(newRecord.getType(), existingRecord.getType());
     }
 
-    static boolean isDown(Record existingRecord, Record newRecord) {
-        final Instant now = Instant.now();
-        return  Objects.equals(newRecord.getName(), existingRecord.getName()) &&
-                (Duration.between(existingRecord.getMetadata().getInstant(LAST_UPDATED, now),
-                        newRecord.getMetadata().getInstant(LAST_UPDATED, now))
-                        .toMinutes() >= 4L) &&
-                Objects.equals(newRecord.getType(), existingRecord.getType());
+    static boolean isDown(Record existingRecord) {
+        return existingRecord.getStatus() == Status.DOWN || !isUpdatedRecently(existingRecord);
     }
 
     static boolean isUpdatedRecently(Record record) {

@@ -17,19 +17,15 @@ public class ServiceRecordsTest {
 
     @Test
     public void shouldBeDown() throws Exception {
-        final Record newRecord = HttpEndpoint.createRecord("test", "localhost", 80, "/",
-                new JsonObject().put(ServiceRecords.LAST_UPDATED, Instant.now()));
         final Record oldRecord = HttpEndpoint.createRecord("test", "localhost", 80, "/",
                 new JsonObject().put(ServiceRecords.LAST_UPDATED, Instant.now().minus(5L, ChronoUnit.MINUTES)));
-        assertTrue(ServiceRecords.isDown(oldRecord, newRecord));
+        assertTrue(ServiceRecords.isDown(oldRecord));
     }
 
     @Test
     public void shouldBeUp() throws Exception {
-        final Record newRecord = HttpEndpoint.createRecord("test", "localhost", 80, "/",
-                new JsonObject().put(ServiceRecords.LAST_UPDATED, Instant.now()));
         final Record oldRecord = HttpEndpoint.createRecord("test", "localhost", 80, "/",
                 new JsonObject().put(ServiceRecords.LAST_UPDATED, Instant.now().minus(2L, ChronoUnit.MINUTES)));
-        assertFalse(ServiceRecords.isDown(oldRecord, newRecord));
+        assertFalse(ServiceRecords.isDown(oldRecord));
     }
 }
