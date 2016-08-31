@@ -93,6 +93,17 @@ public class DiscoverableServicesTest {
     public void shouldRemoveDownRecords() throws Exception {
         shouldCloseDiscovery();
 
+        final Record record = HttpEndpoint.createRecord(
+                TEST_SERVICE,
+                WebUtils.getLocalAddress(),
+                8181,
+                ROOT);
+
+        serviceDiscovery.publish(record, event -> {});
+        Thread.sleep(100L);
+        serviceDiscovery.update(record.setStatus(Status.DOWN), event -> {});
+        Thread.sleep(100L);
+
         List<Record> recordList = getRecords(Status.DOWN);
         assertEquals("Should be one service down", 1, recordList.size());
         TestSubscriber<Record> testSubscriber = new TestSubscriber<>();

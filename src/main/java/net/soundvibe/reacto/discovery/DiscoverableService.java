@@ -69,25 +69,30 @@ public final class DiscoverableService {
         return CommandExecutors.find(Services.ofMainAndFallback(mainServiceName, fallbackServiceName, serviceDiscovery), loadBalancer, filter);
     }
 
-    public void startHeartBeat(Runnable doOnPublish, Record record) {
-        new Timer("service-discovery-heartbeat", true).scheduleAtFixedRate(new TimerTask() {
+    public void startHeartBeat(Record record) {
+        scheduleAtFixedInterval(TimeUnit.MINUTES.toMillis(1L), () -> {
+            if (isOpen()) {
+                publishRecord(record)
+                        .subscribe(rec -> log.info("Heartbeat published record: " + rec),
+                                throwable -> log.error("Error while trying to publish the record on heartbeat: " + throwable),
+                                () -> log.info("Heartbeat completed successfully"));
+            } else {
+                log.info("Skipping heartbeat because service discovery is closed");
+            }
+        }, "service-discovery-heartbeat");
+    }
+
+    private void scheduleAtFixedInterval(long intervalInMs, Runnable runnable, String nameOfTheTask) {
+        new Timer(nameOfTheTask, true).scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 try {
-                    if (isOpen()) {
-                        publishRecord(record)
-                                .doOnTerminate(doOnPublish::run)
-                                .subscribe(rec -> log.info("Heartbeat published record: " + rec),
-                                        throwable -> log.error("Error while trying to publish the record on heartbeat: " + throwable),
-                                        () -> log.info("Heartbeat completed successfully"));
-                    } else {
-                        log.info("Skipping heartbeat because service discovery is closed");
-                    }
+                    runnable.run();
                 } catch (Throwable e) {
-                    log.error("Error while trying to publish the record on heartbeat: " + e);
+                    log.error("Error while doing scheduled task: " + e);
                 }
             }
-        }, TimeUnit.MINUTES.toMillis(1L), TimeUnit.MINUTES.toMillis(1L));
+        }, intervalInMs, intervalInMs);
     }
 
     private Observable<Record> publishRecord(Record record) {
@@ -201,19 +206,26 @@ public final class DiscoverableService {
                                 subscriber.onCompleted();
                                 return;
                             }
-                            event.result().stream()
-                                    .peek(record -> serviceDiscovery.release(serviceDiscovery.getReference(record)))
-                                    .forEach(record ->
-                                        serviceDiscovery.update(record.setStatus(status), e -> {
-                                            if (e.failed() && (!subscriber.isUnsubscribed())) {
-                                                subscriber.onError(e.cause());
-                                                return;
+
+                            Observable.from(event.result())
+                                    .doOnNext(record -> serviceDiscovery.release(serviceDiscovery.getReference(record)))
+                                    .flatMap(record -> Observable.<Record>create(s -> {
+                                        serviceDiscovery.unpublish(record.getRegistration(), deleteEvent -> {
+                                            if (deleteEvent.failed() && (!s.isUnsubscribed())) {
+                                                s.onError(deleteEvent.cause());
                                             }
-                                            if (e.succeeded() && (!subscriber.isUnsubscribed())) {
+                                            if (deleteEvent.succeeded() && (!s.isUnsubscribed())) {
+                                                s.onNext(record);
+                                                s.onCompleted();
+                                            }
+                                        });
+                                    }))
+                                    .subscribe(record -> log.info("Record was unpublished: " + record),
+                                            throwable -> log.error("Error while trying to unpublish the record: " + throwable),
+                                            () -> {
                                                 subscriber.onNext(newRecord);
                                                 subscriber.onCompleted();
-                                            }
-                                    }));
+                                            });
                         }
                         if (event.failed()) {
                             log.info("No matching records: " + event.cause());

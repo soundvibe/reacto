@@ -57,7 +57,7 @@ public class VertxServer implements Server {
                 final DiscoverableService discovery = serviceOptions.serviceDiscovery.get();
                 record = createRecord(event.result().actualPort());
                 discovery.startDiscovery(record)
-                        .doOnCompleted(() -> discovery.startHeartBeat(countDownLatch::countDown, record))
+                        .doOnCompleted(() -> discovery.startHeartBeat(record))
                         .doOnTerminate(countDownLatch::countDown)
                         .subscribe();
 
