@@ -1,8 +1,16 @@
 package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.http.*;
+import io.vertx.core.json.JsonObject;
+import io.vertx.servicediscovery.Record;
+import io.vertx.servicediscovery.ServiceDiscovery;
+import io.vertx.servicediscovery.types.HttpEndpoint;
+import net.soundvibe.reacto.client.errors.CannotDiscoverService;
+import net.soundvibe.reacto.discovery.DiscoverableService;
+import net.soundvibe.reacto.discovery.DiscoverableServices;
+import net.soundvibe.reacto.discovery.LoadBalancers;
+import net.soundvibe.reacto.server.ServiceOptions;
 import net.soundvibe.reacto.utils.models.CustomError;
 import net.soundvibe.reacto.client.errors.CommandNotFound;
 import net.soundvibe.reacto.server.CommandRegistry;
@@ -11,10 +19,7 @@ import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.types.MetaData;
 import net.soundvibe.reacto.types.Pair;
-import net.soundvibe.reacto.utils.Factories;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpServer;
-import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.web.Router;
 import net.soundvibe.reacto.client.errors.ConnectionClosedUnexpectedly;
 import org.junit.AfterClass;
@@ -24,16 +29,11 @@ import rx.Observable;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
-import java.lang.reflect.Field;
 import java.net.ConnectException;
-import java.util.Enumeration;
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.logging.LogManager;
 
 import static org.junit.Assert.*;
 
@@ -57,15 +57,19 @@ public class CommandExecutorTest {
     private static HttpServer mainHttpServer;
     private static VertxServer vertxServer;
     private static VertxServer fallbackVertxServer;
+    private static ServiceDiscovery serviceDiscovery;
+    private static DiscoverableService discoverableService;
 
     private final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
     private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(
             Nodes.ofMain(MAIN_NODE), CommandExecutors.defaultHystrixSetter());
     private final CommandExecutor mainNodeAndFallbackExecutor = CommandExecutors.webSocket(Nodes.ofMainAndFallback(MAIN_NODE, FALLBACK_NODE));
+    private static CommandRegistry mainCommands;
+    private static Vertx vertx;
 
     @BeforeClass
     public static void setUp() throws Exception {
-        CommandRegistry mainCommands = CommandRegistry.of(TEST_COMMAND, cmd ->
+        mainCommands = CommandRegistry.of(TEST_COMMAND, cmd ->
                     event1Arg("Called command with arg: " + cmd.get("arg")).toObservable()
                 )
                 .and(TEST_COMMAND_MANY, o -> Observable.just(
@@ -94,13 +98,15 @@ public class CommandExecutorTest {
                         System.out.println(e.getMessage());
                         subscriber.onError(e);
                     }
-                }))
-                ;
+                }));
 
         CommandRegistry fallbackCommands = CommandRegistry.of(TEST_FAIL_BUT_FALLBACK_COMMAND,
                 o -> event1Arg("Recovered: " + o.get("arg")).toObservable());
 
-        Vertx vertx = Vertx.vertx();
+        vertx = Vertx.vertx();
+        serviceDiscovery = ServiceDiscovery.create(vertx);
+        discoverableService = new DiscoverableService(serviceDiscovery);
+
         mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(8282)
                 .setSsl(false)
@@ -110,8 +116,14 @@ public class CommandExecutorTest {
                 .setPort(8383)
                 .setSsl(false)
                 .setReuseAddress(true));
-        vertxServer = new VertxServer(Router.router(vertx), mainHttpServer, "dist/", mainCommands);
-        fallbackVertxServer = new VertxServer(Router.router(vertx), fallbackHttpServer, "distFallback/", fallbackCommands);
+
+        final Router router = Router.router(vertx);
+        router.route("/health").handler(event -> event.response().end("ok"));
+
+        vertxServer = new VertxServer(new ServiceOptions("dist", "dist/", "0.1", discoverableService)
+                , router, mainHttpServer, mainCommands);
+        fallbackVertxServer = new VertxServer(new ServiceOptions("distFallback","distFallback/", "0.1", new DiscoverableService(serviceDiscovery))
+                , Router.router(vertx), fallbackHttpServer,  fallbackCommands);
         fallbackVertxServer.start();
         vertxServer.start();
     }
@@ -260,12 +272,14 @@ public class CommandExecutorTest {
     @Test
     public void shouldReceiveOneEventAndThenFail() throws Exception {
         final Vertx vertx = Vertx.vertx();
-        HttpServer server = vertx.createHttpServer(new HttpServerOptions()
+        final HttpServer server = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(8183)
                 .setSsl(false)
                 .setReuseAddress(true));
 
-        final VertxServer reactoServer = new VertxServer(Router.router(vertx), server, "distTest/", CommandRegistry.of(COMMAND_EMIT_AND_FAIL,
+        final VertxServer reactoServer = new VertxServer(new ServiceOptions("distTest", "distTest/")
+                , Router.router(vertx), server,
+                CommandRegistry.of(COMMAND_EMIT_AND_FAIL,
                 command -> Observable.create(subscriber -> {
                     subscriber.onNext(Event.create("ok"));
                     try {
@@ -279,17 +293,146 @@ public class CommandExecutorTest {
 
         reactoServer.start();
 
-        executor.execute(Command.create(COMMAND_EMIT_AND_FAIL))
-                .subscribe(testSubscriber);
+        try {
+            executor.execute(Command.create(COMMAND_EMIT_AND_FAIL))
+                    .subscribe(testSubscriber);
 
-        testSubscriber.awaitTerminalEvent(500L, TimeUnit.MILLISECONDS);
-        //testSubscriber.assertValue();
-        //shut down main node
-        reactoServer.stop();
+            testSubscriber.awaitTerminalEvent(500L, TimeUnit.MILLISECONDS);
+
+
+        } finally {
+            reactoServer.stop();
+            Thread.sleep(100L);
+        }
+
         assertEquals(Event.create("ok"), testSubscriber.getOnNextEvents().get(0));
         assertActualHystrixError(ConnectionClosedUnexpectedly.class, connectionClosedUnexpectedly ->
                 assertTrue(connectionClosedUnexpectedly.getMessage()
                         .startsWith("WebSocket connection closed without completion for command: ")));
+    }
+
+    @Test
+    public void shouldFindServiceAndExecuteCommand() throws Exception {
+        CommandExecutors.find(Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery))
+                .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
+                .subscribe(testSubscriber);
+
+        assertCompletedSuccessfully();
+
+        testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
+
+
+        CommandExecutors.find(Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery))
+                .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
+                .subscribe(testSubscriber);
+        assertCompletedSuccessfully();
+        testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
+    }
+
+
+    @Test
+    public void shouldNotFindService() throws Exception {
+        final TestSubscriber<CommandExecutor> subscriber = new TestSubscriber<>();
+
+        CommandExecutors.find(Services.ofMain("NotExists", serviceDiscovery))
+            .subscribe(subscriber);
+
+        subscriber.awaitTerminalEvent();
+        subscriber.assertError(CannotDiscoverService.class);
+    }
+
+    @Test
+    public void shouldFindServicesAndBalanceTheLoad() throws Exception {
+        //start new service
+        final HttpServer server = vertx.createHttpServer(new HttpServerOptions()
+                .setPort(8183)
+                .setSsl(false)
+                .setReuseAddress(true));
+
+        final VertxServer reactoServer = new VertxServer(new ServiceOptions("dist", "dist/", new DiscoverableService(discoverableService.serviceDiscovery))
+                , Router.router(vertx), server,
+                CommandRegistry.of(TEST_COMMAND, cmd ->
+                        event1Arg("Called command from second server with arg: " + cmd.get("arg")).toObservable()));
+        reactoServer.start();
+
+        try {
+            final Services services = Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery);
+
+            CommandExecutors.find(services)
+                    .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
+                    .subscribe(testSubscriber);
+
+            assertCompletedSuccessfully();
+
+            testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
+
+            TestSubscriber<Event> eventTestSubscriber = new TestSubscriber<>();
+
+            CommandExecutors.find(services)
+                    .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "bar")))
+                    .subscribe(eventTestSubscriber);
+            eventTestSubscriber.awaitTerminalEvent();
+            eventTestSubscriber.assertNoErrors();
+            eventTestSubscriber.assertCompleted();
+            eventTestSubscriber.assertValue(event1Arg("Called command from second server with arg: bar"));
+        } finally {
+            reactoServer.stop();
+            Thread.sleep(100L);
+        }
+    }
+
+    @Test
+    public void shouldCloseOpenServiceDiscovery() throws Exception {
+        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
+        final HttpClient httpClient = Vertx.vertx().createHttpClient(new HttpClientOptions().setSsl(false));
+
+        Observable.<String>create(subscriber ->
+                httpClient.getNow(8282, "localhost", "/dist/service-discovery/close",
+                   response -> response
+                            .exceptionHandler(subscriber::onError)
+                            .bodyHandler(buffer -> {
+                                subscriber.onNext(buffer.toString());
+                                subscriber.onCompleted();
+                            })))
+                .subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNoErrors();
+        final Record actual = new Record(new JsonObject(testSubscriber.getOnNextEvents().get(0)));
+        assertEquals("dist", actual.getName());
+        assertEquals(HttpEndpoint.TYPE, actual.getType());
+
+        TestSubscriber<WebSocketStream> testSubscriber2 = new TestSubscriber<>();
+
+        DiscoverableServices.find("dist", serviceDiscovery, LoadBalancers.ROUND_ROBIN)
+                .subscribe(testSubscriber2);
+
+        testSubscriber2.awaitTerminalEvent();
+        testSubscriber2.assertNoErrors();
+        testSubscriber2.assertNoValues();
+
+        TestSubscriber<String> startSubscriber = new TestSubscriber<>();
+        Observable.<String>create(subscriber ->
+                httpClient.getNow(8282, "localhost", "/dist/service-discovery/start",
+                        response -> response
+                                .exceptionHandler(subscriber::onError)
+                                .bodyHandler(buffer -> {
+                                    subscriber.onNext(buffer.toString());
+                                    subscriber.onCompleted();
+                                })))
+                .subscribe(startSubscriber);
+
+        startSubscriber.awaitTerminalEvent();
+        startSubscriber.assertNoErrors();
+
+        TestSubscriber<WebSocketStream> testSubscriber3 = new TestSubscriber<>();
+
+        DiscoverableServices.find("dist", serviceDiscovery, LoadBalancers.ROUND_ROBIN)
+                .subscribe(testSubscriber3);
+
+        testSubscriber3.awaitTerminalEvent();
+        testSubscriber3.assertNoErrors();
+        testSubscriber3.assertValueCount(1);
     }
 
     private void assertCompletedSuccessfully() {

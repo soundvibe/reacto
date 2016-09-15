@@ -31,8 +31,10 @@ public final class CommandHandler {
     }
 
     public void handle(final byte[] bytes,
-                          Consumer<byte[]> sender,
-                          Consumer<Subscription> unSubscriber) {
+                       Consumer<byte[]> sender,
+                       Consumer<Subscription> unSubscriber,
+                       Runnable closeHandler
+                       ) {
         try {
             final Command receivedCommand = Mappers.fromBytesToCommand(bytes);
             final Optional<Function<Command, Observable<Event>>> commandFunc = commands.findCommand(receivedCommand.name);
@@ -42,15 +44,23 @@ public final class CommandHandler {
                             .subscribeOn(SINGLE_THREAD)
                             .subscribe(
                                     event -> sender.accept(toBytes(InternalEvent.onNext(event))),
-                                    throwable -> sender.accept(toBytes(InternalEvent.onError(throwable))),
-                                    () -> sender.accept(toBytes(InternalEvent.onCompleted()))))
+                                    throwable -> {
+                                        sender.accept(toBytes(InternalEvent.onError(throwable)));
+                                        closeHandler.run();
+                                    },
+                                    () -> {
+                                        sender.accept(toBytes(InternalEvent.onCompleted()));
+                                        closeHandler.run();
+                                    }))
                     .ifPresent(unSubscriber);
 
             if (!commandFunc.isPresent()) {
                 sender.accept(toBytes(InternalEvent.onError(new CommandNotFound(receivedCommand.name))));
+                closeHandler.run();
             }
         } catch (Throwable e) {
             sender.accept(toBytes(InternalEvent.onError(e)));
+            closeHandler.run();
         }
     }
 
