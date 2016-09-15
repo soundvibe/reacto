@@ -5,7 +5,6 @@ import io.vertx.core.logging.LoggerFactory;
 import net.soundvibe.reacto.internal.InternalEvent;
 import net.soundvibe.reacto.server.handlers.WebSocketFrameHandler;
 import net.soundvibe.reacto.types.*;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.*;
 import net.soundvibe.reacto.client.errors.ConnectionClosedUnexpectedly;
@@ -25,32 +24,27 @@ public class VertxWebSocketEventHandler implements EventHandler {
     private static final Logger log = LoggerFactory.getLogger(VertxWebSocketEventHandler.class);
 
     private final URI wsUrl;
-    private final Vertx vertx;
 
     public VertxWebSocketEventHandler(URI wsUrl) {
         Objects.requireNonNull(wsUrl, "WebSocket URI cannot be null");
         this.wsUrl = wsUrl;
-        this.vertx = Factories.vertx();
     }
 
     @Override
     public Observable<Event> toObservable(Command command) {
-        return Observable.using(() -> vertx.createHttpClient(new HttpClientOptions()),
-                httpClient -> webSocketStreamObservable(httpClient, command),
-                HttpClient::close);
-    }
-
-    private Observable<Event> webSocketStreamObservable(HttpClient httpClient, Command command) {
         try {
-            final WebSocketStream webSocketStream = httpClient
-                    .websocketStream(getPortFromURI(wsUrl), wsUrl.getHost(), wsUrl.getPath());
-            return observe(webSocketStream, command);
+            return Observable.using(() -> Factories.vertx().createHttpClient(new HttpClientOptions()),
+                    httpClient -> observe(httpClient.websocketStream(
+                            getPortFromURI(wsUrl),
+                            wsUrl.getHost(),
+                            wsUrl.getPath()), command),
+                    HttpClient::close);
         } catch (Throwable e) {
             return Observable.error(e);
         }
     }
 
-    private Observable<Event> observe(WebSocketStream webSocketStream, Command command) {
+    public static Observable<Event> observe(WebSocketStream webSocketStream, Command command) {
         return Observable.create(subscriber -> {
             try {
                 webSocketStream
@@ -75,7 +69,7 @@ public class VertxWebSocketEventHandler implements EventHandler {
         });
     }
 
-    private void checkForEvents(WebSocket webSocket, Subscriber<? super Event> subscriber) {
+    private static void checkForEvents(WebSocket webSocket, Subscriber<? super Event> subscriber) {
         webSocket
                 .frameHandler(new WebSocketFrameHandler(buffer -> {
                     try {
@@ -89,7 +83,7 @@ public class VertxWebSocketEventHandler implements EventHandler {
     }
 
     @SuppressWarnings("unchecked")
-    private void handleEvent(InternalEvent internalEvent, Subscriber<? super Event> subscriber) {
+    private static void handleEvent(InternalEvent internalEvent, Subscriber<? super Event> subscriber) {
         log.debug("InternalEvent has been received and is being handled: " + internalEvent);
         switch (internalEvent.eventType) {
             case NEXT: {
@@ -118,8 +112,8 @@ public class VertxWebSocketEventHandler implements EventHandler {
                 uri.getPort();
     }
 
-    private void sendCommandToExecutor(Command command, WebSocket webSocket) {
-        log.debug("Sending command to executor: " + command);
+    private static void sendCommandToExecutor(Command command, WebSocket webSocket) {
+        log.info("Sending command to executor: " + command);
         final byte[] bytes = Mappers.commandToBytes(command);
         webSocket.writeBinaryMessage(Buffer.buffer(bytes));
     }

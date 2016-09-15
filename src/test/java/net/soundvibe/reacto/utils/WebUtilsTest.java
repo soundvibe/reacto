@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.net.URI;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * @author Cipolinas on 2015.11.23.
@@ -18,9 +19,33 @@ public class WebUtilsTest {
     }
 
     @Test
+    public void shouldNotEndWithDelimiter() throws Exception {
+        final String actual = WebUtils.excludeEndDelimiter("localhost/");
+        assertEquals("localhost", actual);
+    }
+
+    @Test
+    public void shouldNotEndWithDelimiterWhenNoEndDelimiter() throws Exception {
+        final String actual = WebUtils.excludeEndDelimiter("localhost");
+        assertEquals("localhost", actual);
+    }
+
+    @Test
     public void shouldStartWithDelimiter() throws Exception {
         final String actual = WebUtils.includeStartDelimiter("foo");
         assertEquals("/foo", actual);
+    }
+
+    @Test
+    public void shouldNotStartWithDelimiter() throws Exception {
+        final String actual = WebUtils.excludeStartDelimiter("/foo");
+        assertEquals("foo", actual);
+    }
+
+    @Test
+    public void shouldNotStartWithDelimiterWhenNoStartDelimiter() throws Exception {
+        final String actual = WebUtils.excludeStartDelimiter("foo");
+        assertEquals("foo", actual);
     }
 
     @Test
@@ -39,5 +64,11 @@ public class WebUtilsTest {
     public void shouldResolveWebSocketFromWebSocketUrl() throws Exception {
         final URI actual = WebUtils.resolveWsURI("ws://localhost/foo");
         assertEquals(URI.create("ws://localhost/foo"), actual);
+    }
+
+    @Test
+    public void shouldReturnLocalAddress() throws Exception {
+        final String actual = WebUtils.getLocalAddress();
+        assertNotNull(actual);
     }
 }

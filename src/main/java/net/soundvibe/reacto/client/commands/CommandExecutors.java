@@ -1,14 +1,26 @@
 package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.HystrixCommandProperties;
+import io.vertx.servicediscovery.Record;
 import net.soundvibe.reacto.client.commands.hystrix.*;
+import net.soundvibe.reacto.client.errors.CannotDiscoverService;
+import net.soundvibe.reacto.client.events.EventHandler;
+import net.soundvibe.reacto.client.events.EventHandlers;
+import net.soundvibe.reacto.client.events.VertxDiscoverableEventHandler;
+import net.soundvibe.reacto.discovery.DiscoverableServices;
+import net.soundvibe.reacto.discovery.LoadBalancer;
+import net.soundvibe.reacto.discovery.LoadBalancers;
 import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.client.events.VertxWebSocketEventHandler;
 import net.soundvibe.reacto.types.Command;
 import net.soundvibe.reacto.mappers.Mappers;
+import net.soundvibe.reacto.types.Pair;
+import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
+import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * @author Cipolinas on 2015.12.01.
@@ -31,6 +43,47 @@ public interface CommandExecutors {
                 .withRequestCacheEnabled(false)
                 .withRequestLogEnabled(true)
         ;
+    }
+
+    static Observable<CommandExecutor> find(Services services) {
+        return find(services, LoadBalancers.ROUND_ROBIN, Factories.ALL_RECORDS);
+    }
+
+    static Observable<CommandExecutor> find(Services services, Predicate<Record> filter) {
+        return find(services, LoadBalancers.ROUND_ROBIN, filter);
+    }
+
+    static Observable<CommandExecutor> find(Services services, LoadBalancer loadBalancer) {
+        return find(services, loadBalancer, Factories.ALL_RECORDS);
+    }
+
+    static Observable<CommandExecutor> find(Services services, LoadBalancer loadBalancer, Predicate<Record> filter) {
+        return DiscoverableServices.find(services.mainServiceName, filter, services.serviceDiscovery, loadBalancer)
+                .map(webSocketStream -> Pair.of(true, webSocketStream))
+                .onErrorResumeNext(throwable -> services.fallbackServiceName.isPresent() ?
+                        DiscoverableServices.find(services.fallbackServiceName.get(), filter, services.serviceDiscovery, loadBalancer)
+                            .map(webSocketStream -> Pair.of(false, webSocketStream)):
+                        Observable.error(new CannotDiscoverService("Cannot find any of " + services, throwable))
+                )
+                .flatMap(pair -> Observable.just(pair.value)
+                                .concatWith(pair.key && services.fallbackServiceName.isPresent() ?
+                                        DiscoverableServices.find(services.fallbackServiceName.get(), filter, services.serviceDiscovery, loadBalancer)
+                                            .onExceptionResumeNext(Observable.empty()):
+                                        Observable.empty())
+                )
+                .switchIfEmpty(Observable.error(new CannotDiscoverService("Unable to discover any of " + services)))
+                .map(webSocketStream -> new VertxDiscoverableEventHandler(webSocketStream, VertxWebSocketEventHandler::observe))
+                .toList()
+                .filter(vertxDiscoverableEventHandlers -> !vertxDiscoverableEventHandlers.isEmpty())
+                .switchIfEmpty(Observable.error(new CannotDiscoverService("Unable to discover any of " + services)))
+                .map(vertxDiscoverableEventHandlers -> new EventHandlers(vertxDiscoverableEventHandlers.get(0),
+                        vertxDiscoverableEventHandlers.stream()
+                                .skip(1L)
+                                .findFirst()
+                                .map(vertxDiscoverableEventHandler -> (EventHandler)vertxDiscoverableEventHandler))
+                )
+                .map(eventHandlers -> new VertxWebSocketCommandExecutor(() -> Optional.ofNullable(eventHandlers)))
+                ;
     }
 
     static CommandExecutor webSocket(Nodes nodes) {

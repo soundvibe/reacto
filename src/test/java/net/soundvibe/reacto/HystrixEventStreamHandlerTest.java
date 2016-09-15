@@ -2,6 +2,7 @@ package net.soundvibe.reacto;
 
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixObservableCommand;
+import net.soundvibe.reacto.server.ServiceOptions;
 import net.soundvibe.reacto.server.handlers.SSEHandler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
@@ -36,7 +37,7 @@ public class HystrixEventStreamHandlerTest {
         final Router router = Router.router(vertx);
         router.route("/test/hystrix.stream")
                 .handler(new SSEHandler(HystrixEventStreamHandler::handle));
-        vertxServer = new VertxServer(router, vertx.createHttpServer(new HttpServerOptions().setPort(8282)), "test",
+        vertxServer = new VertxServer(new ServiceOptions("test", "test"), router, vertx.createHttpServer(new HttpServerOptions().setPort(8282)),
                CommandRegistry.of("bla", o -> Observable.empty()));
         vertxServer.start();
         lastData = new AtomicReference<>();

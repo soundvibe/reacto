@@ -24,7 +24,8 @@ public class WebSocketCommandHandler implements Handler<ServerWebSocket> {
         serverWebSocket.frameHandler(new WebSocketFrameHandler(buffer ->
                 commandHandler.handle(buffer.getBytes(),
                         bytes -> serverWebSocket.writeBinaryMessage(Buffer.buffer(bytes)),
-                        subscription -> serverWebSocket.closeHandler(event -> subscription.unsubscribe())
+                        subscription -> serverWebSocket.closeHandler(event -> subscription.unsubscribe()),
+                        serverWebSocket::close
                 )));
     }
 
