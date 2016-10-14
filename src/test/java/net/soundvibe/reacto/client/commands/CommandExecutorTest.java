@@ -451,7 +451,8 @@ public class CommandExecutorTest {
         final Throwable throwable = onErrorEvents.get(0);
         assertEquals("Should be HystrixRuntimeException", HystrixRuntimeException.class, throwable.getClass());
         final Throwable actualCause = throwable.getCause();
-        assertEquals(expected, actualCause.getClass());
+        assertTrue("Actual: " + actualCause.getClass() + ".Expected: " + expected,
+                expected.isAssignableFrom(actualCause.getClass()));
         errorChecker.accept((T) actualCause);
     }
 
