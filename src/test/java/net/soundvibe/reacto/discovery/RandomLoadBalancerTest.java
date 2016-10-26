@@ -3,8 +3,7 @@ package net.soundvibe.reacto.discovery;
 import io.vertx.servicediscovery.Record;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static net.soundvibe.reacto.discovery.LoadBalancersTestUtils.*;
 

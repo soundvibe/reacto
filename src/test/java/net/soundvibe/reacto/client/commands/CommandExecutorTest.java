@@ -1,38 +1,25 @@
 package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.*;
 import io.vertx.core.json.JsonObject;
-import io.vertx.servicediscovery.Record;
-import io.vertx.servicediscovery.ServiceDiscovery;
-import io.vertx.servicediscovery.types.HttpEndpoint;
-import net.soundvibe.reacto.client.errors.CannotDiscoverService;
-import net.soundvibe.reacto.discovery.DiscoverableService;
-import net.soundvibe.reacto.discovery.DiscoverableServices;
-import net.soundvibe.reacto.discovery.LoadBalancers;
-import net.soundvibe.reacto.server.ServiceOptions;
-import net.soundvibe.reacto.utils.models.CustomError;
-import net.soundvibe.reacto.client.errors.CommandNotFound;
-import net.soundvibe.reacto.server.CommandRegistry;
-import net.soundvibe.reacto.server.VertxServer;
-import net.soundvibe.reacto.types.Command;
-import net.soundvibe.reacto.types.Event;
-import net.soundvibe.reacto.types.MetaData;
-import net.soundvibe.reacto.types.Pair;
-import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
-import net.soundvibe.reacto.client.errors.ConnectionClosedUnexpectedly;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import io.vertx.servicediscovery.*;
+import io.vertx.servicediscovery.types.HttpEndpoint;
+import net.soundvibe.reacto.client.errors.*;
+import net.soundvibe.reacto.discovery.*;
+import net.soundvibe.reacto.server.*;
+import net.soundvibe.reacto.types.*;
+import net.soundvibe.reacto.utils.models.CustomError;
+import org.junit.*;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
 import java.net.ConnectException;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.*;

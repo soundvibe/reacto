@@ -1,7 +1,6 @@
 package net.soundvibe.reacto.client.events;
 
-import net.soundvibe.reacto.types.Command;
-import net.soundvibe.reacto.types.Event;
+import net.soundvibe.reacto.types.*;
 import rx.Observable;
 
 /**

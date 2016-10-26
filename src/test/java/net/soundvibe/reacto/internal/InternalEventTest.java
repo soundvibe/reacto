@@ -3,8 +3,7 @@ package net.soundvibe.reacto.internal;
 import net.soundvibe.reacto.types.Event;
 import org.junit.Test;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.Assert.assertTrue;
 

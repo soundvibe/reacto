@@ -1,8 +1,7 @@
 package net.soundvibe.reacto.client.events;
 
 import io.vertx.core.http.WebSocketStream;
-import net.soundvibe.reacto.types.Command;
-import net.soundvibe.reacto.types.Event;
+import net.soundvibe.reacto.types.*;
 import rx.Observable;
 
 import java.util.Objects;

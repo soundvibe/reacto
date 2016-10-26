@@ -5,9 +5,7 @@ import net.soundvibe.reacto.internal.ObjectId;
 import net.soundvibe.reacto.internal.proto.Messages;
 import org.junit.Test;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;

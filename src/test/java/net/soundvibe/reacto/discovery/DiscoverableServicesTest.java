@@ -1,9 +1,7 @@
 package net.soundvibe.reacto.discovery;
 
 import io.vertx.core.Vertx;
-import io.vertx.servicediscovery.Record;
-import io.vertx.servicediscovery.ServiceDiscovery;
-import io.vertx.servicediscovery.Status;
+import io.vertx.servicediscovery.*;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.client.errors.CannotDiscoverService;
@@ -12,8 +10,7 @@ import org.junit.Test;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
 import static org.junit.Assert.assertEquals;

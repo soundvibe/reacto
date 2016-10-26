@@ -5,8 +5,7 @@ import io.vertx.servicediscovery.types.HttpEndpoint;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * @author OZY on 2016.08.26.

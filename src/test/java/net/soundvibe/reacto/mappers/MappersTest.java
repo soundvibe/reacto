@@ -1,11 +1,10 @@
 package net.soundvibe.reacto.mappers;
 
-import net.soundvibe.reacto.utils.models.CustomError;
-import net.soundvibe.reacto.client.events.EventHandlers;
-import net.soundvibe.reacto.types.Event;
-import net.soundvibe.reacto.types.Pair;
-import org.junit.Test;
 import net.soundvibe.reacto.client.commands.Nodes;
+import net.soundvibe.reacto.client.events.EventHandlers;
+import net.soundvibe.reacto.types.*;
+import net.soundvibe.reacto.utils.models.CustomError;
+import org.junit.Test;
 import rx.Observable;
 
 import java.util.Optional;

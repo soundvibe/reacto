@@ -4,8 +4,7 @@ import org.junit.Test;
 
 import java.net.URI;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 /**
  * @author Cipolinas on 2015.11.23.

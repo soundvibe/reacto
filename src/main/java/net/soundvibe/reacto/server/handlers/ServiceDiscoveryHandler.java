@@ -2,12 +2,10 @@ package net.soundvibe.reacto.server.handlers;
 
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.servicediscovery.Record;
-import io.vertx.servicediscovery.Status;
+import io.vertx.servicediscovery.*;
 import net.soundvibe.reacto.discovery.DiscoverableService;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
-
 
 import java.util.function.Supplier;
 
