@@ -1,8 +1,8 @@
 package net.soundvibe.reacto.utils;
 
+import io.vertx.core.Vertx;
 import io.vertx.servicediscovery.Record;
 import net.soundvibe.reacto.internal.Lazy;
-import io.vertx.core.Vertx;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 

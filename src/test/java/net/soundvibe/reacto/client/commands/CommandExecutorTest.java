@@ -1,38 +1,25 @@
 package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.*;
 import io.vertx.core.json.JsonObject;
-import io.vertx.servicediscovery.Record;
-import io.vertx.servicediscovery.ServiceDiscovery;
-import io.vertx.servicediscovery.types.HttpEndpoint;
-import net.soundvibe.reacto.client.errors.CannotDiscoverService;
-import net.soundvibe.reacto.discovery.DiscoverableService;
-import net.soundvibe.reacto.discovery.DiscoverableServices;
-import net.soundvibe.reacto.discovery.LoadBalancers;
-import net.soundvibe.reacto.server.ServiceOptions;
-import net.soundvibe.reacto.utils.models.CustomError;
-import net.soundvibe.reacto.client.errors.CommandNotFound;
-import net.soundvibe.reacto.server.CommandRegistry;
-import net.soundvibe.reacto.server.VertxServer;
-import net.soundvibe.reacto.types.Command;
-import net.soundvibe.reacto.types.Event;
-import net.soundvibe.reacto.types.MetaData;
-import net.soundvibe.reacto.types.Pair;
-import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
-import net.soundvibe.reacto.client.errors.ConnectionClosedUnexpectedly;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import io.vertx.servicediscovery.*;
+import io.vertx.servicediscovery.types.HttpEndpoint;
+import net.soundvibe.reacto.client.errors.*;
+import net.soundvibe.reacto.discovery.*;
+import net.soundvibe.reacto.server.*;
+import net.soundvibe.reacto.types.*;
+import net.soundvibe.reacto.utils.models.CustomError;
+import org.junit.*;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
 import java.net.ConnectException;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.*;
@@ -124,14 +111,14 @@ public class CommandExecutorTest {
                 , router, mainHttpServer, mainCommands);
         fallbackVertxServer = new VertxServer(new ServiceOptions("distFallback","distFallback/", "0.1", new DiscoverableService(serviceDiscovery))
                 , Router.router(vertx), fallbackHttpServer,  fallbackCommands);
-        fallbackVertxServer.start();
-        vertxServer.start();
+        fallbackVertxServer.start().toBlocking().subscribe();
+        vertxServer.start().toBlocking().subscribe();
     }
 
     @AfterClass
     public static void tearDown() throws Exception {
-        vertxServer.stop();
-        fallbackVertxServer.stop();
+        vertxServer.stop().toBlocking().subscribe();
+        fallbackVertxServer.stop().toBlocking().subscribe();
     }
 
     private static Event event1Arg(String value) {
@@ -291,7 +278,7 @@ public class CommandExecutorTest {
 
         final CommandExecutor executor = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:8183/distTest/"), 5000);
 
-        reactoServer.start();
+        reactoServer.start().toBlocking().subscribe();
 
         try {
             executor.execute(Command.create(COMMAND_EMIT_AND_FAIL))
@@ -301,7 +288,7 @@ public class CommandExecutorTest {
 
 
         } finally {
-            reactoServer.stop();
+            reactoServer.stop().toBlocking().subscribe();
             Thread.sleep(100L);
         }
 
@@ -353,7 +340,7 @@ public class CommandExecutorTest {
                 , Router.router(vertx), server,
                 CommandRegistry.of(TEST_COMMAND, cmd ->
                         event1Arg("Called command from second server with arg: " + cmd.get("arg")).toObservable()));
-        reactoServer.start();
+        reactoServer.start().toBlocking().subscribe();
 
         try {
             final Services services = Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery);
@@ -376,7 +363,7 @@ public class CommandExecutorTest {
             eventTestSubscriber.assertCompleted();
             eventTestSubscriber.assertValue(event1Arg("Called command from second server with arg: bar"));
         } finally {
-            reactoServer.stop();
+            reactoServer.stop().toBlocking().subscribe();
             Thread.sleep(100L);
         }
     }

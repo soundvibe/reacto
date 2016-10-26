@@ -1,32 +1,20 @@
 package net.soundvibe.reacto.discovery;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
-import io.vertx.servicediscovery.Record;
-import io.vertx.servicediscovery.ServiceDiscovery;
-import io.vertx.servicediscovery.Status;
-import net.soundvibe.reacto.client.commands.CommandExecutor;
-import net.soundvibe.reacto.client.commands.CommandExecutors;
-import net.soundvibe.reacto.client.commands.Services;
-import net.soundvibe.reacto.client.commands.VertxWebSocketCommandExecutor;
+import io.vertx.core.logging.*;
+import io.vertx.servicediscovery.*;
+import net.soundvibe.reacto.client.commands.*;
 import net.soundvibe.reacto.client.errors.CannotDiscoverService;
-import net.soundvibe.reacto.client.events.EventHandler;
-import net.soundvibe.reacto.client.events.EventHandlers;
-import net.soundvibe.reacto.client.events.VertxDiscoverableEventHandler;
-import net.soundvibe.reacto.client.events.VertxWebSocketEventHandler;
+import net.soundvibe.reacto.client.events.*;
 import net.soundvibe.reacto.server.ServiceRecords;
 import net.soundvibe.reacto.types.Pair;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
 import java.time.Instant;
-import java.util.Optional;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
+import java.util.function.*;
 
 /**
  * @author OZY on 2016.08.28.

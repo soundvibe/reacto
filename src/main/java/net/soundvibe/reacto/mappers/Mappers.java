@@ -1,21 +1,16 @@
 package net.soundvibe.reacto.mappers;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import net.soundvibe.reacto.client.events.EventHandler;
-import net.soundvibe.reacto.client.events.EventHandlers;
-import net.soundvibe.reacto.internal.InternalEvent;
-import net.soundvibe.reacto.internal.MessageMappers;
-import net.soundvibe.reacto.internal.proto.Messages;
-import net.soundvibe.reacto.internal.RuntimeProtocolBufferException;
-import net.soundvibe.reacto.types.Command;
-import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.client.commands.Nodes;
+import net.soundvibe.reacto.client.events.*;
+import net.soundvibe.reacto.internal.*;
+import net.soundvibe.reacto.internal.proto.Messages;
+import net.soundvibe.reacto.types.*;
 
 import java.io.*;
 import java.net.URI;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 
 /**
  * @author Linas on 2015.10.25.

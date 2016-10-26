@@ -1,12 +1,14 @@
 package net.soundvibe.reacto.server;
 
+import rx.Observable;
+
 /**
  * @author Cipolinas on 2015.11.16.
  */
-public interface Server {
+public interface Server<T> {
 
-    void start();
+    Observable<T> start();
 
-    void stop();
+    Observable<Void> stop();
 
 }

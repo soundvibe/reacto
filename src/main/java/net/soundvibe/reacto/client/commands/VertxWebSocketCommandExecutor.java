@@ -2,8 +2,7 @@ package net.soundvibe.reacto.client.commands;
 
 import net.soundvibe.reacto.client.errors.CannotConnectToWebSocket;
 import net.soundvibe.reacto.client.events.EventHandlers;
-import net.soundvibe.reacto.types.Command;
-import net.soundvibe.reacto.types.Event;
+import net.soundvibe.reacto.types.*;
 import rx.Observable;
 
 import java.util.Optional;
