@@ -39,7 +39,7 @@ public class HystrixEventStreamHandlerTest {
                 .handler(new SSEHandler(HystrixEventStreamHandler::handle));
         vertxServer = new VertxServer(new ServiceOptions("test", "test"), router, vertx.createHttpServer(new HttpServerOptions().setPort(8282)),
                CommandRegistry.of("bla", o -> Observable.empty()));
-        vertxServer.start();
+        vertxServer.start().toBlocking().subscribe();
         lastData = new AtomicReference<>();
         httpClient = vertx.createHttpClient();
     }
@@ -47,7 +47,7 @@ public class HystrixEventStreamHandlerTest {
     @After
     public void tearDown() throws Exception {
         httpClient.close();
-        vertxServer.stop();
+        vertxServer.stop().toBlocking().subscribe();
     }
 
     @Test

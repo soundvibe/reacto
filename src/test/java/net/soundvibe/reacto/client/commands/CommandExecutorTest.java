@@ -124,14 +124,14 @@ public class CommandExecutorTest {
                 , router, mainHttpServer, mainCommands);
         fallbackVertxServer = new VertxServer(new ServiceOptions("distFallback","distFallback/", "0.1", new DiscoverableService(serviceDiscovery))
                 , Router.router(vertx), fallbackHttpServer,  fallbackCommands);
-        fallbackVertxServer.start();
-        vertxServer.start();
+        fallbackVertxServer.start().toBlocking().subscribe();
+        vertxServer.start().toBlocking().subscribe();
     }
 
     @AfterClass
     public static void tearDown() throws Exception {
-        vertxServer.stop();
-        fallbackVertxServer.stop();
+        vertxServer.stop().toBlocking().subscribe();
+        fallbackVertxServer.stop().toBlocking().subscribe();
     }
 
     private static Event event1Arg(String value) {
@@ -291,7 +291,7 @@ public class CommandExecutorTest {
 
         final CommandExecutor executor = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:8183/distTest/"), 5000);
 
-        reactoServer.start();
+        reactoServer.start().toBlocking().subscribe();
 
         try {
             executor.execute(Command.create(COMMAND_EMIT_AND_FAIL))
@@ -301,7 +301,7 @@ public class CommandExecutorTest {
 
 
         } finally {
-            reactoServer.stop();
+            reactoServer.stop().toBlocking().subscribe();
             Thread.sleep(100L);
         }
 
@@ -353,7 +353,7 @@ public class CommandExecutorTest {
                 , Router.router(vertx), server,
                 CommandRegistry.of(TEST_COMMAND, cmd ->
                         event1Arg("Called command from second server with arg: " + cmd.get("arg")).toObservable()));
-        reactoServer.start();
+        reactoServer.start().toBlocking().subscribe();
 
         try {
             final Services services = Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery);
@@ -376,7 +376,7 @@ public class CommandExecutorTest {
             eventTestSubscriber.assertCompleted();
             eventTestSubscriber.assertValue(event1Arg("Called command from second server with arg: bar"));
         } finally {
-            reactoServer.stop();
+            reactoServer.stop().toBlocking().subscribe();
             Thread.sleep(100L);
         }
     }

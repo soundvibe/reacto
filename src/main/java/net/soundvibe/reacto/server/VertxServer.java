@@ -1,24 +1,23 @@
 package net.soundvibe.reacto.server;
 
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.logging.*;
+import io.vertx.ext.web.Router;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.discovery.DiscoverableService;
 import net.soundvibe.reacto.server.handlers.*;
-import io.vertx.core.http.HttpServer;
-import io.vertx.ext.web.Router;
 import net.soundvibe.reacto.utils.WebUtils;
+import rx.Observable;
 
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author OZY on 2015.11.23.
  */
-public class VertxServer implements Server {
+public class VertxServer implements Server<HttpServer> {
 
     public static final int INTERNAL_SERVER_ERROR = 500;
     private static final Logger log = LoggerFactory.getLogger(VertxServer.class);
@@ -27,7 +26,7 @@ public class VertxServer implements Server {
     private final CommandRegistry commands;
     private final HttpServer httpServer;
     private final Router router;
-    private Record record;
+    private final AtomicReference<Record> record = new AtomicReference<>();
 
     public VertxServer(ServiceOptions serviceOptions, Router router, HttpServer httpServer, CommandRegistry commands) {
         Objects.requireNonNull(serviceOptions, "serviceOptions cannot be null");
@@ -42,40 +41,34 @@ public class VertxServer implements Server {
 
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Override
-    public void start() {
-        setupRoutes();
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
-
-        httpServer.listen(event -> {
-            if (event.succeeded()) {
-                log.info("VertxServer has started successfully on port " + event.result().actualPort());
-
-                if (!serviceOptions.serviceDiscovery.isPresent()) {
-                    countDownLatch.countDown();
-                    return;
+    public Observable<HttpServer> start() {
+        return Observable.<HttpServer>create(subscriber -> {
+            subscriber.onStart();
+            setupRoutes();
+            httpServer.listen(event -> {
+                if (event.succeeded()) {
+                    log.info("VertxServer has started successfully on port " + event.result().actualPort());
+                    subscriber.onNext(event.result());
+                    subscriber.onCompleted();
                 }
-                final DiscoverableService discovery = serviceOptions.serviceDiscovery.get();
-                record = createRecord(event.result().actualPort());
-                discovery.startDiscovery(record)
-                        .doOnCompleted(() -> discovery.startHeartBeat(record))
-                        .doOnTerminate(countDownLatch::countDown)
-                        .subscribe();
-
-                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                    log.info("Executing shutdown hook...");
-                    discovery.closeDiscovery(record).subscribe();
-                }));
-            }
-            if (event.failed()) {
-                log.error("Error when starting the server: " + event.cause(), event.cause());
-                countDownLatch.countDown();
-            }
-        });
-        try {
-            countDownLatch.await(1L, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+                if (event.failed()) {
+                    log.error("Error when starting the server: " + event.cause(), event.cause());
+                    subscriber.onError(event.cause());
+                }
+            });
+        }).flatMap(server ->
+                serviceOptions.serviceDiscovery.isPresent() ?
+                    Observable.just(serviceOptions.serviceDiscovery.get())
+                        .flatMap(discoverableService ->
+                                discoverableService.startDiscovery(createRecord(server.actualPort()))
+                                    .doOnNext(discoverableService::startHeartBeat)
+                                    .doOnNext(rec -> Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                                        log.info("Executing shutdown hook...");
+                                        discoverableService.closeDiscovery(rec).subscribe();
+                                    })))
+                                    .doOnNext(record::set))
+                        .map(__ -> httpServer) :
+                Observable.just(server));
     }
 
     private Record createRecord(int port) {
@@ -88,13 +81,20 @@ public class VertxServer implements Server {
     }
 
     @Override
-    public void stop() {
-        httpServer.close(event -> {
-            if (event.succeeded()) {
-                log.info("Server has stopped on port " + httpServer.actualPort());
-                serviceOptions.serviceDiscovery.ifPresent(discovery -> discovery.closeDiscovery(record).subscribe());
-            }
-        });
+    public Observable<Void> stop() {
+        return Observable.<DiscoverableService>create(subscriber ->
+            httpServer.close(event -> {
+                if (event.succeeded()) {
+                    log.info("Server has stopped on port " + httpServer.actualPort());
+                    serviceOptions.serviceDiscovery.ifPresent(subscriber::onNext);
+                    subscriber.onCompleted();
+                    return;
+                }
+                if (event.failed()) {
+                    subscriber.onError(event.cause());
+                }
+            })).flatMap(discoverableService -> discoverableService.closeDiscovery(record.get()))
+                .map(__ -> Void.TYPE.cast(null));
     }
 
     private void setupRoutes() {
@@ -105,7 +105,7 @@ public class VertxServer implements Server {
         serviceOptions.serviceDiscovery.ifPresent(discovery ->
                 router.route(root() + "service-discovery/:action")
                         .produces("application/json")
-                        .handler(new ServiceDiscoveryHandler(discovery, () -> record)));
+                        .handler(new ServiceDiscoveryHandler(discovery, record::get)));
         httpServer.requestHandler(router::accept);
     }
 
