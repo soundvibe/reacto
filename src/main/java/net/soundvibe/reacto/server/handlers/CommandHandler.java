@@ -40,6 +40,7 @@ public final class CommandHandler {
                     .map(cmdFunc -> cmdFunc.apply(receivedCommand)
                             .doOnEach(notification -> log.debug("Command "+ receivedCommand + " executed and received notification: " + notification))
                             .subscribeOn(SINGLE_THREAD)
+                            .observeOn(SINGLE_THREAD)
                             .subscribe(
                                     event -> sender.accept(toBytes(InternalEvent.onNext(event))),
                                     throwable -> {
