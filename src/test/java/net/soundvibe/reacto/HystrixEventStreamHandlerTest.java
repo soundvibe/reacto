@@ -1,20 +1,13 @@
 package net.soundvibe.reacto;
 
-import com.netflix.hystrix.HystrixCommandGroupKey;
-import com.netflix.hystrix.HystrixObservableCommand;
-import net.soundvibe.reacto.server.ServiceOptions;
-import net.soundvibe.reacto.server.handlers.SSEHandler;
+import com.netflix.hystrix.*;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.http.*;
 import io.vertx.ext.web.Router;
-import net.soundvibe.reacto.server.VertxServer;
-import net.soundvibe.reacto.server.handlers.HystrixEventStreamHandler;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import net.soundvibe.reacto.server.CommandRegistry;
+import net.soundvibe.reacto.server.*;
+import net.soundvibe.reacto.server.handlers.*;
 import net.soundvibe.reacto.utils.Factories;
+import org.junit.*;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 
@@ -39,7 +32,7 @@ public class HystrixEventStreamHandlerTest {
                 .handler(new SSEHandler(HystrixEventStreamHandler::handle));
         vertxServer = new VertxServer(new ServiceOptions("test", "test"), router, vertx.createHttpServer(new HttpServerOptions().setPort(8282)),
                CommandRegistry.of("bla", o -> Observable.empty()));
-        vertxServer.start();
+        vertxServer.start().toBlocking().subscribe();
         lastData = new AtomicReference<>();
         httpClient = vertx.createHttpClient();
     }
@@ -47,7 +40,7 @@ public class HystrixEventStreamHandlerTest {
     @After
     public void tearDown() throws Exception {
         httpClient.close();
-        vertxServer.stop();
+        vertxServer.stop().toBlocking().subscribe();
     }
 
     @Test

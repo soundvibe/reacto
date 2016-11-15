@@ -2,10 +2,9 @@ package net.soundvibe.reacto.client.commands.hystrix;
 
 import com.netflix.hystrix.HystrixCommandProperties;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
-import net.soundvibe.reacto.types.Event;
 import net.soundvibe.reacto.client.errors.CannotConnectToWebSocket;
 import net.soundvibe.reacto.client.events.EventHandlers;
-import net.soundvibe.reacto.types.Command;
+import net.soundvibe.reacto.types.*;
 import rx.Observable;
 
 import java.util.Optional;

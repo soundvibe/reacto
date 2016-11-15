@@ -2,8 +2,7 @@ package net.soundvibe.reacto.types;
 
 import net.soundvibe.reacto.utils.Exceptions;
 
-import java.io.PrintStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.Objects;
 import java.util.function.Consumer;
 

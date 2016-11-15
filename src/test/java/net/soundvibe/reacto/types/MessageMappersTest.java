@@ -1,11 +1,8 @@
 package net.soundvibe.reacto.types;
 
-import net.soundvibe.reacto.internal.InternalEvent;
-import net.soundvibe.reacto.internal.MessageMappers;
-import net.soundvibe.reacto.internal.ObjectId;
+import net.soundvibe.reacto.internal.*;
 import net.soundvibe.reacto.internal.proto.Messages;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.*;
 
 import java.util.Optional;
 

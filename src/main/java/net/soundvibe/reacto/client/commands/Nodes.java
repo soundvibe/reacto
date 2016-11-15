@@ -3,8 +3,7 @@ package net.soundvibe.reacto.client.commands;
 import net.soundvibe.reacto.utils.WebUtils;
 
 import java.net.URI;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * @author OZY on 2015.11.13.

@@ -1,8 +1,6 @@
 package net.soundvibe.reacto.utils;
 
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.UnknownHostException;
+import java.net.*;
 
 /**
  * @author OZY on 2015.11.13.

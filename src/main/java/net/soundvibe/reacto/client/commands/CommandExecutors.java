@@ -4,23 +4,15 @@ import com.netflix.hystrix.HystrixCommandProperties;
 import io.vertx.servicediscovery.Record;
 import net.soundvibe.reacto.client.commands.hystrix.*;
 import net.soundvibe.reacto.client.errors.CannotDiscoverService;
-import net.soundvibe.reacto.client.events.EventHandler;
-import net.soundvibe.reacto.client.events.EventHandlers;
-import net.soundvibe.reacto.client.events.VertxDiscoverableEventHandler;
-import net.soundvibe.reacto.discovery.DiscoverableServices;
-import net.soundvibe.reacto.discovery.LoadBalancer;
-import net.soundvibe.reacto.discovery.LoadBalancers;
-import net.soundvibe.reacto.types.Event;
-import net.soundvibe.reacto.client.events.VertxWebSocketEventHandler;
-import net.soundvibe.reacto.types.Command;
+import net.soundvibe.reacto.client.events.*;
+import net.soundvibe.reacto.discovery.*;
 import net.soundvibe.reacto.mappers.Mappers;
-import net.soundvibe.reacto.types.Pair;
+import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.*;
 
 /**
  * @author Cipolinas on 2015.12.01.

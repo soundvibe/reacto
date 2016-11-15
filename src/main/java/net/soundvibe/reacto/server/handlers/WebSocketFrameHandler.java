@@ -3,7 +3,6 @@ package net.soundvibe.reacto.server.handlers;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.WebSocketFrame;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
@@ -12,7 +11,7 @@ import java.util.function.Consumer;
 public class WebSocketFrameHandler implements io.vertx.core.Handler<WebSocketFrame> {
 
     private final Consumer<Buffer> bufferConsumer;
-    private final ConcurrentHashMap<Long, Buffer> buffers = new ConcurrentHashMap<>();
+    private Buffer buffer = Buffer.buffer();
 
 
     public WebSocketFrameHandler(Consumer<Buffer> bufferConsumer) {
@@ -21,17 +20,14 @@ public class WebSocketFrameHandler implements io.vertx.core.Handler<WebSocketFra
 
     @Override
     public void handle(WebSocketFrame frame) {
-        final Buffer buffer = buffers.merge(Thread.currentThread().getId(), createBuffer(frame),
-                Buffer::appendBuffer);
+        buffer.appendBuffer(frame.binaryData());
         if (frame.isFinal()) {
-            bufferConsumer.accept(buffer);
-            buffers.remove(Thread.currentThread().getId());
+            try {
+                bufferConsumer.accept(buffer);
+            } finally {
+                buffer = Buffer.buffer();
+            }
         }
     }
 
-    private Buffer createBuffer(WebSocketFrame frame) {
-        final Buffer buffer = Buffer.buffer();
-        buffer.appendBuffer(frame.binaryData());
-        return buffer;
-    }
 }

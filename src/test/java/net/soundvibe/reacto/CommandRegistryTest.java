@@ -1,17 +1,13 @@
 package net.soundvibe.reacto;
 
-import net.soundvibe.reacto.types.Command;
-import net.soundvibe.reacto.types.Event;
-import net.soundvibe.reacto.types.Pair;
-import org.junit.Test;
 import net.soundvibe.reacto.server.CommandRegistry;
+import net.soundvibe.reacto.types.*;
+import org.junit.Test;
 import rx.Observable;
 
 import java.util.function.Function;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * @author Linas on 2015.11.13.

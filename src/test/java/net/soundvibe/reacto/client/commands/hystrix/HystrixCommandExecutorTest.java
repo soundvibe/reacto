@@ -2,8 +2,7 @@ package net.soundvibe.reacto.client.commands.hystrix;
 
 import net.soundvibe.reacto.client.commands.CommandExecutors;
 import net.soundvibe.reacto.client.errors.CannotConnectToWebSocket;
-import net.soundvibe.reacto.types.Command;
-import net.soundvibe.reacto.types.Event;
+import net.soundvibe.reacto.types.*;
 import org.junit.Test;
 import rx.observers.TestSubscriber;
 

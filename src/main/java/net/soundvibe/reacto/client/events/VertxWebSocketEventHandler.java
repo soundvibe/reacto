@@ -1,17 +1,15 @@
 package net.soundvibe.reacto.client.events;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
-import net.soundvibe.reacto.internal.InternalEvent;
-import net.soundvibe.reacto.server.handlers.WebSocketFrameHandler;
-import net.soundvibe.reacto.types.*;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.*;
+import io.vertx.core.logging.*;
 import net.soundvibe.reacto.client.errors.ConnectionClosedUnexpectedly;
+import net.soundvibe.reacto.internal.InternalEvent;
 import net.soundvibe.reacto.mappers.Mappers;
+import net.soundvibe.reacto.server.handlers.WebSocketFrameHandler;
+import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.Factories;
-import rx.Observable;
-import rx.Subscriber;
+import rx.*;
 
 import java.net.URI;
 import java.util.Objects;
