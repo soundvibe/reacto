@@ -50,28 +50,11 @@ public interface CommandExecutors {
 
     static Observable<CommandExecutor> find(Services services, LoadBalancer<EventHandler> loadBalancer, Predicate<Record> filter) {
         return DiscoverableServices.find(services.serviceName, filter, services.serviceDiscovery)
-/*                .onErrorResumeNext(throwable -> services.fallbackServiceName.isPresent() ?
-                        DiscoverableServices.find(services.fallbackServiceName.get(), filter, services.serviceDiscovery, loadBalancer)
-                            .map(webSocketStream -> Pair.of(false, webSocketStream)):
-                        Observable.error(new CannotDiscoverService("Cannot find any of " + services, throwable))
-                )
-                .flatMap(pair -> Observable.just(pair.value)
-                                .concatWith(pair.key && services.fallbackServiceName.isPresent() ?
-                                        DiscoverableServices.find(services.fallbackServiceName.get(), filter, services.serviceDiscovery, loadBalancer)
-                                            .onExceptionResumeNext(Observable.empty()):
-                                        Observable.empty())
-                )*/
                 .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + services))))
                 .map(record -> (EventHandler) new VertxDiscoverableEventHandler(record, services.serviceDiscovery, VertxWebSocketEventHandler::observe))
                 .toList()
                 .filter(vertxDiscoverableEventHandlers -> !vertxDiscoverableEventHandlers.isEmpty())
                 .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + services))))
-                /*.map(vertxDiscoverableEventHandlers -> new EventHandlers(vertxDiscoverableEventHandlers.get(0),
-                        vertxDiscoverableEventHandlers.stream()
-                                .skip(1L)
-                                .findFirst()
-                                .map(vertxDiscoverableEventHandler -> (EventHandler)vertxDiscoverableEventHandler))
-                )*/
                 .map(eventHandlers -> new VertxDiscoverableCommandExecutor(eventHandlers, loadBalancer))
                 ;
     }
