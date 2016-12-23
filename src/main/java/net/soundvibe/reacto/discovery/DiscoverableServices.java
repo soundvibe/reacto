@@ -8,9 +8,10 @@ import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
 import java.time.Instant;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
 
+import static java.util.Comparator.comparing;
 import static net.soundvibe.reacto.utils.WebUtils.*;
 
 /**
@@ -52,8 +53,7 @@ public final class DiscoverableServices {
                             final List<Record> records = asyncClients.result();
                             if (!records.isEmpty()) {
                                 final Instant now = Instant.now();
-                                records.sort((rec1, rec2) -> rec1.getMetadata().getInstant(ServiceRecords.LAST_UPDATED, now)
-                                        .compareTo(rec2.getMetadata().getInstant(ServiceRecords.LAST_UPDATED, now)));
+                                records.sort(comparing(rec -> rec.getMetadata().getInstant(ServiceRecords.LAST_UPDATED, now)));
                                 final Record record = loadBalancer.balance(records);
                                 subscriber.onNext(serviceDiscovery.getReference(record).get());
                             }

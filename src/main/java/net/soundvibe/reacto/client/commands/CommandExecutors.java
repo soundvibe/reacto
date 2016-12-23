@@ -63,11 +63,11 @@ public interface CommandExecutors {
                                             .onExceptionResumeNext(Observable.empty()):
                                         Observable.empty())
                 )
-                .switchIfEmpty(Observable.error(new CannotDiscoverService("Unable to discover any of " + services)))
+                .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + services))))
                 .map(webSocketStream -> new VertxDiscoverableEventHandler(webSocketStream, VertxWebSocketEventHandler::observe))
                 .toList()
                 .filter(vertxDiscoverableEventHandlers -> !vertxDiscoverableEventHandlers.isEmpty())
-                .switchIfEmpty(Observable.error(new CannotDiscoverService("Unable to discover any of " + services)))
+                .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + services))))
                 .map(vertxDiscoverableEventHandlers -> new EventHandlers(vertxDiscoverableEventHandlers.get(0),
                         vertxDiscoverableEventHandlers.stream()
                                 .skip(1L)
