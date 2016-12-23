@@ -4,58 +4,47 @@ import net.soundvibe.reacto.utils.WebUtils;
 
 import java.net.URI;
 import java.util.*;
+import java.util.stream.*;
 
 /**
  * @author OZY on 2015.11.13.
  */
 public final class Nodes {
 
-    private final String mainNode;
-    private final Optional<String> fallbackNode;
+    private final List<URI> nodes;
 
-    private Nodes(String mainNode, Optional<String> fallbackNode) {
-        Objects.requireNonNull(mainNode, "Main node cannot be null");
-        this.mainNode = mainNode;
-        this.fallbackNode = fallbackNode;
+    private Nodes(String... nodesURIs) {
+        Objects.requireNonNull(nodesURIs, "Nodes cannot be null");
+        this.nodes = Stream.of(nodesURIs)
+                .map(uri -> WebUtils.resolveWsURI(WebUtils.includeEndDelimiter(uri)))
+                .collect(Collectors.toList());
     }
 
-    public static Nodes ofMain(String mainNode) {
-        return new Nodes(mainNode, Optional.empty());
+    public static Nodes of(String... nodeURIs) {
+        return new Nodes(nodeURIs);
     }
 
-    public static Nodes ofMainAndFallback(String mainNode, String fallbackNode) {
-        return new Nodes(mainNode, Optional.ofNullable(fallbackNode));
-    }
-
-    public URI mainURI() {
-        return WebUtils.resolveWsURI(WebUtils.includeEndDelimiter(mainNode));
-    }
-
-    public Optional<URI> fallbackURI() {
-        return fallbackNode
-                .map(WebUtils::includeEndDelimiter)
-                .map(WebUtils::resolveWsURI);
+    public Stream<URI> stream() {
+        return nodes.stream();
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Nodes nodes = (Nodes) o;
-        return Objects.equals(mainNode, nodes.mainNode) &&
-                Objects.equals(fallbackNode, nodes.fallbackNode);
+        Nodes nodes1 = (Nodes) o;
+        return Objects.equals(nodes, nodes1.nodes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mainNode, fallbackNode);
+        return Objects.hash(nodes);
     }
 
     @Override
     public String toString() {
         return "Nodes{" +
-                "mainNode='" + mainNode + '\'' +
-                ", fallbackNode=" + fallbackNode +
+                "nodes=" + nodes +
                 '}';
     }
 }

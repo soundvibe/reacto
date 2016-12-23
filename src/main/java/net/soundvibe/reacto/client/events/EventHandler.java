@@ -6,7 +6,7 @@ import rx.Observable;
 /**
  * @author Cipolinas on 2015.11.16.
  */
-public interface EventHandler {
+public interface EventHandler extends Named {
 
     Observable<Event> toObservable(Command command);
 

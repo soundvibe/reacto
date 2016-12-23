@@ -1,8 +1,5 @@
 package net.soundvibe.reacto.discovery;
 
-import io.vertx.servicediscovery.Record;
-import io.vertx.servicediscovery.types.HttpEndpoint;
-
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -12,19 +9,19 @@ import static org.junit.Assert.*;
  */
 public interface LoadBalancersTestUtils {
 
-    Record record1 = HttpEndpoint.createRecord("test", "localhost/1");
-    Record record2 = HttpEndpoint.createRecord("test", "localhost/2");
-    Record record3 = HttpEndpoint.createRecord("test", "localhost/3");
-    Record record4 = HttpEndpoint.createRecord("test", "localhost/4");
-    Record record5 = HttpEndpoint.createRecord("test", "localhost/5");
+    Name record1 = new Name("test", "localhost/1");
+    Name record2 = new Name("test", "localhost/2");
+    Name record3 = new Name("test", "localhost/3");
+    Name record4 = new Name("test", "localhost/4");
+    Name record5 = new Name("test", "localhost/5");
 
-    static void assertRecords(Record expected, Record actual) {
-        assertEquals(expected.toJson(), actual.toJson());
+    static void assertRecords(Name expected, Name actual, String message) {
+        assertEquals(message, expected, actual);
     }
 
-    static void assertOneOf(Record expected, List<Record> ofRecords) {
+    static void assertOneOf(Name expected, List<Name> ofRecords) {
         assertTrue("None of " + ofRecords + " matches " + expected, ofRecords.stream()
-                .anyMatch(record -> expected.toJson().equals(record.toJson())));
+                .anyMatch(expected::equals));
     }
 
 }

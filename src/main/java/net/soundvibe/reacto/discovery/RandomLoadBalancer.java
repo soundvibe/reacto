@@ -1,16 +1,14 @@
 package net.soundvibe.reacto.discovery;
 
-import io.vertx.servicediscovery.Record;
-
 import java.util.*;
 
 /**
  * @author OZY on 2016.08.26.
  */
-public final class RandomLoadBalancer implements LoadBalancer {
+public final class RandomLoadBalancer<T> implements LoadBalancer<T> {
 
     @Override
-    public Record balance(List<Record> records) {
+    public T balance(List<T> records) {
         return records.get(new Random().nextInt(records.size()));
     }
 }

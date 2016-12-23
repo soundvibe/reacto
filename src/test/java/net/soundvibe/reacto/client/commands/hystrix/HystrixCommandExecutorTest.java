@@ -1,12 +1,12 @@
 package net.soundvibe.reacto.client.commands.hystrix;
 
 import net.soundvibe.reacto.client.commands.CommandExecutors;
-import net.soundvibe.reacto.client.errors.CannotConnectToWebSocket;
+import net.soundvibe.reacto.client.errors.CannotDiscoverService;
 import net.soundvibe.reacto.types.*;
 import org.junit.Test;
 import rx.observers.TestSubscriber;
 
-import java.util.Optional;
+import java.util.Collections;
 
 /**
  * @author Cipolinas on 2016.02.18.
@@ -17,11 +17,11 @@ public class HystrixCommandExecutorTest {
 
     @Test
     public void shouldGetErrorWhenEventHandlersAreEmpty() throws Exception {
-        HystrixCommandExecutor sut = new HystrixCommandExecutor(Optional::empty, CommandExecutors.defaultHystrixSetter());
+        HystrixCommandExecutor sut = new HystrixCommandExecutor(Collections.emptyList(), CommandExecutors.defaultHystrixSetter());
         sut.execute(Command.create("foo"))
             .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertError(CannotConnectToWebSocket.class);
+        testSubscriber.assertError(CannotDiscoverService.class);
     }
 }

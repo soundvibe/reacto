@@ -9,8 +9,9 @@ import net.soundvibe.reacto.types.*;
 
 import java.io.*;
 import java.net.URI;
-import java.util.Optional;
-import java.util.function.*;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author Linas on 2015.10.25.
@@ -65,14 +66,10 @@ public interface Mappers {
         }
     }
 
-    static Supplier<Optional<EventHandlers>> mapToEventHandlers(Nodes nodes,
-                                                                Function<URI, EventHandler> eventHandlerFactory) {
-        return () -> Optional.ofNullable(nodes.mainURI())
-                .map(eventHandlerFactory)
-                .map(mainEventHandler -> new EventHandlers(mainEventHandler, Optional.empty()))
-                .map(eventHandlers -> nodes.fallbackURI()
-                        .map(eventHandlerFactory)
-                        .map(eventHandlers::copy)
-                        .orElse(eventHandlers));
+    static List<EventHandler> mapToEventHandlers(Nodes nodes,
+                                                 Function<URI, EventHandler> eventHandlerFactory) {
+        return nodes.stream()
+                    .map(eventHandlerFactory)
+                    .collect(Collectors.toList());
     }
 }

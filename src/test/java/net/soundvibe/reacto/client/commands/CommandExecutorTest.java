@@ -39,7 +39,7 @@ public class CommandExecutorTest {
     private static final String COMMAND_EMIT_AND_FAIL = "emitAndFail";
 
     private static final String MAIN_NODE = "http://localhost:8282/dist/";
-    private static final String FALLBACK_NODE = "http://localhost:8383/distFallback/";
+    private static final String FALLBACK_NODE = "http://localhost:8383/dist/";
 
     private static HttpServer mainHttpServer;
     private static VertxServer vertxServer;
@@ -49,8 +49,8 @@ public class CommandExecutorTest {
 
     private final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
     private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(
-            Nodes.ofMain(MAIN_NODE), CommandExecutors.defaultHystrixSetter());
-    private final CommandExecutor mainNodeAndFallbackExecutor = CommandExecutors.webSocket(Nodes.ofMainAndFallback(MAIN_NODE, FALLBACK_NODE));
+            Nodes.of(MAIN_NODE), CommandExecutors.defaultHystrixSetter());
+    private final CommandExecutor mainNodeAndFallbackExecutor = CommandExecutors.webSocket(Nodes.of(MAIN_NODE, FALLBACK_NODE));
     private static CommandRegistry mainCommands;
     private static Vertx vertx;
 
@@ -109,7 +109,7 @@ public class CommandExecutorTest {
 
         vertxServer = new VertxServer(new ServiceOptions("dist", "dist/", "0.1", discoverableService)
                 , router, mainHttpServer, mainCommands);
-        fallbackVertxServer = new VertxServer(new ServiceOptions("distFallback","distFallback/", "0.1", new DiscoverableService(serviceDiscovery))
+        fallbackVertxServer = new VertxServer(new ServiceOptions("dist","dist/", "0.1", new DiscoverableService(serviceDiscovery))
                 , Router.router(vertx), fallbackHttpServer,  fallbackCommands);
         fallbackVertxServer.start().toBlocking().subscribe();
         vertxServer.start().toBlocking().subscribe();
@@ -189,7 +189,7 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldFailAfterHystrixTimeout() throws Exception {
-        CommandExecutor sut = CommandExecutors.webSocket(Nodes.ofMain(MAIN_NODE), 1000);
+        CommandExecutor sut = CommandExecutors.webSocket(Nodes.of(MAIN_NODE), 1000);
         sut.execute(command1Arg(LONG_TASK, "5000"))
                 .subscribe(testSubscriber);
 
@@ -228,7 +228,7 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldFailWhenCommandExecutorIsInaccessible() throws Exception {
-        CommandExecutor sut = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:45689/foo/"), 5000);
+        CommandExecutor sut = CommandExecutors.webSocket(Nodes.of("http://localhost:45689/foo/"), 5000);
         sut.execute(command1Arg(TEST_COMMAND, "foo"))
             .subscribe(testSubscriber);
 
@@ -276,7 +276,7 @@ public class CommandExecutorTest {
                     }
                 })));
 
-        final CommandExecutor executor = CommandExecutors.webSocket(Nodes.ofMain("http://localhost:8183/distTest/"), 5000);
+        final CommandExecutor executor = CommandExecutors.webSocket(Nodes.of("http://localhost:8183/distTest/"), 5000);
 
         reactoServer.start().toBlocking().subscribe();
 
@@ -300,7 +300,7 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldFindServiceAndExecuteCommand() throws Exception {
-        CommandExecutors.find(Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery))
+        CommandExecutors.find(Services.of("dist", serviceDiscovery))
                 .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
                 .subscribe(testSubscriber);
 
@@ -309,7 +309,7 @@ public class CommandExecutorTest {
         testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
 
 
-        CommandExecutors.find(Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery))
+        CommandExecutors.find(Services.of("dist", serviceDiscovery))
                 .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
                 .subscribe(testSubscriber);
         assertCompletedSuccessfully();
@@ -321,7 +321,7 @@ public class CommandExecutorTest {
     public void shouldNotFindService() throws Exception {
         final TestSubscriber<CommandExecutor> subscriber = new TestSubscriber<>();
 
-        CommandExecutors.find(Services.ofMain("NotExists", serviceDiscovery))
+        CommandExecutors.find(Services.of("NotExists", serviceDiscovery))
             .subscribe(subscriber);
 
         subscriber.awaitTerminalEvent();
@@ -336,14 +336,15 @@ public class CommandExecutorTest {
                 .setSsl(false)
                 .setReuseAddress(true));
 
-        final VertxServer reactoServer = new VertxServer(new ServiceOptions("dist", "dist/", new DiscoverableService(discoverableService.serviceDiscovery))
+        final VertxServer reactoServer = new VertxServer(new ServiceOptions("dist", "dist/",
+                new DiscoverableService(discoverableService.serviceDiscovery))
                 , Router.router(vertx), server,
                 CommandRegistry.of(TEST_COMMAND, cmd ->
                         event1Arg("Called command from second server with arg: " + cmd.get("arg")).toObservable()));
         reactoServer.start().toBlocking().subscribe();
 
         try {
-            final Services services = Services.ofMainAndFallback("dist", "distFallback", serviceDiscovery);
+            final Services services = Services.of("dist", serviceDiscovery);
 
             CommandExecutors.find(services)
                     .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
@@ -351,7 +352,7 @@ public class CommandExecutorTest {
 
             assertCompletedSuccessfully();
 
-            testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
+            testSubscriber.assertValue(event1Arg("Called command from second server with arg: foo"));
 
             TestSubscriber<Event> eventTestSubscriber = new TestSubscriber<>();
 
@@ -361,7 +362,7 @@ public class CommandExecutorTest {
             eventTestSubscriber.awaitTerminalEvent();
             eventTestSubscriber.assertNoErrors();
             eventTestSubscriber.assertCompleted();
-            eventTestSubscriber.assertValue(event1Arg("Called command from second server with arg: bar"));
+            eventTestSubscriber.assertValue(event1Arg("Called command with arg: bar"));
         } finally {
             reactoServer.stop().toBlocking().subscribe();
             Thread.sleep(100L);
@@ -389,9 +390,9 @@ public class CommandExecutorTest {
         assertEquals("dist", actual.getName());
         assertEquals(HttpEndpoint.TYPE, actual.getType());
 
-        TestSubscriber<WebSocketStream> testSubscriber2 = new TestSubscriber<>();
+        TestSubscriber<Record> testSubscriber2 = new TestSubscriber<>();
 
-        DiscoverableServices.find("dist", serviceDiscovery, LoadBalancers.ROUND_ROBIN)
+        DiscoverableServices.find("dist", serviceDiscovery)
                 .subscribe(testSubscriber2);
 
         testSubscriber2.awaitTerminalEvent();
@@ -412,9 +413,9 @@ public class CommandExecutorTest {
         startSubscriber.awaitTerminalEvent();
         startSubscriber.assertNoErrors();
 
-        TestSubscriber<WebSocketStream> testSubscriber3 = new TestSubscriber<>();
+        TestSubscriber<Record> testSubscriber3 = new TestSubscriber<>();
 
-        DiscoverableServices.find("dist", serviceDiscovery, LoadBalancers.ROUND_ROBIN)
+        DiscoverableServices.find("dist", serviceDiscovery)
                 .subscribe(testSubscriber3);
 
         testSubscriber3.awaitTerminalEvent();

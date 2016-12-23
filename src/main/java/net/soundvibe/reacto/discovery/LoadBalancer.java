@@ -1,14 +1,12 @@
 package net.soundvibe.reacto.discovery;
 
-import io.vertx.servicediscovery.Record;
-
 import java.util.List;
 
 /**
  * @author OZY on 2016.08.26.
  */
-public interface LoadBalancer {
+public interface LoadBalancer<T> {
 
-    Record balance(List<Record> records);
+    T balance(List<T> records);
 
 }
