@@ -5,6 +5,7 @@ import io.vertx.servicediscovery.*;
 import net.soundvibe.reacto.client.commands.*;
 import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.server.ServiceRecords;
+import net.soundvibe.reacto.types.Service;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 

@@ -2,7 +2,7 @@ package net.soundvibe.reacto.discovery;
 
 import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
-import net.soundvibe.reacto.client.commands.Service;
+import net.soundvibe.reacto.types.Service;
 import net.soundvibe.reacto.client.errors.CannotDiscoverService;
 import net.soundvibe.reacto.server.ServiceRecords;
 import net.soundvibe.reacto.utils.Factories;
