@@ -11,16 +11,27 @@ import java.util.stream.*;
  */
 public final class Nodes {
 
-    private final List<URI> nodes;
+    private final Collection<URI> nodes;
 
     private Nodes(String... nodesURIs) {
-        Objects.requireNonNull(nodesURIs, "Nodes cannot be null");
+        Objects.requireNonNull(nodesURIs, "nodesURIs cannot be null");
         this.nodes = Stream.of(nodesURIs)
                 .map(uri -> WebUtils.resolveWsURI(WebUtils.includeEndDelimiter(uri)))
                 .collect(Collectors.toList());
     }
 
+    private Nodes(Collection<String> nodesURIs) {
+        Objects.requireNonNull(nodesURIs, "nodesURIs cannot be null");
+        this.nodes = nodesURIs.stream()
+                .map(uri -> WebUtils.resolveWsURI(WebUtils.includeEndDelimiter(uri)))
+                .collect(Collectors.toList());
+    }
+
     public static Nodes of(String... nodeURIs) {
+        return new Nodes(nodeURIs);
+    }
+
+    public static Nodes of(Collection<String> nodeURIs) {
         return new Nodes(nodeURIs);
     }
 

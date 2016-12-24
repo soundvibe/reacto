@@ -70,7 +70,7 @@ public class CommandExecutorsTest {
         closeSubscriber.awaitTerminalEvent();
         closeSubscriber.assertNoErrors();
 
-        CommandExecutors.find(Services.of("sdsd", serviceDiscovery))
+        CommandExecutors.find(Service.of("sdsd", serviceDiscovery))
                 .subscribe(subscriber);
 
         subscriber.awaitTerminalEvent();

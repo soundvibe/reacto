@@ -300,7 +300,7 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldFindServiceAndExecuteCommand() throws Exception {
-        CommandExecutors.find(Services.of("dist", serviceDiscovery))
+        CommandExecutors.find(Service.of("dist", serviceDiscovery))
                 .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
                 .subscribe(testSubscriber);
 
@@ -309,7 +309,7 @@ public class CommandExecutorTest {
         testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
 
 
-        CommandExecutors.find(Services.of("dist", serviceDiscovery))
+        CommandExecutors.find(Service.of("dist", serviceDiscovery))
                 .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
                 .subscribe(testSubscriber);
         assertCompletedSuccessfully();
@@ -321,7 +321,7 @@ public class CommandExecutorTest {
     public void shouldNotFindService() throws Exception {
         final TestSubscriber<CommandExecutor> subscriber = new TestSubscriber<>();
 
-        CommandExecutors.find(Services.of("NotExists", serviceDiscovery))
+        CommandExecutors.find(Service.of("NotExists", serviceDiscovery))
             .subscribe(subscriber);
 
         subscriber.awaitTerminalEvent();
@@ -344,9 +344,9 @@ public class CommandExecutorTest {
         reactoServer.start().toBlocking().subscribe();
 
         try {
-            final Services services = Services.of("dist", serviceDiscovery);
+            final Service service = Service.of("dist", serviceDiscovery);
 
-            CommandExecutors.find(services)
+            CommandExecutors.find(service)
                     .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
                     .subscribe(testSubscriber);
 
@@ -356,7 +356,7 @@ public class CommandExecutorTest {
 
             TestSubscriber<Event> eventTestSubscriber = new TestSubscriber<>();
 
-            CommandExecutors.find(services)
+            CommandExecutors.find(service)
                     .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "bar")))
                     .subscribe(eventTestSubscriber);
             eventTestSubscriber.awaitTerminalEvent();

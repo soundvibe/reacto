@@ -33,24 +33,24 @@ public final class DiscoverableService {
     }
 
     public Observable<CommandExecutor> find(String serviceName) {
-        return CommandExecutors.find(Services.of(serviceName, serviceDiscovery));
+        return CommandExecutors.find(Service.of(serviceName, serviceDiscovery));
     }
 
     public Observable<CommandExecutor> find(String serviceName, Predicate<Record> filter) {
-        return CommandExecutors.find(Services.of(serviceName, serviceDiscovery), filter);
+        return CommandExecutors.find(Service.of(serviceName, serviceDiscovery), filter);
     }
 
 
     public Observable<CommandExecutor> find(String serviceName, LoadBalancer<EventHandler> loadBalancer) {
-        return CommandExecutors.find(Services.of(serviceName, serviceDiscovery), loadBalancer);
+        return CommandExecutors.find(Service.of(serviceName, serviceDiscovery), loadBalancer);
     }
 
     public Observable<CommandExecutor> find(String serviceName, LoadBalancer<EventHandler> loadBalancer, Predicate<Record> filter) {
-        return CommandExecutors.find(Services.of(serviceName, serviceDiscovery), loadBalancer, filter);
+        return CommandExecutors.find(Service.of(serviceName, serviceDiscovery), loadBalancer, filter);
     }
 
-    public Observable<CommandExecutor> find(Services services, LoadBalancer<EventHandler> loadBalancer, Predicate<Record> filter) {
-        return CommandExecutors.find(services, loadBalancer, filter);
+    public Observable<CommandExecutor> find(Service service, LoadBalancer<EventHandler> loadBalancer, Predicate<Record> filter) {
+        return CommandExecutors.find(service, loadBalancer, filter);
     }
 
     public void startHeartBeat(Record record) {
