@@ -88,17 +88,15 @@ public final class DiscoverableServices {
 
                                 Observable.from(event.result())
                                         .doOnNext(record -> serviceDiscovery.release(serviceDiscovery.getReference(record)))
-                                        .flatMap(record -> Observable.<Record>create(s -> {
-                                            serviceDiscovery.unpublish(record.getRegistration(), deleteEvent -> {
-                                                if (deleteEvent.failed() && (!s.isUnsubscribed())) {
-                                                    s.onError(deleteEvent.cause());
-                                                }
-                                                if (deleteEvent.succeeded() && (!s.isUnsubscribed())) {
-                                                    s.onNext(record);
-                                                    s.onCompleted();
-                                                }
-                                            });
-                                        }))
+                                        .flatMap(record -> Observable.<Record>create(s -> serviceDiscovery.unpublish(record.getRegistration(), deleteEvent -> {
+                                            if (deleteEvent.failed() && (!s.isUnsubscribed())) {
+                                                s.onError(deleteEvent.cause());
+                                            }
+                                            if (deleteEvent.succeeded() && (!s.isUnsubscribed())) {
+                                                s.onNext(record);
+                                                s.onCompleted();
+                                            }
+                                        })))
                                         .subscribe(record -> log.info("Record was unpublished: " + record),
                                                 throwable -> {
                                                     log.error("Error while trying to unpublish the record: " + throwable);

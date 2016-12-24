@@ -1,7 +1,6 @@
 package net.soundvibe.reacto.mappers;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import net.soundvibe.reacto.types.Nodes;
 import net.soundvibe.reacto.client.events.*;
 import net.soundvibe.reacto.internal.*;
 import net.soundvibe.reacto.internal.proto.Messages;
