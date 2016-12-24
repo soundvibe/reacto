@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.client.commands;
 
+import net.soundvibe.reacto.types.Nodes;
 import org.junit.Test;
 
 import java.util.*;
@@ -13,22 +14,22 @@ public class NodesTest {
 
     @Test
     public void shouldPrintToStringCorrectly() throws Exception {
-        final Nodes sut = Nodes.ofMain("localhost");
+        final Nodes sut = Nodes.of("localhost");
         final String actual = sut.toString();
-        final String expected = "Nodes{mainNode='localhost', fallbackNode=Optional.empty}";
+        final String expected = "Nodes{nodes=[localhost/]}";
         assertEquals(expected, actual);
     }
 
     @Test
     public void shouldBeAbleToFindInMaps() throws Exception {
         Map<Nodes, Boolean> nodes = new HashMap<>();
-        nodes.put(Nodes.ofMain("localhost"), true);
-        nodes.put(Nodes.ofMain("server"), true);
-        nodes.put(Nodes.ofMainAndFallback("local", "someServer"), true);
+        nodes.put(Nodes.of("localhost"), true);
+        nodes.put(Nodes.of("server"), true);
+        nodes.put(Nodes.of("local", "someServer"), true);
 
-        assertFalse(nodes.containsKey(Nodes.ofMain("foo")));
-        assertTrue(nodes.containsKey(Nodes.ofMain("server")));
-        assertTrue(nodes.containsKey(Nodes.ofMain("localhost")));
-        assertTrue(nodes.containsKey(Nodes.ofMainAndFallback("local", "someServer")));
+        assertFalse(nodes.containsKey(Nodes.of("foo")));
+        assertTrue(nodes.containsKey(Nodes.of("server")));
+        assertTrue(nodes.containsKey(Nodes.of("localhost")));
+        assertTrue(nodes.containsKey(Nodes.of("local", "someServer")));
     }
 }

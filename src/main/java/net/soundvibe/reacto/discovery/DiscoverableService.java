@@ -3,10 +3,9 @@ package net.soundvibe.reacto.discovery;
 import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
 import net.soundvibe.reacto.client.commands.*;
-import net.soundvibe.reacto.client.errors.CannotDiscoverService;
-import net.soundvibe.reacto.client.events.*;
+import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.server.ServiceRecords;
-import net.soundvibe.reacto.types.Pair;
+import net.soundvibe.reacto.types.Service;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
@@ -14,7 +13,9 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.*;
+import java.util.function.Predicate;
+
+import static net.soundvibe.reacto.discovery.DiscoverableServices.removeIf;
 
 /**
  * @author OZY on 2016.08.28.
@@ -33,67 +34,25 @@ public final class DiscoverableService {
     }
 
     public Observable<CommandExecutor> find(String serviceName) {
-        return CommandExecutors.find(Services.ofMain(serviceName, serviceDiscovery));
+        return CommandExecutors.find(Service.of(serviceName, serviceDiscovery));
     }
 
     public Observable<CommandExecutor> find(String serviceName, Predicate<Record> filter) {
-        return CommandExecutors.find(Services.ofMain(serviceName, serviceDiscovery), filter);
+        return CommandExecutors.find(Service.of(serviceName, serviceDiscovery), filter);
     }
 
 
-    public Observable<CommandExecutor> find(String serviceName, LoadBalancer loadBalancer) {
-        return CommandExecutors.find(Services.ofMain(serviceName, serviceDiscovery), loadBalancer);
+    public Observable<CommandExecutor> find(String serviceName, LoadBalancer<EventHandler> loadBalancer) {
+        return CommandExecutors.find(Service.of(serviceName, serviceDiscovery), loadBalancer);
     }
 
-    public Observable<CommandExecutor> find(String serviceName, LoadBalancer loadBalancer, Predicate<Record> filter) {
-        return CommandExecutors.find(Services.ofMain(serviceName, serviceDiscovery), loadBalancer, filter);
+    public Observable<CommandExecutor> find(String serviceName, LoadBalancer<EventHandler> loadBalancer, Predicate<Record> filter) {
+        return CommandExecutors.find(Service.of(serviceName, serviceDiscovery), loadBalancer, filter);
     }
 
-    public Observable<CommandExecutor> find(String mainServiceName, String fallbackServiceName) {
-        return CommandExecutors.find(Services.ofMainAndFallback(mainServiceName, fallbackServiceName, serviceDiscovery));
+    public Observable<CommandExecutor> find(Service service, LoadBalancer<EventHandler> loadBalancer, Predicate<Record> filter) {
+        return CommandExecutors.find(service, loadBalancer, filter);
     }
-
-    public Observable<CommandExecutor> find(String mainServiceName, String fallbackServiceName, Predicate<Record> filter) {
-        return CommandExecutors.find(Services.ofMainAndFallback(mainServiceName, fallbackServiceName, serviceDiscovery), filter);
-    }
-
-    public Observable<CommandExecutor> find(String mainServiceName, String fallbackServiceName, LoadBalancer loadBalancer) {
-        return CommandExecutors.find(Services.ofMainAndFallback(mainServiceName, fallbackServiceName, serviceDiscovery), loadBalancer);
-    }
-
-    public Observable<CommandExecutor> find(String mainServiceName, String fallbackServiceName, LoadBalancer loadBalancer, Predicate<Record> filter) {
-        return find(Services.ofMainAndFallback(mainServiceName, fallbackServiceName, serviceDiscovery), loadBalancer, filter);
-    }
-
-    public Observable<CommandExecutor> find(Services services, LoadBalancer loadBalancer, Predicate<Record> filter) {
-        return DiscoverableServices.find(services.mainServiceName, filter, serviceDiscovery, loadBalancer)
-                .map(webSocketStream -> Pair.of(true, webSocketStream))
-                .onErrorResumeNext(throwable -> services.fallbackServiceName.isPresent() ?
-                        DiscoverableServices.find(services.fallbackServiceName.get(), filter, services.serviceDiscovery, loadBalancer)
-                                .map(webSocketStream -> Pair.of(false, webSocketStream)):
-                        Observable.error(new CannotDiscoverService("Cannot find any of " + services, throwable))
-                )
-                .flatMap(pair -> Observable.just(pair.value)
-                        .concatWith(pair.key && services.fallbackServiceName.isPresent() ?
-                                DiscoverableServices.find(services.fallbackServiceName.get(), filter, services.serviceDiscovery, loadBalancer)
-                                        .onExceptionResumeNext(Observable.empty()):
-                                Observable.empty())
-                )
-                .switchIfEmpty(Observable.error(new CannotDiscoverService("Unable to discover any of " + services)))
-                .map(webSocketStream -> new VertxDiscoverableEventHandler(webSocketStream, VertxWebSocketEventHandler::observe))
-                .toList()
-                .filter(vertxDiscoverableEventHandlers -> !vertxDiscoverableEventHandlers.isEmpty())
-                .switchIfEmpty(Observable.error(new CannotDiscoverService("Unable to discover any of " + services)))
-                .map(vertxDiscoverableEventHandlers -> new EventHandlers(vertxDiscoverableEventHandlers.get(0),
-                        vertxDiscoverableEventHandlers.stream()
-                                .skip(1L)
-                                .findFirst()
-                                .map(vertxDiscoverableEventHandler -> (EventHandler)vertxDiscoverableEventHandler))
-                )
-                .map(eventHandlers -> new VertxWebSocketCommandExecutor(() -> Optional.ofNullable(eventHandlers)))
-                ;
-    }
-
 
     public void startHeartBeat(Record record) {
         scheduleAtFixedInterval(TimeUnit.MINUTES.toMillis(1L), () -> {
@@ -123,7 +82,7 @@ public final class DiscoverableService {
 
     public Observable<Record> publishRecord(Record record) {
         return Observable.just(record)
-                .flatMap(rec -> removeIf(rec, (existingRecord, newRecord) -> ServiceRecords.isDown(existingRecord)))
+                .flatMap(rec -> removeIf(rec, (existingRecord, newRecord) -> ServiceRecords.isDown(existingRecord), serviceDiscovery))
                 .map(rec -> {
                     rec.getMetadata().put(ServiceRecords.LAST_UPDATED, Instant.now());
                     return rec.setStatus(Status.UP);
@@ -179,13 +138,13 @@ public final class DiscoverableService {
                                 Observable.from(event.result())
                                         .flatMap(record -> Observable.<Record>create(subscriber1 ->
                                             serviceDiscovery.unpublish(record.getRegistration(), e -> {
-                                                if (e.failed() && (!subscriber.isUnsubscribed())) {
-                                                    subscriber.onError(e.cause());
+                                                if (e.failed() && (!subscriber1.isUnsubscribed())) {
+                                                    subscriber1.onError(e.cause());
                                                     return;
                                                 }
-                                                if (e.succeeded() && (!subscriber.isUnsubscribed())) {
-                                                    subscriber.onNext(record);
-                                                    subscriber.onCompleted();
+                                                if (e.succeeded() && (!subscriber1.isUnsubscribed())) {
+                                                    subscriber1.onNext(record);
+                                                    subscriber1.onCompleted();
                                                 }
                                             })
                                         ))
@@ -212,56 +171,11 @@ public final class DiscoverableService {
                 Observable.just(record)
                         .subscribeOn(Factories.SINGLE_THREAD)
                         .observeOn(Factories.SINGLE_THREAD)
-                .flatMap(rec -> removeIf(rec, ServiceRecords::AreEquals))
+                .flatMap(rec -> removeIf(rec, ServiceRecords::AreEquals, serviceDiscovery))
                 .doOnCompleted(() -> serviceDiscovery.release(serviceDiscovery.getReference(record)))
                 .doOnCompleted(serviceDiscovery::close)
                 .doOnCompleted(() -> isClosed.set(true)) :
                 Observable.error(new IllegalStateException("Service discovery is already closed"));
-    }
-
-    private Observable<Record> removeIf(Record newRecord,
-                                        BiFunction<Record, Record, Boolean> filter) {
-        return Observable.create(subscriber ->
-            serviceDiscovery.getRecords(
-                    existingRecord -> filter.apply(existingRecord, newRecord),
-                    true,
-                    event -> {
-                        if (event.succeeded()) {
-                            if (event.result().isEmpty() && !subscriber.isUnsubscribed()) {
-                                subscriber.onNext(newRecord);
-                                subscriber.onCompleted();
-                                return;
-                            }
-
-                            Observable.from(event.result())
-                                    .doOnNext(record -> serviceDiscovery.release(serviceDiscovery.getReference(record)))
-                                    .flatMap(record -> Observable.<Record>create(s -> {
-                                        serviceDiscovery.unpublish(record.getRegistration(), deleteEvent -> {
-                                            if (deleteEvent.failed() && (!s.isUnsubscribed())) {
-                                                s.onError(deleteEvent.cause());
-                                            }
-                                            if (deleteEvent.succeeded() && (!s.isUnsubscribed())) {
-                                                s.onNext(record);
-                                                s.onCompleted();
-                                            }
-                                        });
-                                    }))
-                                    .subscribe(record -> log.info("Record was unpublished: " + record),
-                                            throwable -> {
-                                                log.error("Error while trying to unpublish the record: " + throwable);
-                                                subscriber.onNext(newRecord);
-                                                subscriber.onCompleted();
-                                            },
-                                            () -> {
-                                                subscriber.onNext(newRecord);
-                                                subscriber.onCompleted();
-                                            });
-                        }
-                        if (event.failed()) {
-                            log.info("No matching records: " + event.cause());
-                            subscriber.onError(event.cause());
-                        }
-                    }));
     }
 
     public boolean isClosed() {

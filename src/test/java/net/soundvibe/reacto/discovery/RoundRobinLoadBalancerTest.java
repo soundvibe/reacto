@@ -1,6 +1,5 @@
 package net.soundvibe.reacto.discovery;
 
-import io.vertx.servicediscovery.Record;
 import org.junit.Test;
 
 import java.util.*;
@@ -12,52 +11,52 @@ import static net.soundvibe.reacto.discovery.LoadBalancersTestUtils.*;
  */
 public class RoundRobinLoadBalancerTest {
 
-    private final LoadBalancer sut = new RoundRobinLoadBalancer();
+    private final LoadBalancer<Name> sut = new RoundRobinLoadBalancer<>();
 
     @Test
     public void shouldBalanceWhenRecordsDoNotChange() throws Exception {
-        final List<Record> records = Arrays.asList(record1, record2, record3, record4, record5);
+        final List<Name> records = Arrays.asList(record1, record2, record3, record4, record5);
 
-        final Record actual1 = sut.balance(records);
-        assertRecords(record1, actual1);
+        final Name actual1 = sut.balance(records);
+        assertRecords(record1, actual1, "1");
 
-        final Record actual2 = sut.balance(records);
-        assertRecords(record2, actual2);
+        final Name actual2 = sut.balance(records);
+        assertRecords(record2, actual2,"2");
 
-        final Record actual3 = sut.balance(records);
-        assertRecords(record3, actual3);
+        final Name actual3 = sut.balance(records);
+        assertRecords(record3, actual3,"3");
 
-        final Record actual4 = sut.balance(records);
-        assertRecords(record4, actual4);
+        final Name actual4 = sut.balance(records);
+        assertRecords(record4, actual4,"4");
 
-        final Record actual5 = sut.balance(records);
-        assertRecords(record5, actual5);
+        final Name actual5 = sut.balance(records);
+        assertRecords(record5, actual5,"5");
 
-        final Record actual6 = sut.balance(records);
-        assertRecords(record1, actual6);
+        final Name actual6 = sut.balance(records);
+        assertRecords(record1, actual6,"6");
     }
 
     @Test
     public void shouldBalanceWhenRecordsAreChanging() throws Exception {
-        final List<Record> records = Arrays.asList(record1, record2, record3, record4, record5);
-        final Record actual1 = sut.balance(records);
-        assertRecords(record1, actual1);
+        final List<Name> records = Arrays.asList(record1, record2, record3, record4, record5);
+        final Name actual1 = sut.balance(records);
+        assertRecords(record1, actual1,"1");
 
-        final Record actual2 = sut.balance(records);
-        assertRecords(record2, actual2);
+        final Name actual2 = sut.balance(records);
+        assertRecords(record2, actual2,"2");
 
-        final Record actual3 = sut.balance(records);
-        assertRecords(record3, actual3);
+        final Name actual3 = sut.balance(records);
+        assertRecords(record3, actual3,"3");
 
-        final List<Record> newRecords = Arrays.asList(record1, record2);
+        final List<Name> newRecords = Arrays.asList(record1, record2);
 
-        final Record newRecord1 = sut.balance(newRecords);
-        assertRecords(record1, newRecord1);
+        final Name newRecord1 = sut.balance(newRecords);
+        assertRecords(record1, newRecord1,"new1");
 
-        final Record newRecord2 = sut.balance(newRecords);
-        assertRecords(record2, newRecord2);
+        final Name newRecord2 = sut.balance(newRecords);
+        assertRecords(record2, newRecord2, "new2");
 
-        final Record newRecord = sut.balance(newRecords);
-        assertRecords(record1, newRecord);
+        final Name newRecord = sut.balance(newRecords);
+        assertRecords(record1, newRecord,"new3");
     }
 }

@@ -20,7 +20,7 @@ public class CommandExecutorsTest {
 
     @Test
     public void shouldCreateWebSocketExecutor() throws Exception {
-        final CommandExecutor sut = CommandExecutors.webSocket(Nodes.ofMain("http://dummy/test"), 1000);
+        final CommandExecutor sut = CommandExecutors.webSocket(Nodes.of("http://dummy/test"), 1000);
         sut.execute(Command.create("foo"))
                 .subscribe(testSubscriber);
 
@@ -70,7 +70,7 @@ public class CommandExecutorsTest {
         closeSubscriber.awaitTerminalEvent();
         closeSubscriber.assertNoErrors();
 
-        CommandExecutors.find(Services.ofMain("sdsd", serviceDiscovery))
+        CommandExecutors.find(Service.of("sdsd", serviceDiscovery))
                 .subscribe(subscriber);
 
         subscriber.awaitTerminalEvent();

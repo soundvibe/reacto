@@ -64,7 +64,10 @@ public class VertxServer implements Server<HttpServer> {
                                     .doOnNext(discoverableService::startHeartBeat)
                                     .doOnNext(rec -> Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                                         log.info("Executing shutdown hook...");
-                                        discoverableService.closeDiscovery(rec).subscribe();
+                                        discoverableService.closeDiscovery(rec).subscribe(
+                                                r -> log.debug("Service discovery closed successfully"),
+                                                e -> log.debug("Error when closing service discovery: " + e)
+                                        );
                                     })))
                                     .doOnNext(record::set))
                         .map(__ -> httpServer) :

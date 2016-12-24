@@ -11,7 +11,6 @@ import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
-import java.util.Optional;
 import java.util.function.*;
 
 /**
@@ -37,49 +36,31 @@ public interface CommandExecutors {
         ;
     }
 
-    static Observable<CommandExecutor> find(Services services) {
-        return find(services, LoadBalancers.ROUND_ROBIN, Factories.ALL_RECORDS);
+    static Observable<CommandExecutor> find(Service service) {
+        return find(service, LoadBalancers.ROUND_ROBIN, Factories.ALL_RECORDS);
     }
 
-    static Observable<CommandExecutor> find(Services services, Predicate<Record> filter) {
-        return find(services, LoadBalancers.ROUND_ROBIN, filter);
+    static Observable<CommandExecutor> find(Service service, Predicate<Record> filter) {
+        return find(service, LoadBalancers.ROUND_ROBIN, filter);
     }
 
-    static Observable<CommandExecutor> find(Services services, LoadBalancer loadBalancer) {
-        return find(services, loadBalancer, Factories.ALL_RECORDS);
+    static Observable<CommandExecutor> find(Service service, LoadBalancer<EventHandler> loadBalancer) {
+        return find(service, loadBalancer, Factories.ALL_RECORDS);
     }
 
-    static Observable<CommandExecutor> find(Services services, LoadBalancer loadBalancer, Predicate<Record> filter) {
-        return DiscoverableServices.find(services.mainServiceName, filter, services.serviceDiscovery, loadBalancer)
-                .map(webSocketStream -> Pair.of(true, webSocketStream))
-                .onErrorResumeNext(throwable -> services.fallbackServiceName.isPresent() ?
-                        DiscoverableServices.find(services.fallbackServiceName.get(), filter, services.serviceDiscovery, loadBalancer)
-                            .map(webSocketStream -> Pair.of(false, webSocketStream)):
-                        Observable.error(new CannotDiscoverService("Cannot find any of " + services, throwable))
-                )
-                .flatMap(pair -> Observable.just(pair.value)
-                                .concatWith(pair.key && services.fallbackServiceName.isPresent() ?
-                                        DiscoverableServices.find(services.fallbackServiceName.get(), filter, services.serviceDiscovery, loadBalancer)
-                                            .onExceptionResumeNext(Observable.empty()):
-                                        Observable.empty())
-                )
-                .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + services))))
-                .map(webSocketStream -> new VertxDiscoverableEventHandler(webSocketStream, VertxWebSocketEventHandler::observe))
+    static Observable<CommandExecutor> find(Service service, LoadBalancer<EventHandler> loadBalancer, Predicate<Record> filter) {
+        return DiscoverableServices.find(service.name, filter, service.serviceDiscovery)
+                .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + service))))
+                .map(record -> (EventHandler) new VertxDiscoverableEventHandler(record, service.serviceDiscovery, VertxWebSocketEventHandler::observe))
                 .toList()
                 .filter(vertxDiscoverableEventHandlers -> !vertxDiscoverableEventHandlers.isEmpty())
-                .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + services))))
-                .map(vertxDiscoverableEventHandlers -> new EventHandlers(vertxDiscoverableEventHandlers.get(0),
-                        vertxDiscoverableEventHandlers.stream()
-                                .skip(1L)
-                                .findFirst()
-                                .map(vertxDiscoverableEventHandler -> (EventHandler)vertxDiscoverableEventHandler))
-                )
-                .map(eventHandlers -> new VertxWebSocketCommandExecutor(() -> Optional.ofNullable(eventHandlers)))
+                .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + service))))
+                .map(eventHandlers -> new VertxDiscoverableCommandExecutor(eventHandlers, loadBalancer))
                 ;
     }
 
     static CommandExecutor webSocket(Nodes nodes) {
-        return new VertxWebSocketCommandExecutor(Mappers.mapToEventHandlers(nodes, VertxWebSocketEventHandler::new));
+        return new VertxWebSocketCommandExecutor(Mappers.mapToEventHandlers(nodes, VertxWebSocketEventHandler::new), LoadBalancers.ROUND_ROBIN);
     }
 
     static CommandExecutor webSocket(Nodes nodes, int executionTimeoutInMs) {

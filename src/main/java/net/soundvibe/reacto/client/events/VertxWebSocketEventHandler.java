@@ -42,6 +42,19 @@ public class VertxWebSocketEventHandler implements EventHandler {
         }
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        VertxWebSocketEventHandler that = (VertxWebSocketEventHandler) o;
+        return Objects.equals(wsUrl, that.wsUrl);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(wsUrl);
+    }
+
     public static Observable<Event> observe(WebSocketStream webSocketStream, Command command) {
         return Observable.create(subscriber -> {
             try {
@@ -114,5 +127,10 @@ public class VertxWebSocketEventHandler implements EventHandler {
         log.info("Sending command to executor: " + command);
         final byte[] bytes = Mappers.commandToBytes(command);
         webSocket.writeBinaryMessage(Buffer.buffer(bytes));
+    }
+
+    @Override
+    public String name() {
+        return wsUrl.toString();
     }
 }

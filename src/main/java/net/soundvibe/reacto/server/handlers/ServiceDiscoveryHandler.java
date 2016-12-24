@@ -40,8 +40,8 @@ public class ServiceDiscoveryHandler implements Handler<RoutingContext> {
                         .subscribe(rec -> ctx.response().end(rec.toJson().toString())
                                 , throwable -> ctx.response()
                                         .setStatusCode(INTERNAL_SERVER_ERROR)
-                                        .setStatusMessage(throwable.toString())
-                                        .end());
+                                        .setStatusMessage(throwable.getClass().getSimpleName())
+                                        .end(throwable.toString()));
                 break;
             }
 
@@ -52,8 +52,8 @@ public class ServiceDiscoveryHandler implements Handler<RoutingContext> {
                         .subscribe(record -> ctx.response().end(record.toJson().toString())
                                 , throwable -> ctx.response()
                                         .setStatusCode(INTERNAL_SERVER_ERROR)
-                                        .setStatusMessage(throwable.toString())
-                                        .end());
+                                        .setStatusMessage(throwable.getClass().getSimpleName())
+                                        .end(throwable.toString()));
                 break;
             }
             case "clean": {
@@ -63,8 +63,8 @@ public class ServiceDiscoveryHandler implements Handler<RoutingContext> {
                         .subscribe(record -> ctx.response().write(record.toJson().toString())
                                 , throwable -> ctx.response()
                                         .setStatusCode(INTERNAL_SERVER_ERROR)
-                                        .setStatusMessage(throwable.toString())
-                                        .end(),
+                                        .setStatusMessage(throwable.getClass().getSimpleName())
+                                        .end(throwable.toString()),
                                 () -> ctx.response().end());
                 break;
             }

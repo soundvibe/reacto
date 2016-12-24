@@ -1,30 +1,49 @@
 package net.soundvibe.reacto.client.commands;
 
+import io.vertx.core.logging.*;
+import net.soundvibe.reacto.client.errors.CannotConnectToWebSocket;
 import net.soundvibe.reacto.client.events.EventHandler;
-import net.soundvibe.reacto.discovery.DiscoverableService;
+import net.soundvibe.reacto.discovery.LoadBalancer;
 import net.soundvibe.reacto.types.*;
 import rx.Observable;
+
+import java.util.*;
 
 /**
  * @author OZY on 2016.09.06.
  */
 public final class VertxDiscoverableCommandExecutor implements CommandExecutor {
 
-    private final DiscoverableService discoverableService;
-    private final EventHandler eventHandler;
+    private static final Logger log = LoggerFactory.getLogger(VertxDiscoverableCommandExecutor.class);
 
-    public VertxDiscoverableCommandExecutor(DiscoverableService discoverableService, EventHandler eventHandler) {
-        this.discoverableService = discoverableService;
-        this.eventHandler = eventHandler;
+    private final List<EventHandler> eventHandlers;
+    private final LoadBalancer<EventHandler> loadBalancer;
+
+    public VertxDiscoverableCommandExecutor(List<EventHandler> eventHandlers,
+                                            LoadBalancer<EventHandler> loadBalancer) {
+        Objects.requireNonNull(eventHandlers, "eventHandlers cannot be null");
+        Objects.requireNonNull(loadBalancer, "loadBalancer cannot be null");
+        this.eventHandlers = eventHandlers;
+        this.loadBalancer = loadBalancer;
     }
 
     @Override
     public Observable<Event> execute(Command command) {
-        return eventHandler.toObservable(command)
-            .onExceptionResumeNext(retry(command));
+        if (eventHandlers.isEmpty()) return Observable.error(new CannotConnectToWebSocket("No event handlers found for command: " + command));
+        return Observable.just(eventHandlers)
+                .map(loadBalancer::balance)
+                .flatMap(eventHandler -> eventHandler.toObservable(command)
+                        .onBackpressureBuffer()
+                        .onErrorResumeNext(error -> handleError(error, command, eventHandler)))
+                ;
     }
 
-    private Observable<Event> retry(Command command) {
-        return Observable.empty();
+    private Observable<Event> handleError(Throwable error, Command command, EventHandler eventHandler) {
+        eventHandlers.remove(eventHandler);
+        if (eventHandlers.isEmpty()) {
+            return Observable.error(error);
+        }
+        log.error("Handling error: " + error);
+        return execute(command);
     }
 }
