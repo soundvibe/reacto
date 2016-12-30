@@ -4,7 +4,7 @@ import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
 import net.soundvibe.reacto.client.commands.*;
 import net.soundvibe.reacto.client.events.*;
-import net.soundvibe.reacto.types.Service;
+import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.client.errors.CannotDiscoverService;
 import net.soundvibe.reacto.server.ServiceRecords;
 import net.soundvibe.reacto.utils.Factories;
@@ -55,6 +55,15 @@ public final class DiscoverableServices {
                                                     LoadBalancer<EventHandler> loadBalancer) {
         return findRecord(filter.and(record -> ServiceRecords.isService(serviceName, record)), serviceDiscovery, serviceName)
                 .compose(records -> findExecutor(records, serviceName, serviceDiscovery, loadBalancer));
+    }
+
+    public static Observable<Event> execute(Command command, ServiceDiscovery serviceDiscovery) {
+        return execute(command, serviceDiscovery, LoadBalancers.ROUND_ROBIN);
+    }
+
+    public static Observable<Event> execute(Command command, ServiceDiscovery serviceDiscovery, LoadBalancer<EventHandler> loadBalancer) {
+        return findCommand(command.name, serviceDiscovery, loadBalancer)
+                .flatMap(commandExecutor -> commandExecutor.execute(command));
     }
 
     private static Observable<CommandExecutor> findExecutor(Observable<Record> records,

@@ -5,7 +5,7 @@ import io.vertx.servicediscovery.*;
 import net.soundvibe.reacto.client.commands.*;
 import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.server.ServiceRecords;
-import net.soundvibe.reacto.types.Service;
+import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
@@ -60,6 +60,14 @@ public final class DiscoverableService {
 
     public Observable<CommandExecutor> findCommand(String commandName, LoadBalancer<EventHandler> loadBalancer) {
         return DiscoverableServices.findCommand(commandName, serviceDiscovery, loadBalancer);
+    }
+
+    public Observable<Event> execute(Command command) {
+        return DiscoverableServices.execute(command, serviceDiscovery);
+    }
+
+    public Observable<Event> execute(Command command, LoadBalancer<EventHandler> loadBalancer) {
+        return DiscoverableServices.execute(command, serviceDiscovery, loadBalancer);
     }
 
     public void startHeartBeat(Record record) {

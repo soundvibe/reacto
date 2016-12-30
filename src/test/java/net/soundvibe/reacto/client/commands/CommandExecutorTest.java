@@ -106,7 +106,7 @@ public class CommandExecutorTest {
 
         final Router router = Router.router(vertx);
         router.route("/health").handler(event -> event.response().end("ok"));
-
+        System.out.println();
         vertxServer = new VertxServer(new ServiceOptions("dist", "dist/", "0.1", discoverableService)
                 , router, mainHttpServer, mainCommands);
         fallbackVertxServer = new VertxServer(new ServiceOptions("dist","dist/", "0.1", new DiscoverableService(serviceDiscovery))
@@ -352,7 +352,11 @@ public class CommandExecutorTest {
 
             assertCompletedSuccessfully();
 
-            testSubscriber.assertValue(event1Arg("Called command from second server with arg: foo"));
+            testSubscriber.assertValueCount(1);
+            final Event actual = testSubscriber.getOnNextEvents().get(0);
+            assertTrue(actual.equals(event1Arg("Called command from second server with arg: foo")) ||
+                actual.equals(event1Arg("Called command with arg: foo")));
+
 
             TestSubscriber<Event> eventTestSubscriber = new TestSubscriber<>();
 
@@ -362,7 +366,11 @@ public class CommandExecutorTest {
             eventTestSubscriber.awaitTerminalEvent();
             eventTestSubscriber.assertNoErrors();
             eventTestSubscriber.assertCompleted();
-            eventTestSubscriber.assertValue(event1Arg("Called command with arg: bar"));
+            eventTestSubscriber.assertValueCount(1);
+
+            final Event actual2 = eventTestSubscriber.getOnNextEvents().get(0);
+            assertTrue(actual2.equals(event1Arg("Called command with arg: bar")) ||
+                actual2.equals(event1Arg("Called command from second server with arg: bar")));
         } finally {
             reactoServer.stop().toBlocking().subscribe();
             Thread.sleep(100L);
@@ -370,13 +378,20 @@ public class CommandExecutorTest {
     }
 
     @Test
-    public void shouldFindCommand() throws Exception {
-        DiscoverableServices.findCommand(TEST_COMMAND, serviceDiscovery)
-                .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
+    public void shouldFindAndExecuteCommand() throws Exception {
+        discoverableService.execute(command1Arg(TEST_COMMAND, "foo"))
                 .subscribe(testSubscriber);
 
         assertCompletedSuccessfully();
         testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
+
+        final TestSubscriber<Event> testSubscriber2 = new TestSubscriber<>();
+
+        discoverableService.execute(command1Arg(TEST_COMMAND, "bar"))
+                .subscribe(testSubscriber2);
+
+        assertCompletedSuccessfully(testSubscriber2);
+        testSubscriber2.assertValue(event1Arg("Called command with arg: bar"));
     }
 
     private Observable<String> get(int port, String host, String uri) {
@@ -434,6 +449,10 @@ public class CommandExecutorTest {
     }
 
     private void assertCompletedSuccessfully() {
+        assertCompletedSuccessfully(testSubscriber);
+    }
+
+    private  <T> void assertCompletedSuccessfully(TestSubscriber<T> testSubscriber) {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
         testSubscriber.assertCompleted();
