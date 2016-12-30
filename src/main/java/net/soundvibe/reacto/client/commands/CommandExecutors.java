@@ -3,7 +3,6 @@ package net.soundvibe.reacto.client.commands;
 import com.netflix.hystrix.HystrixCommandProperties;
 import io.vertx.servicediscovery.Record;
 import net.soundvibe.reacto.client.commands.hystrix.*;
-import net.soundvibe.reacto.client.errors.CannotDiscoverService;
 import net.soundvibe.reacto.client.events.*;
 import net.soundvibe.reacto.discovery.*;
 import net.soundvibe.reacto.mappers.Mappers;
@@ -49,14 +48,7 @@ public interface CommandExecutors {
     }
 
     static Observable<CommandExecutor> find(Service service, LoadBalancer<EventHandler> loadBalancer, Predicate<Record> filter) {
-        return DiscoverableServices.find(service.name, filter, service.serviceDiscovery)
-                .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + service))))
-                .map(record -> (EventHandler) new VertxDiscoverableEventHandler(record, service.serviceDiscovery, VertxWebSocketEventHandler::observe))
-                .toList()
-                .filter(vertxDiscoverableEventHandlers -> !vertxDiscoverableEventHandlers.isEmpty())
-                .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + service))))
-                .map(eventHandlers -> new VertxDiscoverableCommandExecutor(eventHandlers, loadBalancer))
-                ;
+        return DiscoverableServices.find(service.name, filter, service.serviceDiscovery, loadBalancer);
     }
 
     static CommandExecutor webSocket(Nodes nodes) {

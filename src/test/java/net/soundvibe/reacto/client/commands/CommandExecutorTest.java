@@ -370,51 +370,61 @@ public class CommandExecutorTest {
     }
 
     @Test
-    public void shouldCloseOpenServiceDiscovery() throws Exception {
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        final HttpClient httpClient = Vertx.vertx().createHttpClient(new HttpClientOptions().setSsl(false));
-
-        Observable.<String>create(subscriber ->
-                httpClient.getNow(8282, "localhost", "/dist/service-discovery/close",
-                   response -> response
-                            .exceptionHandler(subscriber::onError)
-                            .bodyHandler(buffer -> {
-                                subscriber.onNext(buffer.toString());
-                                subscriber.onCompleted();
-                            })))
+    public void shouldFindCommand() throws Exception {
+        DiscoverableServices.findCommand(TEST_COMMAND, serviceDiscovery)
+                .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
                 .subscribe(testSubscriber);
 
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNoErrors();
-        final Record actual = new Record(new JsonObject(testSubscriber.getOnNextEvents().get(0)));
-        assertEquals("dist", actual.getName());
-        assertEquals(HttpEndpoint.TYPE, actual.getType());
+        assertCompletedSuccessfully();
+        testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
+    }
 
-        TestSubscriber<Record> testSubscriber2 = new TestSubscriber<>();
-
-        DiscoverableServices.find("dist", serviceDiscovery)
-                .subscribe(testSubscriber2);
-
-        testSubscriber2.awaitTerminalEvent();
-        testSubscriber2.assertNoErrors();
-        testSubscriber2.assertNoValues();
-
-        TestSubscriber<String> startSubscriber = new TestSubscriber<>();
-        Observable.<String>create(subscriber ->
-                httpClient.getNow(8282, "localhost", "/dist/service-discovery/start",
+    private Observable<String> get(int port, String host, String uri) {
+        final HttpClient httpClient = Vertx.vertx().createHttpClient(new HttpClientOptions().setSsl(false));
+        return Observable.<String>create(subscriber ->
+                httpClient.getNow(port, host, uri,
                         response -> response
                                 .exceptionHandler(subscriber::onError)
                                 .bodyHandler(buffer -> {
                                     subscriber.onNext(buffer.toString());
                                     subscriber.onCompleted();
-                                })))
-                .subscribe(startSubscriber);
+                                })));
+    }
 
-        startSubscriber.awaitTerminalEvent();
-        startSubscriber.assertNoErrors();
+    @Test
+    public void shouldCloseOpenServiceDiscovery() throws Exception {
+        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
+        final HttpClient httpClient = Vertx.vertx().createHttpClient(new HttpClientOptions().setSsl(false));
 
-        TestSubscriber<Record> testSubscriber3 = new TestSubscriber<>();
+        get(8282, "localhost", "/dist/service-discovery/close")
+                .subscribe(testSubscriber);
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNoErrors();
 
+        get(8383, "localhost", "/dist/service-discovery/close")
+                .toBlocking().subscribe();
+
+
+        final Record actual = new Record(new JsonObject(testSubscriber.getOnNextEvents().get(0)));
+        assertEquals("dist", actual.getName());
+        assertEquals(HttpEndpoint.TYPE, actual.getType());
+
+        TestSubscriber<CommandExecutor> testSubscriber2 = new TestSubscriber<>();
+
+        DiscoverableServices.find("dist", serviceDiscovery)
+                .subscribe(testSubscriber2);
+
+        testSubscriber2.awaitTerminalEvent();
+        testSubscriber2.assertError(CannotDiscoverService.class);
+
+        get(8282, "localhost", "/dist/service-discovery/start")
+                .toBlocking().subscribe();
+
+        get(8383, "localhost", "/dist/service-discovery/start")
+                .toBlocking().subscribe();
+
+
+        TestSubscriber<CommandExecutor> testSubscriber3 = new TestSubscriber<>();
         DiscoverableServices.find("dist", serviceDiscovery)
                 .subscribe(testSubscriber3);
 

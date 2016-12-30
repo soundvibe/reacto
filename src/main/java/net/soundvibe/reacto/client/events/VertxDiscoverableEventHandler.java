@@ -59,7 +59,7 @@ public class VertxDiscoverableEventHandler implements EventHandler {
     }
 
     private Observable<Event> handleError(Throwable error) {
-        return DiscoverableServices.removeIf(record, ServiceRecords::AreEquals, serviceDiscovery)
+        return DiscoverableServices.removeIf(record, ServiceRecords::areEquals, serviceDiscovery)
                 .doOnEach(new ActionObserver<>(
                         r -> log.info("Unpublished record because of IO errors: " + r.toJson()),
                         throwable -> log.error("Error when trying to unpublish record because of IO errors: " + throwable),

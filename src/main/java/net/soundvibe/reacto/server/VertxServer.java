@@ -1,18 +1,21 @@
 package net.soundvibe.reacto.server;
 
 import io.vertx.core.http.HttpServer;
-import io.vertx.core.json.JsonObject;
+import io.vertx.core.json.*;
 import io.vertx.core.logging.*;
 import io.vertx.ext.web.Router;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.discovery.DiscoverableService;
 import net.soundvibe.reacto.server.handlers.*;
+import net.soundvibe.reacto.types.Pair;
 import net.soundvibe.reacto.utils.WebUtils;
 import rx.Observable;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static net.soundvibe.reacto.server.ServiceRecords.COMMANDS;
 
 /**
  * @author OZY on 2015.11.23.
@@ -27,6 +30,7 @@ public class VertxServer implements Server<HttpServer> {
     private final HttpServer httpServer;
     private final Router router;
     private final AtomicReference<Record> record = new AtomicReference<>();
+    private final JsonObject metadataJson;
 
     public VertxServer(ServiceOptions serviceOptions, Router router, HttpServer httpServer, CommandRegistry commands) {
         Objects.requireNonNull(serviceOptions, "serviceOptions cannot be null");
@@ -37,6 +41,7 @@ public class VertxServer implements Server<HttpServer> {
         this.router = router;
         this.httpServer = httpServer;
         this.commands = commands;
+        this.metadataJson = createMetadata();
     }
 
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
@@ -80,7 +85,20 @@ public class VertxServer implements Server<HttpServer> {
                 WebUtils.getLocalAddress(),
                 port,
                 root(),
-                new JsonObject().put("version", serviceOptions.version));
+                metadataJson
+        );
+    }
+
+    private JsonObject createMetadata() {
+        return new JsonObject()
+                .put("version", serviceOptions.version)
+                .put(COMMANDS, commandsToJsonArray(commands));
+    }
+
+    static JsonArray commandsToJsonArray(CommandRegistry commands) {
+        return commands.stream()
+                .map(Pair::getKey)
+                .reduce(new JsonArray(), JsonArray::add, JsonArray::addAll);
     }
 
     @Override

@@ -54,6 +54,14 @@ public final class DiscoverableService {
         return CommandExecutors.find(service, loadBalancer, filter);
     }
 
+    public Observable<CommandExecutor> findCommand(String commandName) {
+        return findCommand(commandName, LoadBalancers.ROUND_ROBIN);
+    }
+
+    public Observable<CommandExecutor> findCommand(String commandName, LoadBalancer<EventHandler> loadBalancer) {
+        return DiscoverableServices.findCommand(commandName, serviceDiscovery, loadBalancer);
+    }
+
     public void startHeartBeat(Record record) {
         scheduleAtFixedInterval(TimeUnit.MINUTES.toMillis(1L), () -> {
             if (isOpen()) {
@@ -171,7 +179,7 @@ public final class DiscoverableService {
                 Observable.just(record)
                         .subscribeOn(Factories.SINGLE_THREAD)
                         .observeOn(Factories.SINGLE_THREAD)
-                .flatMap(rec -> removeIf(rec, ServiceRecords::AreEquals, serviceDiscovery))
+                .flatMap(rec -> removeIf(rec, ServiceRecords::areEquals, serviceDiscovery))
                 .doOnCompleted(() -> serviceDiscovery.release(serviceDiscovery.getReference(record)))
                 .doOnCompleted(serviceDiscovery::close)
                 .doOnCompleted(() -> isClosed.set(true)) :

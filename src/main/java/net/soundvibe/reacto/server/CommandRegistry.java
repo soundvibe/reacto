@@ -22,7 +22,7 @@ public final class CommandRegistry implements Iterable<Pair<String, Function<Com
     public CommandRegistry and(String commandName, Function<Command, Observable<Event>> onInvoke) {
         Objects.requireNonNull(commandName, "Command name cannot be null");
         Objects.requireNonNull(onInvoke, "onInvoke cannot be null");
-        commands.put(commandName, onInvoke.compose(o -> o));
+        commands.put(commandName, onInvoke);
         return this;
     }
 

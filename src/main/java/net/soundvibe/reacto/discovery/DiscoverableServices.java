@@ -2,6 +2,8 @@ package net.soundvibe.reacto.discovery;
 
 import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
+import net.soundvibe.reacto.client.commands.*;
+import net.soundvibe.reacto.client.events.*;
 import net.soundvibe.reacto.types.Service;
 import net.soundvibe.reacto.client.errors.CannotDiscoverService;
 import net.soundvibe.reacto.server.ServiceRecords;
@@ -26,7 +28,7 @@ public final class DiscoverableServices {
      * @param service The service to look for
      * @return Record observable, which emits multiple Records if services are found successfully
      */
-    public static Observable<Record> find(Service service) {
+    public static Observable<CommandExecutor> find(Service service) {
         return find(service.name, service.serviceDiscovery);
     }
 
@@ -36,8 +38,8 @@ public final class DiscoverableServices {
      * @param serviceDiscovery service discovery to use when looking for a service
      * @return Record observable, which emits multiple Records if services are found successfully
      */
-    public static Observable<Record> find(String serviceName, ServiceDiscovery serviceDiscovery) {
-        return find(serviceName, Factories.ALL_RECORDS, serviceDiscovery);
+    public static Observable<CommandExecutor> find(String serviceName, ServiceDiscovery serviceDiscovery) {
+        return find(serviceName, Factories.ALL_RECORDS, serviceDiscovery, LoadBalancers.ROUND_ROBIN);
     }
 
     /**
@@ -47,12 +49,49 @@ public final class DiscoverableServices {
      * @param serviceDiscovery service discovery to use when looking for a service
      * @return Record observable, which emits multiple Records if services are found successfully
      */
-    public static Observable<Record> find(String serviceName,
-                                          Predicate<Record> filter,
-                                          ServiceDiscovery serviceDiscovery) {
+    public static Observable<CommandExecutor> find( String serviceName,
+                                                    Predicate<Record> filter,
+                                                    ServiceDiscovery serviceDiscovery,
+                                                    LoadBalancer<EventHandler> loadBalancer) {
+        return findRecord(filter.and(record -> ServiceRecords.isService(serviceName, record)), serviceDiscovery, serviceName)
+                .compose(records -> findExecutor(records, serviceName, serviceDiscovery, loadBalancer));
+    }
+
+    private static Observable<CommandExecutor> findExecutor(Observable<Record> records,
+                                                           String name,
+                                                           ServiceDiscovery serviceDiscovery,
+                                                           LoadBalancer<EventHandler> loadBalancer) {
+        return records
+                .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + name))))
+                .map(record -> (EventHandler) new VertxDiscoverableEventHandler(record, serviceDiscovery, VertxWebSocketEventHandler::observe))
+                .toList()
+                .filter(vertxDiscoverableEventHandlers -> !vertxDiscoverableEventHandlers.isEmpty())
+                .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + name))))
+                .map(eventHandlers -> new VertxDiscoverableCommandExecutor(eventHandlers, loadBalancer));
+    }
+
+    public static Observable<CommandExecutor> findCommand(String commandName,
+                                                          ServiceDiscovery serviceDiscovery) {
+        return findCommand(commandName, serviceDiscovery, LoadBalancers.ROUND_ROBIN);
+    }
+
+    public static Observable<CommandExecutor> findCommand(String commandName,
+                                                          ServiceDiscovery serviceDiscovery,
+                                                          LoadBalancer<EventHandler> loadBalancer) {
+        return findCommandRecords(commandName, serviceDiscovery)
+                .compose(records -> findExecutor(records, commandName, serviceDiscovery, loadBalancer));
+    }
+
+    /**
+     * Finds running services using service discovery and client load balancer
+     * @param filter additional predicate to filter found services
+     * @param serviceDiscovery service discovery to use when looking for a service
+     * @param name name of something we are looking for. Needed for constructing an error if not found
+     * @return Record observable, which emits multiple Records if services are found successfully
+     */
+    private static Observable<Record> findRecord(Predicate<Record> filter, ServiceDiscovery serviceDiscovery, String name) {
         return Observable.create(subscriber ->
-                serviceDiscovery.getRecords(record ->
-                                serviceName.equals(record.getName()) && ServiceRecords.isUpdatedRecently(record) && filter.test(record),
+                serviceDiscovery.getRecords(record -> ServiceRecords.isUpdatedRecently(record) && filter.test(record),
                         false,
                         asyncClients -> {
                             if (asyncClients.succeeded() && !subscriber.isUnsubscribed()) {
@@ -65,11 +104,23 @@ public final class DiscoverableServices {
                                 subscriber.onCompleted();
                             }
                             if (asyncClients.failed() && !subscriber.isUnsubscribed()) {
-                                subscriber.onError(new CannotDiscoverService("Unable to find service: " + serviceName, asyncClients.cause()));
+                                subscriber.onError(new CannotDiscoverService("Unable to find: " + name, asyncClients.cause()));
                             }
                         })
         );
     }
+
+    /**
+     * Finds running commands using service discovery and client load balancer
+     * @param commandName The name of the command to look for
+     * @param serviceDiscovery service discovery to use when looking for a service
+     * @return Record observable, which emits multiple Records if services are found successfully
+     */
+    private static Observable<Record> findCommandRecords(String commandName,
+                                                         ServiceDiscovery serviceDiscovery) {
+        return findRecord(record -> ServiceRecords.hasCommand(commandName, record), serviceDiscovery, commandName);
+    }
+
 
     public static Observable<Record> removeIf(Record newRecord,
                                               BiPredicate<Record, Record> filter,
