@@ -1,6 +1,7 @@
 package net.soundvibe.reacto.client.commands;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
+import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.*;
 import io.vertx.core.json.JsonObject;
@@ -20,6 +21,7 @@ import rx.schedulers.Schedulers;
 import java.net.ConnectException;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.*;
@@ -40,6 +42,8 @@ public class CommandExecutorTest {
 
     private static final String MAIN_NODE = "http://localhost:8282/dist/";
     private static final String FALLBACK_NODE = "http://localhost:8383/dist/";
+    public static final int MAIN_SERVER_PORT = 8282;
+    public static final int FALLBACK_SERVER_PORT = 8383;
 
     private static HttpServer mainHttpServer;
     private static VertxServer vertxServer;
@@ -95,12 +99,12 @@ public class CommandExecutorTest {
         discoverableService = new DiscoverableService(serviceDiscovery);
 
         mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
-                .setPort(8282)
+                .setPort(MAIN_SERVER_PORT)
                 .setSsl(false)
                 .setReuseAddress(true));
 
         HttpServer fallbackHttpServer = vertx.createHttpServer(new HttpServerOptions()
-                .setPort(8383)
+                .setPort(FALLBACK_SERVER_PORT)
                 .setSsl(false)
                 .setReuseAddress(true));
 
@@ -394,6 +398,27 @@ public class CommandExecutorTest {
         testSubscriber2.assertValue(event1Arg("Called command with arg: bar"));
     }
 
+    @Test
+    public void shouldFailWhenConnectingToInExistingWebSocketStream() throws Exception {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final AtomicReference<Throwable> ex = new AtomicReference<>();
+        final HttpClient httpClient = Vertx.vertx().createHttpClient(new HttpClientOptions().setSsl(false));
+        httpClient.websocket(MAIN_SERVER_PORT, "localhost", "/undefined/",
+                websocket -> websocket
+                        .exceptionHandler(e -> fail(e.toString()))
+                        .handler(buffer -> fail("handler"))
+                        .frameHandler(buffer -> fail("frame handler"))
+                        .endHandler(event -> fail("ended"))
+                        .closeHandler(event -> fail("closed"))
+                , failure -> {
+                    ex.set(failure);
+                    countDownLatch.countDown();
+                });
+
+        countDownLatch.await(1000L, TimeUnit.MILLISECONDS);
+        assertEquals(WebSocketHandshakeException.class, ex.get().getClass());
+    }
+
     private Observable<String> get(int port, String host, String uri) {
         final HttpClient httpClient = Vertx.vertx().createHttpClient(new HttpClientOptions().setSsl(false));
         return Observable.<String>create(subscriber ->
@@ -411,12 +436,12 @@ public class CommandExecutorTest {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
         final HttpClient httpClient = Vertx.vertx().createHttpClient(new HttpClientOptions().setSsl(false));
 
-        get(8282, "localhost", "/dist/service-discovery/close")
+        get(MAIN_SERVER_PORT, "localhost", "/dist/service-discovery/close")
                 .subscribe(testSubscriber);
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
 
-        get(8383, "localhost", "/dist/service-discovery/close")
+        get(FALLBACK_SERVER_PORT, "localhost", "/dist/service-discovery/close")
                 .toBlocking().subscribe();
 
 
@@ -432,10 +457,10 @@ public class CommandExecutorTest {
         testSubscriber2.awaitTerminalEvent();
         testSubscriber2.assertError(CannotDiscoverService.class);
 
-        get(8282, "localhost", "/dist/service-discovery/start")
+        get(MAIN_SERVER_PORT, "localhost", "/dist/service-discovery/start")
                 .toBlocking().subscribe();
 
-        get(8383, "localhost", "/dist/service-discovery/start")
+        get(FALLBACK_SERVER_PORT, "localhost", "/dist/service-discovery/start")
                 .toBlocking().subscribe();
 
 
