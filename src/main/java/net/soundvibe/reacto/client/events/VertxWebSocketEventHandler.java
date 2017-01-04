@@ -68,8 +68,8 @@ public class VertxWebSocketEventHandler implements EventHandler {
                                                 "WebSocket connection closed without completion for command: " + command));
                                     }
                                 }).exceptionHandler(subscriber::onError);
-                                sendCommandToExecutor(command, webSocket);
                                 checkForEvents(webSocket, subscriber);
+                                sendCommandToExecutor(command, webSocket);
                             } catch (Throwable e) {
                                 subscriber.onError(e);
                             }
