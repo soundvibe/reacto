@@ -4,18 +4,20 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.*;
 import io.vertx.core.logging.*;
 import io.vertx.ext.web.Router;
-import io.vertx.servicediscovery.Record;
+import io.vertx.servicediscovery.*;
 import io.vertx.servicediscovery.types.HttpEndpoint;
-import net.soundvibe.reacto.discovery.DiscoverableService;
+import net.soundvibe.reacto.discovery.ServiceDiscoveryLifecycle;
 import net.soundvibe.reacto.server.handlers.*;
 import net.soundvibe.reacto.types.Pair;
-import net.soundvibe.reacto.utils.WebUtils;
+import net.soundvibe.reacto.utils.*;
 import rx.Observable;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static net.soundvibe.reacto.server.ServiceRecords.COMMANDS;
+import static net.soundvibe.reacto.utils.WebUtils.*;
 
 /**
  * @author OZY on 2015.11.23.
@@ -31,16 +33,24 @@ public class VertxServer implements Server<HttpServer> {
     private final Router router;
     private final AtomicReference<Record> record = new AtomicReference<>();
     private final JsonObject metadataJson;
+    private final ServiceDiscoveryLifecycle discoveryLifecycle;
 
-    public VertxServer(ServiceOptions serviceOptions, Router router, HttpServer httpServer, CommandRegistry commands) {
+    public VertxServer(
+            ServiceOptions serviceOptions,
+            Router router,
+            HttpServer httpServer,
+            CommandRegistry commands,
+            ServiceDiscoveryLifecycle discoveryLifecycle) {
         Objects.requireNonNull(serviceOptions, "serviceOptions cannot be null");
         Objects.requireNonNull(router, "Router cannot be null");
         Objects.requireNonNull(httpServer, "HttpServer cannot be null");
         Objects.requireNonNull(commands, "CommandRegistry cannot be null");
+        Objects.requireNonNull(discoveryLifecycle, "discoveryLifecycle cannot be null");
         this.serviceOptions = serviceOptions;
         this.router = router;
         this.httpServer = httpServer;
         this.commands = commands;
+        this.discoveryLifecycle = discoveryLifecycle;
         this.metadataJson = createMetadata();
     }
 
@@ -61,22 +71,35 @@ public class VertxServer implements Server<HttpServer> {
                     subscriber.onError(event.cause());
                 }
             });
-        }).flatMap(server ->
-                serviceOptions.serviceDiscovery.isPresent() ?
-                    Observable.just(serviceOptions.serviceDiscovery.get())
-                        .flatMap(discoverableService ->
-                                discoverableService.startDiscovery(createRecord(server.actualPort()))
-                                    .doOnNext(discoverableService::startHeartBeat)
-                                    .doOnNext(rec -> Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                                        log.info("Executing shutdown hook...");
-                                        discoverableService.closeDiscovery(rec).subscribe(
-                                                r -> log.debug("Service discovery closed successfully"),
-                                                e -> log.debug("Error when closing service discovery: " + e)
-                                        );
-                                    })))
-                                    .doOnNext(record::set))
-                        .map(__ -> httpServer) :
-                Observable.just(server));
+        }).flatMap(server -> Observable.just(createRecord(server.actualPort()))
+                .flatMap(rec -> discoveryLifecycle.isClosed() ?
+                    discoveryLifecycle.startDiscovery(rec) :
+                    Observable.just(rec))
+                .doOnNext(this::startHeartBeat)
+                .doOnNext(rec -> Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    log.info("Executing shutdown hook...");
+                    if (discoveryLifecycle.isOpen()) {
+                        discoveryLifecycle.closeDiscovery(rec).subscribe(
+                                r -> log.debug("Service discovery closed successfully"),
+                                e -> log.debug("Error when closing service discovery: " + e)
+                        );
+                    }
+                })))
+                .doOnNext(record::set))
+                .map(r -> httpServer);
+    }
+
+    private void startHeartBeat(Record record) {
+        Scheduler.scheduleAtFixedInterval(TimeUnit.MINUTES.toMillis(1L), () -> {
+            if (discoveryLifecycle.isOpen()) {
+                discoveryLifecycle.publish(record)
+                        .subscribe(rec -> log.info("Heartbeat published record: " + rec),
+                                throwable -> log.error("Error while trying to publish the record on heartbeat: " + throwable),
+                                () -> log.info("Heartbeat completed successfully"));
+            } else {
+                log.info("Skipping heartbeat because service discovery is closed");
+            }
+        }, "service-discovery-heartbeat");
     }
 
     private Record createRecord(int port) {
@@ -103,38 +126,45 @@ public class VertxServer implements Server<HttpServer> {
 
     @Override
     public Observable<Void> stop() {
-        return Observable.<DiscoverableService>create(subscriber ->
+        return Observable.<Record>create(subscriber ->
             httpServer.close(event -> {
                 if (event.succeeded()) {
                     log.info("Server has stopped on port " + httpServer.actualPort());
-                    serviceOptions.serviceDiscovery.ifPresent(subscriber::onNext);
-                    subscriber.onCompleted();
+                    if (!subscriber.isUnsubscribed()) {
+                        final Record record = this.record.get();
+                        if (record != null) {
+                            subscriber.onNext(record);
+                        }
+                        subscriber.onCompleted();
+                    }
                     return;
                 }
-                if (event.failed()) {
+                if (event.failed() && !subscriber.isUnsubscribed()) {
                     subscriber.onError(event.cause());
                 }
-            })).flatMap(discoverableService -> discoverableService.closeDiscovery(record.get()))
+            })).flatMap(rec -> discoveryLifecycle.isOpen() ?
+                    discoveryLifecycle.closeDiscovery(rec) :
+                    Observable.just(rec))
                 .map(__ -> Void.TYPE.cast(null));
     }
 
     private void setupRoutes() {
         httpServer.websocketHandler(new WebSocketCommandHandler(new CommandHandler(commands), root()));
         router.route(root() + "hystrix.stream")
-                .handler(new SSEHandler(HystrixEventStreamHandler::handle));
+            .handler(new SSEHandler(HystrixEventStreamHandler::handle));
 
-        serviceOptions.serviceDiscovery.ifPresent(discovery ->
-                router.route(root() + "service-discovery/:action")
-                        .produces("application/json")
-                        .handler(new ServiceDiscoveryHandler(discovery, record::get)));
+        router.route(root() + "service-discovery/:action")
+            .produces("application/json")
+            .handler(new ServiceDiscoveryHandler(discoveryLifecycle, record::get));
         httpServer.requestHandler(router::accept);
     }
 
     private String serviceName() {
-        return WebUtils.excludeEndDelimiter(WebUtils.excludeStartDelimiter(serviceOptions.serviceName));
+        return excludeEndDelimiter(excludeStartDelimiter(serviceOptions.serviceName));
     }
 
     private String root() {
-        return WebUtils.includeEndDelimiter(WebUtils.includeStartDelimiter(serviceOptions.root));
+        return includeEndDelimiter(includeStartDelimiter(serviceOptions.root));
     }
+
 }

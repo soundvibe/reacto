@@ -130,6 +130,82 @@ public final class DiscoverableServices {
         return findRecord(record -> ServiceRecords.hasCommand(commandName, record), serviceDiscovery, commandName);
     }
 
+    public static Observable<Record> publishRecord(Record record, ServiceDiscovery serviceDiscovery) {
+        return Observable.just(record)
+                .flatMap(rec -> removeIf(rec, (existingRecord, newRecord) -> ServiceRecords.isDown(existingRecord), serviceDiscovery))
+                .map(rec -> {
+                    rec.getMetadata().put(ServiceRecords.LAST_UPDATED, Instant.now());
+                    return rec.setStatus(Status.UP);
+                })
+                .flatMap(rec -> Observable.create(subscriber -> {
+                    if (rec.getRegistration() != null) {
+                        serviceDiscovery.update(record, recordEvent -> {
+                            if (recordEvent.succeeded()) {
+                                log.info("Service has been updated successfully: " + recordEvent.result().toJson());
+                                if (!subscriber.isUnsubscribed()) {
+                                    subscriber.onNext(recordEvent.result());
+                                    subscriber.onCompleted();
+                                }
+                            }
+                            if (recordEvent.failed()) {
+                                log.error("Error when trying to updated the service: " + recordEvent.cause(), recordEvent.cause());
+                                if (!subscriber.isUnsubscribed()) {
+                                    subscriber.onError(recordEvent.cause());
+                                }
+                            }
+                        });
+                    } else {
+                        serviceDiscovery.publish(rec, recordEvent -> {
+                            if (recordEvent.succeeded()) {
+                                log.info("Service has been published successfully: " + recordEvent.result().toJson());
+                                if (!subscriber.isUnsubscribed()) {
+                                    subscriber.onNext(recordEvent.result());
+                                    subscriber.onCompleted();
+                                }
+                            }
+                            if (recordEvent.failed()) {
+                                log.error("Error when trying to publish the service: " + recordEvent.cause(), recordEvent.cause());
+                                if (!subscriber.isUnsubscribed()) {
+                                    subscriber.onError(recordEvent.cause());
+                                }
+                            }
+                        });
+                    }
+                }));
+    }
+
+    public static Observable<Record> removeRecordsWithStatus(Status status, ServiceDiscovery serviceDiscovery) {
+        return Observable.create(subscriber ->
+                serviceDiscovery.getRecords(
+                        record -> status.equals(record.getStatus()),
+                        true,
+                        event -> {
+                            if (event.succeeded()) {
+                                if (event.result().isEmpty() && !subscriber.isUnsubscribed()) {
+                                    subscriber.onCompleted();
+                                    return;
+                                }
+                                Observable.from(event.result())
+                                        .flatMap(record -> Observable.<Record>create(subscriber1 ->
+                                                serviceDiscovery.unpublish(record.getRegistration(), e -> {
+                                                    if (e.failed() && (!subscriber1.isUnsubscribed())) {
+                                                        subscriber1.onError(e.cause());
+                                                        return;
+                                                    }
+                                                    if (e.succeeded() && (!subscriber1.isUnsubscribed())) {
+                                                        subscriber1.onNext(record);
+                                                        subscriber1.onCompleted();
+                                                    }
+                                                })
+                                        ))
+                                        .subscribe(subscriber);
+                            }
+                            if (event.failed()) {
+                                log.info("No matching records: " + event.cause());
+                                subscriber.onError(event.cause());
+                            }
+                        }));
+    }
 
     public static Observable<Record> removeIf(Record newRecord,
                                               BiPredicate<Record, Record> filter,
@@ -174,5 +250,4 @@ public final class DiscoverableServices {
                             }
                         }));
     }
-
 }

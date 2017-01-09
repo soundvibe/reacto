@@ -5,7 +5,7 @@ import io.vertx.core.Vertx;
 import io.vertx.servicediscovery.*;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.client.errors.CannotDiscoverService;
-import net.soundvibe.reacto.discovery.DiscoverableService;
+import net.soundvibe.reacto.discovery.*;
 import net.soundvibe.reacto.types.*;
 import org.junit.Test;
 import rx.Observable;
@@ -57,16 +57,16 @@ public class CommandExecutorsTest {
         TestSubscriber<Record> recordTestSubscriber = new TestSubscriber<>();
         TestSubscriber<Record> closeSubscriber = new TestSubscriber<>();
         final ServiceDiscovery serviceDiscovery = ServiceDiscovery.create(Vertx.vertx());
-        final DiscoverableService discoverableService = new DiscoverableService(serviceDiscovery);
+        final ReactoServiceRegistry lifecycle = new ReactoServiceRegistry(serviceDiscovery);
 
         final Record record = HttpEndpoint.createRecord("testService", "localhost", 8123, "test/");
-        discoverableService.startDiscovery(record)
+        lifecycle.startDiscovery(record)
                 .subscribe(recordTestSubscriber);
 
         recordTestSubscriber.awaitTerminalEvent();
         recordTestSubscriber.assertNoErrors();
 
-        discoverableService.closeDiscovery(record).subscribe(closeSubscriber);
+        lifecycle.closeDiscovery(record).subscribe(closeSubscriber);
         closeSubscriber.awaitTerminalEvent();
         closeSubscriber.assertNoErrors();
 

@@ -42,14 +42,14 @@ public class CommandExecutorTest {
 
     private static final String MAIN_NODE = "http://localhost:8282/dist/";
     private static final String FALLBACK_NODE = "http://localhost:8383/dist/";
-    public static final int MAIN_SERVER_PORT = 8282;
-    public static final int FALLBACK_SERVER_PORT = 8383;
+    private static final int MAIN_SERVER_PORT = 8282;
+    private static final int FALLBACK_SERVER_PORT = 8383;
 
     private static HttpServer mainHttpServer;
     private static VertxServer vertxServer;
     private static VertxServer fallbackVertxServer;
     private static ServiceDiscovery serviceDiscovery;
-    private static DiscoverableService discoverableService;
+    private static ReactoServiceRegistry reactoServiceRegistry;
 
     private final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
     private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(
@@ -96,7 +96,8 @@ public class CommandExecutorTest {
 
         vertx = Vertx.vertx();
         serviceDiscovery = ServiceDiscovery.create(vertx);
-        discoverableService = new DiscoverableService(serviceDiscovery);
+        reactoServiceRegistry = new ReactoServiceRegistry(serviceDiscovery);
+        ReactoServiceRegistry reactoServiceRegistry2 = new ReactoServiceRegistry(serviceDiscovery);
 
         mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(MAIN_SERVER_PORT)
@@ -110,11 +111,11 @@ public class CommandExecutorTest {
 
         final Router router = Router.router(vertx);
         router.route("/health").handler(event -> event.response().end("ok"));
-        System.out.println();
-        vertxServer = new VertxServer(new ServiceOptions("dist", "dist/", "0.1", discoverableService)
-                , router, mainHttpServer, mainCommands);
-        fallbackVertxServer = new VertxServer(new ServiceOptions("dist","dist/", "0.1", new DiscoverableService(serviceDiscovery))
-                , Router.router(vertx), fallbackHttpServer,  fallbackCommands);
+        System.out.println("Before starting servers...");
+        vertxServer = new VertxServer(new ServiceOptions("dist", "dist/", "0.1")
+                , router, mainHttpServer, mainCommands, reactoServiceRegistry);
+        fallbackVertxServer = new VertxServer(new ServiceOptions("dist","dist/", "0.1")
+                , Router.router(vertx), fallbackHttpServer,  fallbackCommands, reactoServiceRegistry2);
         fallbackVertxServer.start().toBlocking().subscribe();
         vertxServer.start().toBlocking().subscribe();
     }
@@ -141,7 +142,6 @@ public class CommandExecutorTest {
         assertCompletedSuccessfully();
         testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
     }
-
 
     @Test
     public void shouldCallCommandAndReceiveMultipleEvents() throws Exception {
@@ -219,13 +219,10 @@ public class CommandExecutorTest {
                 customError -> assertEquals("foo", customError.data));
     }
 
-
     @Test
     public void shouldCallCommandWithoutArgs() throws Exception {
         mainNodeExecutor.execute(Command.create(COMMAND_WITHOUT_ARGS))
                 .subscribe(testSubscriber);
-
-        System.out.println(testSubscriber.getOnErrorEvents());
         assertCompletedSuccessfully();
         testSubscriber.assertValue(event1Arg("ok"));
     }
@@ -263,6 +260,7 @@ public class CommandExecutorTest {
     @Test
     public void shouldEmitOneEventAndThenFail() throws Exception {
         final Vertx vertx = Vertx.vertx();
+        final ServiceDiscovery serviceDiscovery = ServiceDiscovery.create(vertx);
         final HttpServer server = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(8183)
                 .setSsl(false)
@@ -278,7 +276,8 @@ public class CommandExecutorTest {
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-                })));
+                })),
+                new ReactoServiceRegistry(serviceDiscovery));
 
         final CommandExecutor executor = CommandExecutors.webSocket(Nodes.of("http://localhost:8183/distTest/"), 5000);
 
@@ -340,11 +339,12 @@ public class CommandExecutorTest {
                 .setSsl(false)
                 .setReuseAddress(true));
 
-        final VertxServer reactoServer = new VertxServer(new ServiceOptions("dist", "dist/",
-                new DiscoverableService(discoverableService.serviceDiscovery))
+        final VertxServer reactoServer = new VertxServer(new ServiceOptions("dist", "dist/")
                 , Router.router(vertx), server,
                 CommandRegistry.of(TEST_COMMAND, cmd ->
-                        event1Arg("Called command from second server with arg: " + cmd.get("arg")).toObservable()));
+                        event1Arg("Called command from second server with arg: "
+                                + cmd.get("arg")).toObservable()),
+                new ReactoServiceRegistry(serviceDiscovery));
         reactoServer.start().toBlocking().subscribe();
 
         try {
@@ -383,7 +383,7 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldFindAndExecuteCommand() throws Exception {
-        discoverableService.execute(command1Arg(TEST_COMMAND, "foo"))
+        reactoServiceRegistry.execute(command1Arg(TEST_COMMAND, "foo"))
                 .subscribe(testSubscriber);
 
         assertCompletedSuccessfully();
@@ -391,7 +391,7 @@ public class CommandExecutorTest {
 
         final TestSubscriber<Event> testSubscriber2 = new TestSubscriber<>();
 
-        discoverableService.execute(command1Arg(TEST_COMMAND, "bar"))
+        reactoServiceRegistry.execute(command1Arg(TEST_COMMAND, "bar"))
                 .subscribe(testSubscriber2);
 
         assertCompletedSuccessfully(testSubscriber2);
@@ -421,7 +421,7 @@ public class CommandExecutorTest {
 
     private Observable<String> get(int port, String host, String uri) {
         final HttpClient httpClient = Vertx.vertx().createHttpClient(new HttpClientOptions().setSsl(false));
-        return Observable.<String>create(subscriber ->
+        return Observable.create(subscriber ->
                 httpClient.getNow(port, host, uri,
                         response -> response
                                 .exceptionHandler(subscriber::onError)
@@ -434,7 +434,6 @@ public class CommandExecutorTest {
     @Test
     public void shouldCloseOpenServiceDiscovery() throws Exception {
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        final HttpClient httpClient = Vertx.vertx().createHttpClient(new HttpClientOptions().setSsl(false));
 
         get(MAIN_SERVER_PORT, "localhost", "/dist/service-discovery/close")
                 .subscribe(testSubscriber);
@@ -444,7 +443,7 @@ public class CommandExecutorTest {
         get(FALLBACK_SERVER_PORT, "localhost", "/dist/service-discovery/close")
                 .toBlocking().subscribe();
 
-
+        System.out.println("Response: " + testSubscriber.getOnNextEvents());
         final Record actual = new Record(new JsonObject(testSubscriber.getOnNextEvents().get(0)));
         assertEquals("dist", actual.getName());
         assertEquals(HttpEndpoint.TYPE, actual.getType());

@@ -4,9 +4,10 @@ import com.netflix.hystrix.*;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.*;
 import io.vertx.ext.web.Router;
+import io.vertx.servicediscovery.ServiceDiscovery;
+import net.soundvibe.reacto.discovery.ReactoServiceRegistry;
 import net.soundvibe.reacto.server.*;
 import net.soundvibe.reacto.server.handlers.*;
-import net.soundvibe.reacto.utils.Factories;
 import org.junit.*;
 import rx.Observable;
 import rx.observers.TestSubscriber;
@@ -26,12 +27,14 @@ public class HystrixEventStreamHandlerTest {
 
     @Before
     public void setUp() throws Exception {
-        Vertx vertx = Factories.vertx();
+        final Vertx vertx = Vertx.vertx();
         final Router router = Router.router(vertx);
         router.route("/test/hystrix.stream")
                 .handler(new SSEHandler(HystrixEventStreamHandler::handle));
-        vertxServer = new VertxServer(new ServiceOptions("test", "test"), router, vertx.createHttpServer(new HttpServerOptions().setPort(8282)),
-               CommandRegistry.of("bla", o -> Observable.empty()));
+        vertxServer = new VertxServer(new ServiceOptions("test", "test"),
+                router, vertx.createHttpServer(new HttpServerOptions().setPort(8282)),
+                CommandRegistry.of("bla", o -> Observable.empty()),
+                new ReactoServiceRegistry(ServiceDiscovery.create(vertx)));
         vertxServer.start().toBlocking().subscribe();
         lastData = new AtomicReference<>();
         httpClient = vertx.createHttpClient();
@@ -55,7 +58,8 @@ public class HystrixEventStreamHandlerTest {
         testSubscriber.assertValue("foo");
 
         //hystrix stream address
-        httpClient.getNow(8282, "localhost","/test/hystrix.stream", httpClientResponse -> httpClientResponse.handler(buffer -> {
+        httpClient.getNow(8282, "localhost","/test/hystrix.stream",
+                httpClientResponse -> httpClientResponse.handler(buffer -> {
             final byte[] bytes = buffer.getBytes();
             String data = new String(bytes);
             if (lastData.get() == null) {

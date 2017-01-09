@@ -2,8 +2,8 @@ package net.soundvibe.reacto.server.handlers;
 
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.servicediscovery.*;
-import net.soundvibe.reacto.discovery.DiscoverableService;
+import io.vertx.servicediscovery.Record;
+import net.soundvibe.reacto.discovery.*;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
@@ -16,11 +16,11 @@ import static net.soundvibe.reacto.server.VertxServer.INTERNAL_SERVER_ERROR;
  */
 public class ServiceDiscoveryHandler implements Handler<RoutingContext> {
 
-    private final DiscoverableService serviceDiscovery;
+    private final ServiceDiscoveryLifecycle controller;
     private final Supplier<Record> record;
 
-    public ServiceDiscoveryHandler(DiscoverableService serviceDiscovery, Supplier<Record> record) {
-        this.serviceDiscovery = serviceDiscovery;
+    public ServiceDiscoveryHandler(ServiceDiscoveryLifecycle controller, Supplier<Record> record) {
+        this.controller = controller;
         this.record = record;
     }
 
@@ -34,9 +34,9 @@ public class ServiceDiscoveryHandler implements Handler<RoutingContext> {
 
         switch (action) {
             case "start" : {
-                Observable.just(serviceDiscovery)
-                        .filter(discovery -> record.get() != null)
-                        .flatMap(discovery -> discovery.startDiscovery(record.get()))
+                Observable.just(controller)
+                        .filter(ctrl -> record.get() != null)
+                        .flatMap(ctrl -> ctrl.startDiscovery(record.get()))
                         .subscribe(rec -> ctx.response().end(rec.toJson().toString())
                                 , throwable -> ctx.response()
                                         .setStatusCode(INTERNAL_SERVER_ERROR)
@@ -46,9 +46,9 @@ public class ServiceDiscoveryHandler implements Handler<RoutingContext> {
             }
 
             case "close": {
-                Observable.just(serviceDiscovery)
-                        .filter(discovery -> record.get() != null)
-                        .flatMap(discovery -> discovery.closeDiscovery(record.get()))
+                Observable.just(controller)
+                        .filter(ctrl -> record.get() != null)
+                        .flatMap(ctrl -> ctrl.closeDiscovery(record.get()))
                         .subscribe(record -> ctx.response().end(record.toJson().toString())
                                 , throwable -> ctx.response()
                                         .setStatusCode(INTERNAL_SERVER_ERROR)
@@ -57,9 +57,9 @@ public class ServiceDiscoveryHandler implements Handler<RoutingContext> {
                 break;
             }
             case "clean": {
-                Observable.just(serviceDiscovery)
+                Observable.just(controller)
                         .subscribeOn(Factories.SINGLE_THREAD)
-                        .flatMap(discovery -> discovery.removeRecordsWithStatus(Status.DOWN))
+                        .flatMap(ServiceDiscoveryLifecycle::cleanServices)
                         .subscribe(record -> ctx.response().write(record.toJson().toString())
                                 , throwable -> ctx.response()
                                         .setStatusCode(INTERNAL_SERVER_ERROR)

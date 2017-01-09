@@ -7,7 +7,6 @@ import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.client.errors.CannotDiscoverService;
 import net.soundvibe.reacto.utils.WebUtils;
 import org.junit.Test;
-import rx.Observable;
 import rx.observers.TestSubscriber;
 
 import java.util.*;
@@ -16,16 +15,17 @@ import java.util.concurrent.CountDownLatch;
 import static org.junit.Assert.assertEquals;
 
 /**
- * @author OZY on 2016.08.28.
+ * @author linas on 17.1.9.
  */
-public class DiscoverableServicesTest {
+public class ReactoServiceRegistryTest {
 
     private static final String TEST_SERVICE = "testService";
     private static final String ROOT = "/test/";
+
     private final Vertx vertx = Vertx.vertx();
     private final ServiceDiscovery serviceDiscovery = ServiceDiscovery.create(vertx);
-    private final DiscoverableService sut = new DiscoverableService(serviceDiscovery);
 
+    private final ReactoServiceRegistry sut = new ReactoServiceRegistry(serviceDiscovery);
 
     @Test
     public void shouldStartDiscovery() throws Exception {
@@ -39,32 +39,13 @@ public class DiscoverableServicesTest {
                 ROOT);
 
         sut.startDiscovery(record)
-            .subscribe(recordTestSubscriber);
+                .subscribe(recordTestSubscriber);
 
         recordTestSubscriber.awaitTerminalEvent();
         recordTestSubscriber.assertNoErrors();
         recordTestSubscriber.assertValue(record);
 
         assertDiscoveredServices(1);
-    }
-
-    @Test
-    public void shouldUnsubscribe() throws Exception {
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-        Observable<String> observable = Observable.create(subscriber -> {
-            for (int i = 0; i < 5; i++) {
-                if (!subscriber.isUnsubscribed()) {
-                    subscriber.onNext("ok");
-                    subscriber.onCompleted();
-                }
-            }
-        });
-        observable.subscribe(testSubscriber);
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNoErrors();
-        testSubscriber.assertCompleted();
-        testSubscriber.assertValueCount(1);
-        testSubscriber.assertValue("ok");
     }
 
     @Test
@@ -87,7 +68,7 @@ public class DiscoverableServicesTest {
     }
 
     @Test
-    public void shouldRemoveDownRecordsWhenDoingSimplePublish() throws Exception {
+    public void shouldRemoveDownRecords() throws Exception {
         shouldStartDiscovery();
 
         final Record record = HttpEndpoint.createRecord(
@@ -105,13 +86,7 @@ public class DiscoverableServicesTest {
         assertEquals("Should be one service down", 1, recordList.size());
         TestSubscriber<Record> testSubscriber = new TestSubscriber<>();
 
-        final Record newRecord = HttpEndpoint.createRecord(
-                TEST_SERVICE,
-                WebUtils.getLocalAddress(),
-                9999,
-                ROOT);
-
-        sut.publishRecord(newRecord).subscribe(testSubscriber);
+        sut.cleanServices().subscribe(testSubscriber);
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
         testSubscriber.assertValueCount(1);
@@ -136,7 +111,7 @@ public class DiscoverableServicesTest {
     private void assertDiscoveredServices(int count) {
         TestSubscriber<CommandExecutor> testSubscriber = new TestSubscriber<>();
 
-        sut.find(TEST_SERVICE)
+        DiscoverableServices.find(TEST_SERVICE, serviceDiscovery)
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -148,4 +123,5 @@ public class DiscoverableServicesTest {
             testSubscriber.assertError(CannotDiscoverService.class);
         }
     }
+
 }
