@@ -16,7 +16,7 @@ import static net.soundvibe.reacto.discovery.DiscoverableServices.publishRecord;
 /**
  * @author linas on 17.1.9.
  */
-public final class ReactoServiceRegistry implements ServiceRegistry, ServiceDiscoveryLifecycle {
+public final class ReactoServiceRegistry implements ServiceRegistry, ServiceDiscoveryLifecycle, CommandExecutor {
 
     private static final Logger log = LoggerFactory.getLogger(ReactoServiceRegistry.class);
 
@@ -31,6 +31,11 @@ public final class ReactoServiceRegistry implements ServiceRegistry, ServiceDisc
     @Override
     public Observable<CommandExecutor> find(String commandName, LoadBalancer<EventHandler> loadBalancer) {
         return DiscoverableServices.findCommand(commandName, serviceDiscovery, loadBalancer);
+    }
+
+    @Override
+    public Observable<Event> execute(final Command command) {
+        return execute(command, LoadBalancers.ROUND_ROBIN);
     }
 
     @Override
