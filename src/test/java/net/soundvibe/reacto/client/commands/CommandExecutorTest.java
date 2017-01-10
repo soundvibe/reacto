@@ -4,13 +4,14 @@ import com.netflix.hystrix.exception.HystrixRuntimeException;
 import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.*;
-import io.vertx.core.json.JsonObject;
+import io.vertx.core.json.*;
 import io.vertx.ext.web.Router;
 import io.vertx.servicediscovery.*;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.client.errors.*;
 import net.soundvibe.reacto.discovery.*;
 import net.soundvibe.reacto.mappers.Mappers;
+import net.soundvibe.reacto.mappers.jackson.*;
 import net.soundvibe.reacto.server.*;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.*;
@@ -52,6 +53,7 @@ public class CommandExecutorTest {
     private static VertxServer fallbackVertxServer;
     private static ServiceDiscovery serviceDiscovery;
     private static ReactoServiceRegistry reactoServiceRegistry;
+    private static ReactoServiceRegistry reactoServiceRegistry2;
 
     private final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
     private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(
@@ -98,13 +100,20 @@ public class CommandExecutorTest {
                 }))
         ;
 
-        CommandRegistry fallbackCommands = CommandRegistry.of(TEST_FAIL_BUT_FALLBACK_COMMAND,
+        CommandRegistry fallbackCommands = CommandRegistry.ofTyped(
+                    Feed.class, Animal.class,
+                    feed -> Observable.just(
+                            new Dog("Dog ate " + feed.meal),
+                            new Cat("Cat ate " + feed.meal)
+                    ),
+                    new JacksonMapper(Json.mapper))
+                .and(TEST_FAIL_BUT_FALLBACK_COMMAND,
                 o -> event1Arg("Recovered: " + o.get("arg")).toObservable());
 
         vertx = Vertx.vertx();
         serviceDiscovery = ServiceDiscovery.create(vertx);
         reactoServiceRegistry = new ReactoServiceRegistry(serviceDiscovery, new DemoServiceRegistryMapper());
-        ReactoServiceRegistry reactoServiceRegistry2 = new ReactoServiceRegistry(serviceDiscovery, new DemoServiceRegistryMapper());
+        reactoServiceRegistry2 = new ReactoServiceRegistry(serviceDiscovery, new JacksonMapper(Json.mapper));
 
         mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(MAIN_SERVER_PORT)
@@ -118,7 +127,6 @@ public class CommandExecutorTest {
 
         final Router router = Router.router(vertx);
         router.route("/health").handler(event -> event.response().end("ok"));
-        System.out.println("Before starting servers...");
         vertxServer = new VertxServer(new ServiceOptions("dist", "dist/", "0.1")
                 , router, mainHttpServer, mainCommands, reactoServiceRegistry);
         fallbackVertxServer = new VertxServer(new ServiceOptions("dist","dist/", "0.1")
@@ -424,6 +432,19 @@ public class CommandExecutorTest {
         fooTestSubscriber.assertNoValues();
         fooTestSubscriber.assertError(CannotDiscoverService.class);
         fooTestSubscriber.assertNotCompleted();
+    }
+
+    @Test
+    public void shouldExecuteTypedCommandAndReceivePolymorphicEvents() throws Exception {
+        final TestSubscriber<Animal> animalTestSubscriber = new TestSubscriber<>();
+        reactoServiceRegistry2.execute(new Feed("Pedigree"), Animal.class)
+                .subscribe(animalTestSubscriber);
+
+        assertCompletedSuccessfully(animalTestSubscriber);
+        animalTestSubscriber.assertValues(
+                new Dog("Dog ate Pedigree"),
+                new Cat("Cat ate Pedigree")
+        );
     }
 
     @Test
