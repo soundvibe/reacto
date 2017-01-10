@@ -1,6 +1,7 @@
 package net.soundvibe.reacto.server;
 
 import net.soundvibe.reacto.mappers.CommandRegistryMapper;
+import net.soundvibe.reacto.server.errors.CommandAlreadyRegistered;
 import net.soundvibe.reacto.types.*;
 import rx.Observable;
 
@@ -28,7 +29,7 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, F
     public CommandRegistry and(String commandName, Function<Command, Observable<Event>> onInvoke) {
         Objects.requireNonNull(commandName, "Command name cannot be null");
         Objects.requireNonNull(onInvoke, "onInvoke cannot be null");
-        commands.put(CommandDescriptor.of(commandName), onInvoke);
+        add(CommandDescriptor.of(commandName), onInvoke);
         return this;
     }
 
@@ -43,8 +44,15 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, F
                 .compose(c -> mapper.toGenericCommand(c, commandType));
         final Function<Command, Observable<Event>> after = before
                 .andThen(observable -> observable.map(mapper::toEvent));
-        commands.put(CommandDescriptor.ofTypes(commandType, eventType), after);
+        add(CommandDescriptor.ofTypes(commandType, eventType), after);
         return this;
+    }
+
+    private void add(CommandDescriptor descriptor, Function<Command, Observable<Event>> onInvoke) {
+        if (commands.containsKey(descriptor)) {
+            throw new CommandAlreadyRegistered(descriptor);
+        }
+        commands.put(descriptor, onInvoke);
     }
 
     public static CommandRegistry of(String commandName, Function<Command, Observable<Event>> onInvoke) {

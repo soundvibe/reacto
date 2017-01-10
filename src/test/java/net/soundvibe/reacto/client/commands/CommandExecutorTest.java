@@ -448,6 +448,14 @@ public class CommandExecutorTest {
     }
 
     @Test
+    public void shouldExecutePlainAsTyped() throws Exception {
+        reactoServiceRegistry.execute(command1Arg(TEST_COMMAND, "foo"), Event.class)
+                .subscribe(testSubscriber);
+        assertCompletedSuccessfully();
+        testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
+    }
+
+    @Test
     public void shouldFailWhenConnectingToInExistingWebSocketStream() throws Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final AtomicReference<Throwable> ex = new AtomicReference<>();

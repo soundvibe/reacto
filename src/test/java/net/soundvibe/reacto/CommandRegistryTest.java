@@ -1,9 +1,10 @@
 package net.soundvibe.reacto;
 
 import net.soundvibe.reacto.server.CommandRegistry;
+import net.soundvibe.reacto.server.errors.CommandAlreadyRegistered;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.DemoCommandRegistryMapper;
-import net.soundvibe.reacto.utils.models.FooBar;
+import net.soundvibe.reacto.utils.models.*;
 import org.junit.Test;
 import rx.Observable;
 
@@ -61,5 +62,28 @@ public class CommandRegistryTest {
         for (Pair<CommandDescriptor, Function<Command, Observable<Event>>> pair : sut) {
             assertEquals(CommandDescriptor.of("foo"), pair.getKey());
         }
+    }
+
+    @Test(expected = CommandAlreadyRegistered.class)
+    public void shouldDisallowDuplicatedCommands() throws Exception {
+        CommandRegistry
+                .of("foo", o -> Observable.empty())
+                .and("foo", o -> Observable.empty());
+    }
+
+    @Test(expected = CommandAlreadyRegistered.class)
+    public void shouldDisallowDuplicatedTypedCommands() throws Exception {
+        CommandRegistry
+                .ofTyped(MakeDemo.class, DemoMade.class, o -> Observable.empty(), new DemoCommandRegistryMapper())
+                .and(MakeDemo.class, DemoMade.class, o -> Observable.empty());
+    }
+
+    @Test
+    public void shouldAllowSameTypedCommandsButDifferentEvents() throws Exception {
+        final CommandRegistry sut = CommandRegistry
+                .ofTyped(MakeDemo.class, DemoMade.class, o -> Observable.empty(), new DemoCommandRegistryMapper())
+                .and(MakeDemo.class, FooBar.class, o -> Observable.empty());
+
+        assertEquals(2L, sut.stream().count());
     }
 }
