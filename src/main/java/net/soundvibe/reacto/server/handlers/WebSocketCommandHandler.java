@@ -25,7 +25,7 @@ public class WebSocketCommandHandler implements Handler<ServerWebSocket> {
 
     @Override
     public void handle(ServerWebSocket serverWebSocket) {
-        if (!canHandle(serverWebSocket.path())) {
+        if (!shouldHandle(serverWebSocket.path())) {
             serverWebSocket.reject();
             return;
         }
@@ -39,7 +39,7 @@ public class WebSocketCommandHandler implements Handler<ServerWebSocket> {
                 )));
     }
 
-    private boolean canHandle(String path) {
+    private boolean shouldHandle(String path) {
         return root.equals(includeStartDelimiter(includeEndDelimiter(path)));
     }
 
