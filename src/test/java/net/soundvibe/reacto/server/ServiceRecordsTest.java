@@ -60,7 +60,7 @@ public class ServiceRecordsTest {
         final Record record = HttpEndpoint.createRecord("test", "localhost", 80, "/",
                 getMetadata()
         );
-        assertTrue(ServiceRecords.hasCommand(Command.createTyped(Foo.class, FooBar.class, "".getBytes()), record));
+        assertTrue(ServiceRecords.hasCommand(Foo.class.getName(), FooBar.class.getName(), record));
     }
 
     @Test
@@ -84,7 +84,7 @@ public class ServiceRecordsTest {
                 .put(ServiceRecords.LAST_UPDATED, Instant.now().minus(2L, ChronoUnit.MINUTES))
                 .put(ServiceRecords.COMMANDS, new JsonArray()
                         .add(new JsonObject().put(CommandDescriptor.COMMAND, "foo").put(CommandDescriptor.EVENT, ""))
-                        .add(new JsonObject().put(CommandDescriptor.COMMAND, "bar").put(CommandDescriptor.EVENT, "barEvent"))
+                        .add(new JsonObject().put(CommandDescriptor.COMMAND, "bar").put(CommandDescriptor.EVENT, ""))
                         .add(new JsonObject().put(CommandDescriptor.COMMAND, Foo.class.getName()).put(CommandDescriptor.EVENT, FooBar.class.getName()))
                 );
     }

@@ -145,7 +145,7 @@ public final class DiscoverableServices {
      */
     private static Observable<Record> findCommandRecords(Command command,
                                                          ServiceDiscovery serviceDiscovery) {
-        return findRecord(record -> ServiceRecords.hasCommand(command, record), serviceDiscovery,
+        return findRecord(record -> ServiceRecords.hasCommand(command.name, command.eventType(), record), serviceDiscovery,
                 command.name + ":" + command.eventType());
     }
 

@@ -35,20 +35,16 @@ public interface ServiceRecords {
 
     JsonArray emptyJsonArray = new JsonArray();
 
-    static boolean hasCommand(String commandName, Record record) {
-        return record.getMetadata().getJsonArray(COMMANDS, emptyJsonArray)
-                .stream()
-                .flatMap(o -> o instanceof JsonObject ? Stream.of((JsonObject)o) : Stream.empty())
-                .filter(descriptor -> descriptor.getString(CommandDescriptor.COMMAND, "").equals(commandName))
-                .count() > 0L;
+    static boolean hasCommand(String commandType, Record record) {
+        return hasCommand(commandType, "", record);
     }
 
-    static boolean hasCommand(Command command, Record record) {
+    static boolean hasCommand(String commandType, String eventType, Record record) {
         return record.getMetadata().getJsonArray(COMMANDS, emptyJsonArray)
                 .stream()
                 .flatMap(o -> o instanceof JsonObject ? Stream.of((JsonObject)o) : Stream.empty())
-                .filter(descriptor -> descriptor.getString(CommandDescriptor.COMMAND, "").equals(command.name) &&
-                    descriptor.getString(CommandDescriptor.EVENT, "").equals(command.eventType()))
+                .filter(descriptor -> descriptor.getString(CommandDescriptor.COMMAND, "").equals(commandType) &&
+                    descriptor.getString(CommandDescriptor.EVENT, "").equals(eventType))
                 .count() > 0L;
     }
 
