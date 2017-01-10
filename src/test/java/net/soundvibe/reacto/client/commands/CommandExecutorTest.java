@@ -10,8 +10,10 @@ import io.vertx.servicediscovery.*;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.client.errors.*;
 import net.soundvibe.reacto.discovery.*;
+import net.soundvibe.reacto.mappers.Mappers;
 import net.soundvibe.reacto.server.*;
 import net.soundvibe.reacto.types.*;
+import net.soundvibe.reacto.utils.*;
 import net.soundvibe.reacto.utils.models.CustomError;
 import org.junit.*;
 import rx.Observable;
@@ -60,7 +62,10 @@ public class CommandExecutorTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        mainCommands = CommandRegistry.of(TEST_COMMAND, cmd ->
+        mainCommands = CommandRegistry.ofTyped(MakeDemo.class, DemoMade.class,
+                    makeDemo -> Observable.just(new DemoMade(makeDemo.name)),
+                    new DemoCommandRegistryMapper())
+                .and(TEST_COMMAND, cmd ->
                     event1Arg("Called command with arg: " + cmd.get("arg")).toObservable()
                 )
                 .and(TEST_COMMAND_MANY, o -> Observable.just(
@@ -89,15 +94,16 @@ public class CommandExecutorTest {
                         System.out.println(e.getMessage());
                         subscriber.onError(e);
                     }
-                }));
+                }))
+        ;
 
         CommandRegistry fallbackCommands = CommandRegistry.of(TEST_FAIL_BUT_FALLBACK_COMMAND,
                 o -> event1Arg("Recovered: " + o.get("arg")).toObservable());
 
         vertx = Vertx.vertx();
         serviceDiscovery = ServiceDiscovery.create(vertx);
-        reactoServiceRegistry = new ReactoServiceRegistry(serviceDiscovery);
-        ReactoServiceRegistry reactoServiceRegistry2 = new ReactoServiceRegistry(serviceDiscovery);
+        reactoServiceRegistry = new ReactoServiceRegistry(serviceDiscovery, new DemoServiceRegistryMapper());
+        ReactoServiceRegistry reactoServiceRegistry2 = new ReactoServiceRegistry(serviceDiscovery, new DemoServiceRegistryMapper());
 
         mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(MAIN_SERVER_PORT)
@@ -277,7 +283,7 @@ public class CommandExecutorTest {
                         throw new RuntimeException(e);
                     }
                 })),
-                new ReactoServiceRegistry(serviceDiscovery));
+                new ReactoServiceRegistry(serviceDiscovery, Mappers.untypedServiceRegistryMapper()));
 
         final CommandExecutor executor = CommandExecutors.webSocket(Nodes.of("http://localhost:8183/distTest/"), 5000);
 
@@ -344,7 +350,7 @@ public class CommandExecutorTest {
                 CommandRegistry.of(TEST_COMMAND, cmd ->
                         event1Arg("Called command from second server with arg: "
                                 + cmd.get("arg")).toObservable()),
-                new ReactoServiceRegistry(serviceDiscovery));
+                new ReactoServiceRegistry(serviceDiscovery, Mappers.untypedServiceRegistryMapper()));
         reactoServer.start().toBlocking().subscribe();
 
         try {

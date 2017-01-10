@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.server;
 
+import net.soundvibe.reacto.mappers.CommandRegistryMapper;
 import net.soundvibe.reacto.types.*;
 import rx.Observable;
 
@@ -14,9 +15,14 @@ import java.util.stream.*;
 public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, Function<Command, Observable<Event>>>> {
 
     private final Map<CommandDescriptor, Function<Command, Observable<Event>>> commands = new ConcurrentHashMap<>();
+    private final CommandRegistryMapper mapper;
 
     private CommandRegistry() {
-        //hide constructor
+        this.mapper = null;
+    }
+
+    private CommandRegistry(CommandRegistryMapper mapper) {
+        this.mapper = mapper;
     }
 
     public CommandRegistry and(String commandName, Function<Command, Observable<Event>> onInvoke) {
@@ -26,10 +32,17 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, F
         return this;
     }
 
-    public CommandRegistry and(CommandDescriptor descriptor, Function<Command, Observable<Event>> onInvoke) {
-        Objects.requireNonNull(descriptor, "descriptor name cannot be null");
+    public <C,E> CommandRegistry and(Class<C> commandType, Class<? extends E> eventType,
+                                     Function<C, Observable<? extends E>> onInvoke) {
+        Objects.requireNonNull(commandType, "commandType name cannot be null");
+        Objects.requireNonNull(eventType, "eventType name cannot be null");
         Objects.requireNonNull(onInvoke, "onInvoke cannot be null");
-        commands.put(descriptor, onInvoke);
+        Objects.requireNonNull(mapper, "mapper cannot be null");
+
+        final Function<Command, Observable<? extends E>> before = onInvoke.compose(c -> mapper.toGenericCommand(c, commandType));
+        final Function<Command, Observable<Event>> after = before.andThen(observable -> observable.map(mapper::toEvent));
+
+        commands.put(CommandDescriptor.ofTypes(commandType, eventType), after);
         return this;
     }
 
@@ -37,8 +50,11 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, F
         return new CommandRegistry().and(commandName, onInvoke);
     }
 
-    public static CommandRegistry ofTyped(CommandDescriptor descriptor, Function<Command, Observable<Event>> onInvoke) {
-        return new CommandRegistry().and(descriptor, onInvoke);
+    public static <C,E> CommandRegistry ofTyped(
+            Class<C> commandType, Class<? extends E> eventType,
+            Function<C, Observable<? extends E>> onInvoke,
+            CommandRegistryMapper mapper) {
+        return new CommandRegistry(mapper).and(commandType, eventType, onInvoke);
     }
 
     public static CommandRegistry empty() {

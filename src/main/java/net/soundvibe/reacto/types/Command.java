@@ -77,6 +77,25 @@ public final class Command {
                 Optional.of(serializedCommand));
     }
 
+    public static Command createTyped(Class<?> commandType, Class<?> eventType, MetaData metaData) {
+        Objects.requireNonNull(commandType, "commandType cannot be null");
+        Objects.requireNonNull(eventType, "eventType cannot be null");
+        Objects.requireNonNull(metaData, "metaData cannot be null");
+        return new Command(ObjectId.get(), commandType.getName(),
+                Optional.of(MetaData.of(CommandDescriptor.EVENT, eventType.getName()).concat(metaData)),
+                Optional.empty());
+    }
+
+    public static Command createTyped(Class<?> commandType, Class<?> eventType, MetaData metaData, byte[] serializedCommand) {
+        Objects.requireNonNull(commandType, "commandType cannot be null");
+        Objects.requireNonNull(eventType, "eventType cannot be null");
+        Objects.requireNonNull(metaData, "metaData cannot be null");
+        Objects.requireNonNull(serializedCommand, "serializedCommand cannot be null");
+        return new Command(ObjectId.get(), commandType.getName(),
+                Optional.of(MetaData.of(CommandDescriptor.EVENT, eventType.getName()).concat(metaData)),
+                Optional.of(serializedCommand));
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

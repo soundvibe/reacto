@@ -99,6 +99,12 @@ public final class MetaData implements Iterable<Pair<String, String>> {
         return Observable.from(this.entries);
     }
 
+    public MetaData concat(MetaData other) {
+        return fromStream(Stream.concat(
+                StreamSupport.stream(this.spliterator(), false),
+                StreamSupport.stream(other.spliterator(), false)));
+    }
+
     private Supplier<Map<String, String>> mapSupplier(Iterable<Pair<String, String>> entries) {
         return Lazy.of(() -> {
             Map<String, String> map = new HashMap<>();

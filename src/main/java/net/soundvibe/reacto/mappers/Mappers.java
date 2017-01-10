@@ -71,4 +71,44 @@ public interface Mappers {
                     .map(eventHandlerFactory)
                     .collect(Collectors.toList());
     }
+
+    static ServiceRegistryMapper untypedServiceRegistryMapper() {
+        return new ServiceRegistryMapper() {
+            @Override
+            public <C> Command toCommand(C genericCommand) {
+                if (!genericCommand.getClass().equals(Command.class)) {
+                    throw new IllegalArgumentException("untypedServiceRegistryMapper accepts only basic Command instances. Provided: " + genericCommand.getClass());
+                }
+                return (Command) genericCommand;
+            }
+
+            @Override
+            public <E> E toGenericEvent(Event event, Class<? extends E> eventClass) {
+                if (!eventClass.equals(Event.class)) {
+                    throw new IllegalArgumentException("untypedServiceRegistryMapper emits only basic Events. Provided: " + eventClass);
+                }
+                return eventClass.cast(event);
+            }
+        };
+    }
+
+    static CommandRegistryMapper untypedCommandRegistryMapper() {
+        return new CommandRegistryMapper() {
+            @Override
+            public <C> C toGenericCommand(Command command, Class<? extends C> commandClass) {
+                if (!commandClass.isInstance(command)) {
+                    throw new IllegalArgumentException("untypedCommandRegistryMapper accepts only basic Command instances. Provided: " + commandClass);
+                }
+                return commandClass.cast(command);
+            }
+
+            @Override
+            public <E> Event toEvent(E genericEvent) {
+                if (!genericEvent.getClass().equals(Event.class)) {
+                    throw new IllegalArgumentException("untypedCommandRegistryMapper emits only basic Events. Provided: " + genericEvent.getClass());
+                }
+                return (Event) genericEvent;
+            }
+        };
+    }
 }

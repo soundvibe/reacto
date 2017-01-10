@@ -5,7 +5,7 @@ import io.vertx.servicediscovery.*;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.client.errors.CannotDiscoverService;
-import net.soundvibe.reacto.utils.WebUtils;
+import net.soundvibe.reacto.utils.*;
 import org.junit.Test;
 import rx.observers.TestSubscriber;
 
@@ -25,7 +25,7 @@ public class ReactoServiceRegistryTest {
     private final Vertx vertx = Vertx.vertx();
     private final ServiceDiscovery serviceDiscovery = ServiceDiscovery.create(vertx);
 
-    private final ReactoServiceRegistry sut = new ReactoServiceRegistry(serviceDiscovery);
+    private final ReactoServiceRegistry sut = new ReactoServiceRegistry(serviceDiscovery, new DemoServiceRegistryMapper());
 
     @Test
     public void shouldStartDiscovery() throws Exception {

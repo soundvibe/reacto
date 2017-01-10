@@ -1,7 +1,8 @@
 package net.soundvibe.reacto.server;
 
 import io.vertx.core.json.*;
-import net.soundvibe.reacto.types.CommandDescriptor;
+import net.soundvibe.reacto.types.*;
+import net.soundvibe.reacto.utils.DemoCommandRegistryMapper;
 import org.junit.Test;
 import rx.Observable;
 
@@ -30,12 +31,12 @@ public class VertxServerTest {
     @Test
     public void shouldSerializeTypedCommandToJson() throws Exception {
         CommandRegistry commandRegistry = CommandRegistry
-                .ofTyped(CommandDescriptor.ofNames("foo", "bar"), command -> Observable.empty());
+                .ofTyped(MakeDemo.class, DemoMade.class, makeDemo -> Observable.empty(), new DemoCommandRegistryMapper());
 
         final JsonArray array = VertxServer.commandsToJsonArray(commandRegistry);
         final JsonObject jsonObject = new JsonObject().put("commands", array);
         final String actual = jsonObject.encode();
-        final String expected = "{\"commands\":[{\"commandType\":\"foo\",\"eventType\":\"bar\"}]}";
+        final String expected = "{\"commands\":[{\"commandType\":\"net.soundvibe.reacto.types.MakeDemo\",\"eventType\":\"net.soundvibe.reacto.types.DemoMade\"}]}";
         assertEquals(expected, actual);
     }
 }

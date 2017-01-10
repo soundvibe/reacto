@@ -2,6 +2,8 @@ package net.soundvibe.reacto;
 
 import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.types.*;
+import net.soundvibe.reacto.utils.DemoCommandRegistryMapper;
+import net.soundvibe.reacto.utils.models.FooBar;
 import org.junit.Test;
 import rx.Observable;
 
@@ -23,15 +25,21 @@ public class CommandRegistryTest {
 
     @Test
     public void shouldFindCommandWithEventType() throws Exception {
-        final CommandDescriptor descriptor = CommandDescriptor.ofNames("bar", "foo");
-        CommandRegistry sut = CommandRegistry.ofTyped(descriptor, o -> Observable.just(Event.create("foo")));
+        final CommandDescriptor descriptor = CommandDescriptor.ofTypes(MakeDemo.class, DemoMade.class);
+        CommandRegistry sut = CommandRegistry.ofTyped(
+                MakeDemo.class, DemoMade.class,
+                makeDemo -> Observable.just(new DemoMade("foo")),
+                new DemoCommandRegistryMapper());
         assertTrue(sut.findCommand(descriptor).isPresent());
     }
 
     @Test
     public void shouldNotFindCommandWithEventType() throws Exception {
-        CommandRegistry sut = CommandRegistry.ofTyped(CommandDescriptor.ofNames("bar", "foo"), o -> Observable.just(Event.create("foo")));
-        assertFalse(sut.findCommand(CommandDescriptor.ofNames("bar", "foo2")).isPresent());
+        CommandRegistry sut = CommandRegistry.ofTyped(
+                MakeDemo.class, DemoMade.class,
+                makeDemo -> Observable.just(new DemoMade("foo")),
+                new DemoCommandRegistryMapper());
+        assertFalse(sut.findCommand(CommandDescriptor.ofTypes(MakeDemo.class, FooBar.class)).isPresent());
     }
 
     @Test

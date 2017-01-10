@@ -4,11 +4,13 @@ import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.client.events.EventHandler;
+import net.soundvibe.reacto.mappers.ServiceRegistryMapper;
 import net.soundvibe.reacto.server.ServiceRecords;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static net.soundvibe.reacto.discovery.DiscoverableServices.publishRecord;
@@ -23,14 +25,13 @@ public final class ReactoServiceRegistry implements ServiceRegistry, ServiceDisc
     private final AtomicBoolean isClosed = new AtomicBoolean(true);
 
     private final ServiceDiscovery serviceDiscovery;
+    private final ServiceRegistryMapper mapper;
 
-    public ReactoServiceRegistry(ServiceDiscovery serviceDiscovery) {
+    public ReactoServiceRegistry(ServiceDiscovery serviceDiscovery, ServiceRegistryMapper mapper) {
+        Objects.requireNonNull(serviceDiscovery, "serviceDiscovery cannot be null");
+        Objects.requireNonNull(mapper, "mapper cannot be null");
         this.serviceDiscovery = serviceDiscovery;
-    }
-
-    @Override
-    public Observable<CommandExecutor> find(String commandName, LoadBalancer<EventHandler> loadBalancer) {
-        return DiscoverableServices.findCommand(commandName, serviceDiscovery, loadBalancer);
+        this.mapper = mapper;
     }
 
     @Override
@@ -38,9 +39,20 @@ public final class ReactoServiceRegistry implements ServiceRegistry, ServiceDisc
         return execute(command, LoadBalancers.ROUND_ROBIN);
     }
 
-    @Override
     public Observable<Event> execute(Command command, LoadBalancer<EventHandler> loadBalancer) {
         return DiscoverableServices.execute(command, serviceDiscovery, loadBalancer);
+    }
+
+    @Override
+    public <E, C> Observable<E> execute(C command, Class<? extends E> eventClass, LoadBalancer<EventHandler> loadBalancer) {
+        if (command instanceof Command && eventClass.equals(Event.class)) {
+            //noinspection unchecked
+            return (Observable<E>) execute((Command)command, loadBalancer);
+        }
+        return Observable.just(command)
+                .map(mapper::toCommand)
+                .flatMap(cmd -> execute(cmd, loadBalancer))
+                .map(event -> mapper.toGenericEvent(event, eventClass));
     }
 
     @Override
