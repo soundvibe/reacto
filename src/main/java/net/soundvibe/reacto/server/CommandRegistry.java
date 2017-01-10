@@ -86,6 +86,7 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, F
     public String toString() {
         return "CommandRegistry{" +
                 "commands=" + commands +
+                ", mapper=" + mapper +
                 '}';
     }
 

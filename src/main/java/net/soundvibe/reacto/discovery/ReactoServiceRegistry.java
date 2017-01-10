@@ -45,22 +45,15 @@ public final class ReactoServiceRegistry implements ServiceRegistry, ServiceDisc
 
     @Override
     public <E, C> Observable<? extends E> execute(C command, Class<? extends E> eventClass, LoadBalancer<EventHandler> loadBalancer) {
-        if (command == null) {
-            return Observable.error(new IllegalArgumentException("Command cannot be null"));
-        }
-
-        if (eventClass == null) {
-            return Observable.error(new IllegalArgumentException("eventClass cannot be null"));
-        }
-
-        if (loadBalancer == null) {
-            return Observable.error(new IllegalArgumentException("loadBalancer cannot be null"));
-        }
+        if (command == null) return Observable.error(new IllegalArgumentException("command cannot be null"));
+        if (eventClass == null) return Observable.error(new IllegalArgumentException("eventClass cannot be null"));
+        if (loadBalancer == null) return Observable.error(new IllegalArgumentException("loadBalancer cannot be null"));
 
         if (command instanceof Command && eventClass.isAssignableFrom(Event.class)) {
             //noinspection unchecked
             return (Observable<E>) execute((Command)command, loadBalancer);
         }
+
         return Observable.just(command)
                 .map(cmd -> mapper.toCommand(cmd, eventClass))
                 .flatMap(typedCommand -> execute(typedCommand, loadBalancer))

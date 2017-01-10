@@ -24,10 +24,6 @@ public final class CommandDescriptor {
         return new CommandDescriptor(commandName, "");
     }
 
-    public static CommandDescriptor ofNames(String commandType, String eventType) {
-        return new CommandDescriptor(commandType, eventType);
-    }
-
     public static CommandDescriptor ofTypes(Class<?> commandType, Class<?> eventType) {
         Objects.requireNonNull(commandType, "commandType cannot be null");
         Objects.requireNonNull(eventType, "eventType cannot be null");

@@ -43,9 +43,8 @@ public interface ServiceRecords {
         return record.getMetadata().getJsonArray(COMMANDS, emptyJsonArray)
                 .stream()
                 .flatMap(o -> o instanceof JsonObject ? Stream.of((JsonObject)o) : Stream.empty())
-                .filter(descriptor -> descriptor.getString(CommandDescriptor.COMMAND, "").equals(commandType) &&
-                    descriptor.getString(CommandDescriptor.EVENT, "").equals(eventType))
-                .count() > 0L;
+                .anyMatch(descriptor -> descriptor.getString(CommandDescriptor.COMMAND, "").equals(commandType) &&
+                    descriptor.getString(CommandDescriptor.EVENT, "").equals(eventType));
     }
 
     static boolean isService(String serviceName, Record record) {

@@ -107,6 +107,7 @@ public class CommandExecutorTest {
                             new Cat("Cat ate " + feed.meal)
                     ),
                     new JacksonMapper(Json.mapper))
+                .and(JacksonCommand.class, JacksonEvent.class, jacksonCommand -> Observable.error(new RuntimeException("test error")))
                 .and(TEST_FAIL_BUT_FALLBACK_COMMAND,
                 o -> event1Arg("Recovered: " + o.get("arg")).toObservable());
 
@@ -382,9 +383,7 @@ public class CommandExecutorTest {
             CommandExecutors.find(service)
                     .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "bar")))
                     .subscribe(eventTestSubscriber);
-            eventTestSubscriber.awaitTerminalEvent();
-            eventTestSubscriber.assertNoErrors();
-            eventTestSubscriber.assertCompleted();
+            assertCompletedSuccessfully(eventTestSubscriber);
             eventTestSubscriber.assertValueCount(1);
 
             final Event actual2 = eventTestSubscriber.getOnNextEvents().get(0);
@@ -420,6 +419,16 @@ public class CommandExecutorTest {
 
         assertCompletedSuccessfully(typedSubscriber);
         typedSubscriber.assertValue(new DemoMade("Hello, World!"));
+    }
+
+    @Test
+    public void shouldFailWhenExecutingTypedCommand() throws Exception {
+        final TestSubscriber<JacksonEvent> jacksonEventTestSubscriber = new TestSubscriber<>();
+        reactoServiceRegistry2.execute(new JacksonCommand("test"), JacksonEvent.class)
+                .subscribe(jacksonEventTestSubscriber);
+
+        assertError(jacksonEventTestSubscriber, RuntimeException.class,
+                e -> assertEquals("test error", e.getMessage()));
     }
 
     @Test
@@ -539,7 +548,20 @@ public class CommandExecutorTest {
         testSubscriber.assertCompleted();
     }
 
+
     @SuppressWarnings({"ThrowableResultOfMethodCallIgnored", "unchecked"})
+    private <T extends Throwable> void assertError(TestSubscriber<?> testSubscriber, Class<T> expected, Consumer<T> errorChecker) {
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNotCompleted();
+        final List<Throwable> onErrorEvents = testSubscriber.getOnErrorEvents();
+        assertEquals("Should be one error", 1, onErrorEvents.size());
+
+        final Throwable throwable = onErrorEvents.get(0);
+        assertEquals("Should be HystrixRuntimeException", expected, throwable.getClass());
+        final Throwable actualCause = throwable.getCause();
+        errorChecker.accept((T) throwable);
+    }
+
     private <T extends Throwable> void assertActualHystrixError(Class<T> expected, Consumer<T> errorChecker) {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNotCompleted();

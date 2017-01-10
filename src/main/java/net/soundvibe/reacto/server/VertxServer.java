@@ -128,7 +128,7 @@ public class VertxServer implements Server<HttpServer> {
     }
 
     @Override
-    public Observable<Void> stop() {
+    public Observable<Any> stop() {
         return Observable.<Record>create(subscriber ->
             httpServer.close(event -> {
                 if (event.succeeded()) {
@@ -148,7 +148,7 @@ public class VertxServer implements Server<HttpServer> {
             })).flatMap(rec -> discoveryLifecycle.isOpen() ?
                     discoveryLifecycle.closeDiscovery(rec) :
                     Observable.just(rec))
-                .map(__ -> Void.TYPE.cast(null));
+                .map(__ -> Any.VOID);
     }
 
     private void setupRoutes() {

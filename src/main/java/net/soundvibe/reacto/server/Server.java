@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.server;
 
+import net.soundvibe.reacto.types.Any;
 import rx.Observable;
 
 /**
@@ -9,6 +10,6 @@ public interface Server<T> {
 
     Observable<T> start();
 
-    Observable<Void> stop();
+    Observable<Any> stop();
 
 }
