@@ -14,7 +14,7 @@ import net.soundvibe.reacto.mappers.Mappers;
 import net.soundvibe.reacto.server.*;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.*;
-import net.soundvibe.reacto.utils.models.CustomError;
+import net.soundvibe.reacto.utils.models.*;
 import org.junit.*;
 import rx.Observable;
 import rx.observers.TestSubscriber;
@@ -59,6 +59,7 @@ public class CommandExecutorTest {
     private final CommandExecutor mainNodeAndFallbackExecutor = CommandExecutors.webSocket(Nodes.of(MAIN_NODE, FALLBACK_NODE));
     private static CommandRegistry mainCommands;
     private static Vertx vertx;
+    private final TestSubscriber<DemoMade> typedSubscriber = new TestSubscriber<>();
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -406,12 +407,23 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldExecuteTypedCommandAndReceiveTypedEvent() throws Exception {
-        final TestSubscriber<DemoMade> typedSubscriber = new TestSubscriber<>();
         reactoServiceRegistry.execute(new MakeDemo("Hello, World!"), DemoMade.class)
                 .subscribe(typedSubscriber);
 
         assertCompletedSuccessfully(typedSubscriber);
         typedSubscriber.assertValue(new DemoMade("Hello, World!"));
+    }
+
+    @Test
+    public void shouldExecuteTypedCommandWithIncompatibleEventClass() throws Exception {
+        final TestSubscriber<Foo> fooTestSubscriber = new TestSubscriber<>();
+        reactoServiceRegistry.execute(new MakeDemo("Hello, World!"), Foo.class)
+                .subscribe(fooTestSubscriber);
+
+        fooTestSubscriber.awaitTerminalEvent();
+        fooTestSubscriber.assertNoValues();
+        fooTestSubscriber.assertError(CannotDiscoverService.class);
+        fooTestSubscriber.assertNotCompleted();
     }
 
     @Test

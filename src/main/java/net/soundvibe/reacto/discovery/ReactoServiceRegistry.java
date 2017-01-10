@@ -51,10 +51,10 @@ public final class ReactoServiceRegistry implements ServiceRegistry, ServiceDisc
             return (Observable<E>) execute((Command)command, loadBalancer);
         }
         return Observable.just(command)
-                .map(mapper::toCommand)
+                .map(cmd -> mapper.toCommand(cmd, eventClass))
                 .flatMap(cmd -> cmd.eventType().isEmpty() ? Observable.error(new CommandIsNotTyped(cmd)) : Observable.just(cmd))
                 .flatMap(cmd -> execute(cmd, loadBalancer))
-                .map(event -> mapper.toGenericEvent(TypedEvent.create(event), eventClass));
+                .map(event -> mapper.toGenericEvent(event, eventClass));
     }
 
     @Override

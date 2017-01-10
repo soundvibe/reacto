@@ -41,16 +41,6 @@ public final class TypedCommand extends Command {
                 Optional.of(serializedCommand));
     }
 
-    public static TypedCommand create(Class<?> commandType, Class<?> eventType, Command command) {
-        Objects.requireNonNull(commandType, "commandType cannot be null");
-        Objects.requireNonNull(eventType, "eventType cannot be null");
-        return new TypedCommand(
-                ObjectId.get(),
-                commandType.getName(),
-                Optional.of(MetaData.of(CommandDescriptor.EVENT, eventType.getName()).concat(command.metaData.orElse(MetaData.empty()))),
-                command.payload);
-    }
-
     public String commandType() {
         return name;
     }

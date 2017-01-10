@@ -9,7 +9,7 @@ import net.soundvibe.reacto.types.*;
 public class DemoCommandRegistryMapper implements CommandRegistryMapper {
 
     @Override
-    public <C> C toGenericCommand(TypedCommand command, Class<? extends C> commandClass) {
+    public <C> C toGenericCommand(Command command, Class<? extends C> commandClass) {
         if (!commandClass.equals(MakeDemo.class)) {
             throw new IllegalArgumentException("Expected MakeDemo command class but got: " + commandClass);
         }

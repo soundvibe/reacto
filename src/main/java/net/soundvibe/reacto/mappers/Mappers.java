@@ -75,7 +75,7 @@ public interface Mappers {
     static ServiceRegistryMapper untypedServiceRegistryMapper() {
         return new ServiceRegistryMapper() {
             @Override
-            public <C> TypedCommand toCommand(C genericCommand) {
+            public <C, E> TypedCommand toCommand(C genericCommand, Class<? extends E> eventClass) {
                 if (!genericCommand.getClass().equals(TypedCommand.class)) {
                     throw new IllegalArgumentException("untypedServiceRegistryMapper accepts only basic Command instances. Provided: " + genericCommand.getClass());
                 }
@@ -83,8 +83,8 @@ public interface Mappers {
             }
 
             @Override
-            public <E> E toGenericEvent(TypedEvent event, Class<? extends E> eventClass) {
-                if (!eventClass.equals(TypedEvent.class)) {
+            public <E> E toGenericEvent(Event event, Class<? extends E> eventClass) {
+                if (!eventClass.equals(Event.class)) {
                     throw new IllegalArgumentException("untypedServiceRegistryMapper emits only basic Events. Provided: " + eventClass);
                 }
                 return eventClass.cast(event);
@@ -95,7 +95,7 @@ public interface Mappers {
     static CommandRegistryMapper untypedCommandRegistryMapper() {
         return new CommandRegistryMapper() {
             @Override
-            public <C> C toGenericCommand(TypedCommand command, Class<? extends C> commandClass) {
+            public <C> C toGenericCommand(Command command, Class<? extends C> commandClass) {
                 if (!commandClass.isInstance(command)) {
                     throw new IllegalArgumentException("untypedCommandRegistryMapper accepts only basic Command instances. Provided: " + commandClass);
                 }
