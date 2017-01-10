@@ -1,10 +1,11 @@
 package net.soundvibe.reacto.server;
 
 import io.vertx.core.json.*;
+import net.soundvibe.reacto.types.CommandDescriptor;
 import org.junit.Test;
 import rx.Observable;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * @author OZY on 2016.12.30.
@@ -20,8 +21,21 @@ public class VertxServerTest {
         final JsonArray array = VertxServer.commandsToJsonArray(commandRegistry);
         final JsonObject jsonObject = new JsonObject().put("commands", array);
         final String actual = jsonObject.encode();
-        final String expected1 = "{\"commands\":[\"bar\",\"foo\"]}";
-        final String expected2 = "{\"commands\":[\"foo\",\"bar\"]}";
-        assertTrue(actual.equals(expected1) || actual.equals(expected2));
+        final String expected1 = "{\"commands\":[{\"commandType\":\"bar\",\"eventType\":\"\"},{\"commandType\":\"foo\",\"eventType\":\"\"}]}";
+        final String expected2 = "{\"commands\":[{\"commandType\":\"foo\",\"eventType\":\"\"},{\"commandType\":\"bar\",\"eventType\":\"\"}]}";
+        assertTrue("Was not " + expected1 + " or " + expected2 + " but was " + actual,
+                actual.equals(expected1) || actual.equals(expected2));
+    }
+
+    @Test
+    public void shouldSerializeTypedCommandToJson() throws Exception {
+        CommandRegistry commandRegistry = CommandRegistry
+                .ofTyped(CommandDescriptor.ofNames("foo", "bar"), command -> Observable.empty());
+
+        final JsonArray array = VertxServer.commandsToJsonArray(commandRegistry);
+        final JsonObject jsonObject = new JsonObject().put("commands", array);
+        final String actual = jsonObject.encode();
+        final String expected = "{\"commands\":[{\"commandType\":\"foo\",\"eventType\":\"bar\"}]}";
+        assertEquals(expected, actual);
     }
 }

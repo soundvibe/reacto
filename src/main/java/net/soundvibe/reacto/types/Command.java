@@ -35,6 +35,10 @@ public final class Command {
         return Observable.just(this);
     }
 
+    public String eventType() {
+        return valueOf(CommandDescriptor.EVENT).orElse("");
+    }
+
     public static Command create(String name, Optional<MetaData> metaData, Optional<byte[]> payload) {
         return new Command(ObjectId.get(), name, metaData, payload);
     }
@@ -62,6 +66,15 @@ public final class Command {
         Objects.requireNonNull(metaData, "metaData cannot be null");
         Objects.requireNonNull(payload, "payload cannot be null");
         return new Command(ObjectId.get(), name, Optional.of(metaData), Optional.of(payload));
+    }
+
+    public static Command createTyped(Class<?> commandType, Class<?> eventType, byte[] serializedCommand) {
+        Objects.requireNonNull(commandType, "commandType cannot be null");
+        Objects.requireNonNull(eventType, "eventType cannot be null");
+        Objects.requireNonNull(serializedCommand, "serializedCommand cannot be null");
+        return new Command(ObjectId.get(), commandType.getName(),
+                Optional.of(MetaData.of(CommandDescriptor.EVENT, eventType.getName())),
+                Optional.of(serializedCommand));
     }
 
     @Override

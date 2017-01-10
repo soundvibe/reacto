@@ -1,10 +1,12 @@
 package net.soundvibe.reacto.server;
 
-import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.*;
 import io.vertx.servicediscovery.*;
+import net.soundvibe.reacto.types.*;
 
 import java.time.*;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * @author OZY on 2016.08.26.
@@ -34,7 +36,20 @@ public interface ServiceRecords {
     JsonArray emptyJsonArray = new JsonArray();
 
     static boolean hasCommand(String commandName, Record record) {
-        return record.getMetadata().getJsonArray(COMMANDS, emptyJsonArray).contains(commandName);
+        return record.getMetadata().getJsonArray(COMMANDS, emptyJsonArray)
+                .stream()
+                .flatMap(o -> o instanceof JsonObject ? Stream.of((JsonObject)o) : Stream.empty())
+                .filter(descriptor -> descriptor.getString(CommandDescriptor.COMMAND, "").equals(commandName))
+                .count() > 0L;
+    }
+
+    static boolean hasCommand(Command command, Record record) {
+        return record.getMetadata().getJsonArray(COMMANDS, emptyJsonArray)
+                .stream()
+                .flatMap(o -> o instanceof JsonObject ? Stream.of((JsonObject)o) : Stream.empty())
+                .filter(descriptor -> descriptor.getString(CommandDescriptor.COMMAND, "").equals(command.name) &&
+                    descriptor.getString(CommandDescriptor.EVENT, "").equals(command.eventType()))
+                .count() > 0L;
     }
 
     static boolean isService(String serviceName, Record record) {

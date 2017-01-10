@@ -3,6 +3,8 @@ package net.soundvibe.reacto.server;
 import io.vertx.core.json.*;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.types.HttpEndpoint;
+import net.soundvibe.reacto.types.*;
+import net.soundvibe.reacto.utils.models.*;
 import org.junit.Test;
 
 import java.time.Instant;
@@ -54,6 +56,14 @@ public class ServiceRecordsTest {
     }
 
     @Test
+    public void shouldFindRegisteredTypedCommand() throws Exception {
+        final Record record = HttpEndpoint.createRecord("test", "localhost", 80, "/",
+                getMetadata()
+        );
+        assertTrue(ServiceRecords.hasCommand(Command.createTyped(Foo.class, FooBar.class, "".getBytes()), record));
+    }
+
+    @Test
     public void shouldNotFindRegisteredCommand() throws Exception {
         final Record record = HttpEndpoint.createRecord("test", "localhost", 80, "/",
                 getMetadata()
@@ -72,6 +82,10 @@ public class ServiceRecordsTest {
     private JsonObject getMetadata() {
         return new JsonObject()
                 .put(ServiceRecords.LAST_UPDATED, Instant.now().minus(2L, ChronoUnit.MINUTES))
-                .put(ServiceRecords.COMMANDS, new JsonArray().add("foo").add("bar"));
+                .put(ServiceRecords.COMMANDS, new JsonArray()
+                        .add(new JsonObject().put(CommandDescriptor.COMMAND, "foo").put(CommandDescriptor.EVENT, ""))
+                        .add(new JsonObject().put(CommandDescriptor.COMMAND, "bar").put(CommandDescriptor.EVENT, "barEvent"))
+                        .add(new JsonObject().put(CommandDescriptor.COMMAND, Foo.class.getName()).put(CommandDescriptor.EVENT, FooBar.class.getName()))
+                );
     }
 }

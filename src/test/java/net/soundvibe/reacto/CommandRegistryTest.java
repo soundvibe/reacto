@@ -18,12 +18,25 @@ public class CommandRegistryTest {
     public void shouldFindCommand() throws Exception {
         CommandRegistry sut = CommandRegistry.of("foo", o -> Observable.just(Event.create("foo")));
 
-        assertTrue(sut.findCommand("foo").isPresent());
+        assertTrue(sut.findCommand(CommandDescriptor.of("foo")).isPresent());
+    }
+
+    @Test
+    public void shouldFindCommandWithEventType() throws Exception {
+        final CommandDescriptor descriptor = CommandDescriptor.ofNames("bar", "foo");
+        CommandRegistry sut = CommandRegistry.ofTyped(descriptor, o -> Observable.just(Event.create("foo")));
+        assertTrue(sut.findCommand(descriptor).isPresent());
+    }
+
+    @Test
+    public void shouldNotFindCommandWithEventType() throws Exception {
+        CommandRegistry sut = CommandRegistry.ofTyped(CommandDescriptor.ofNames("bar", "foo"), o -> Observable.just(Event.create("foo")));
+        assertFalse(sut.findCommand(CommandDescriptor.ofNames("bar", "foo2")).isPresent());
     }
 
     @Test
     public void shouldNotFindCommand() throws Exception {
-        assertFalse(CommandRegistry.of("dfdf", o -> Observable.empty()).findCommand("foobar").isPresent());
+        assertFalse(CommandRegistry.of("dfdf", o -> Observable.empty()).findCommand(CommandDescriptor.of("foobar")).isPresent());
     }
 
     @Test
@@ -37,8 +50,8 @@ public class CommandRegistryTest {
     @Test
     public void shouldLoopOverCommands() throws Exception {
         final CommandRegistry sut = CommandRegistry.of("foo", o -> Observable.just(Event.create("foo")));
-        for (Pair<String, Function<Command, Observable<Event>>> pair : sut) {
-            assertEquals("foo", pair.getKey());
+        for (Pair<CommandDescriptor, Function<Command, Observable<Event>>> pair : sut) {
+            assertEquals(CommandDescriptor.of("foo"), pair.getKey());
         }
     }
 }

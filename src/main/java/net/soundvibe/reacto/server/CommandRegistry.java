@@ -11,9 +11,9 @@ import java.util.stream.*;
 /**
  * @author Linas on 2015.11.12.
  */
-public final class CommandRegistry implements Iterable<Pair<String, Function<Command, Observable<Event>>>> {
+public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, Function<Command, Observable<Event>>>> {
 
-    private final Map<String, Function<Command, Observable<Event>>> commands = new ConcurrentHashMap<>();
+    private final Map<CommandDescriptor, Function<Command, Observable<Event>>> commands = new ConcurrentHashMap<>();
 
     private CommandRegistry() {
         //hide constructor
@@ -22,7 +22,14 @@ public final class CommandRegistry implements Iterable<Pair<String, Function<Com
     public CommandRegistry and(String commandName, Function<Command, Observable<Event>> onInvoke) {
         Objects.requireNonNull(commandName, "Command name cannot be null");
         Objects.requireNonNull(onInvoke, "onInvoke cannot be null");
-        commands.put(commandName, onInvoke);
+        commands.put(CommandDescriptor.of(commandName), onInvoke);
+        return this;
+    }
+
+    public CommandRegistry and(CommandDescriptor descriptor, Function<Command, Observable<Event>> onInvoke) {
+        Objects.requireNonNull(descriptor, "descriptor name cannot be null");
+        Objects.requireNonNull(onInvoke, "onInvoke cannot be null");
+        commands.put(descriptor, onInvoke);
         return this;
     }
 
@@ -30,19 +37,23 @@ public final class CommandRegistry implements Iterable<Pair<String, Function<Com
         return new CommandRegistry().and(commandName, onInvoke);
     }
 
+    public static CommandRegistry ofTyped(CommandDescriptor descriptor, Function<Command, Observable<Event>> onInvoke) {
+        return new CommandRegistry().and(descriptor, onInvoke);
+    }
+
     public static CommandRegistry empty() {
         return new CommandRegistry();
     }
 
-    public Optional<Function<Command, Observable<Event>>> findCommand(String address) {
-        return Optional.ofNullable(commands.get(address));
+    public Optional<Function<Command, Observable<Event>>> findCommand(CommandDescriptor descriptor) {
+        return Optional.ofNullable(commands.get(descriptor));
     }
 
-    public Stream<Pair<String, Function<Command, Observable<Event>>>> stream() {
+    public Stream<Pair<CommandDescriptor, Function<Command, Observable<Event>>>> stream() {
         return StreamSupport.stream(spliterator(), false);
     }
 
-    public Stream<Pair<String, Function<Command, Observable<Event>>>> parallelStream() {
+    public Stream<Pair<CommandDescriptor, Function<Command, Observable<Event>>>> parallelStream() {
         return StreamSupport.stream(spliterator(), true);
     }
 
@@ -54,17 +65,17 @@ public final class CommandRegistry implements Iterable<Pair<String, Function<Com
     }
 
     @Override
-    public Iterator<Pair<String, Function<Command, Observable<Event>>>> iterator() {
-        final Iterator<Map.Entry<String, Function<Command, Observable<Event>>>> entryIterator = commands.entrySet().iterator();
-        return new Iterator<Pair<String, Function<Command, Observable<Event>>>>() {
+    public Iterator<Pair<CommandDescriptor, Function<Command, Observable<Event>>>> iterator() {
+        final Iterator<Map.Entry<CommandDescriptor, Function<Command, Observable<Event>>>> entryIterator = commands.entrySet().iterator();
+        return new Iterator<Pair<CommandDescriptor, Function<Command, Observable<Event>>>>() {
             @Override
             public boolean hasNext() {
                 return entryIterator.hasNext();
             }
 
             @Override
-            public Pair<String, Function<Command, Observable<Event>>> next() {
-                final Map.Entry<String, Function<Command, Observable<Event>>> entry = entryIterator.next();
+            public Pair<CommandDescriptor, Function<Command, Observable<Event>>> next() {
+                final Map.Entry<CommandDescriptor, Function<Command, Observable<Event>>> entry = entryIterator.next();
                 return Pair.of(entry.getKey(), entry.getValue());
             }
         };
