@@ -1,8 +1,6 @@
 package net.soundvibe.reacto.discovery;
 
-import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.client.events.EventHandler;
-import net.soundvibe.reacto.types.*;
 import rx.Observable;
 
 /**
@@ -10,16 +8,10 @@ import rx.Observable;
  */
 public interface ServiceRegistry {
 
-    default Observable<CommandExecutor> find(String commandName) {
-        return find(commandName, LoadBalancers.ROUND_ROBIN);
+    default <E,C> Observable<? extends E> execute(C command, Class<? extends E> eventClass) {
+        return execute(command, eventClass, LoadBalancers.ROUND_ROBIN);
     }
 
-    Observable<CommandExecutor> find(String commandName, LoadBalancer<EventHandler> loadBalancer);
-
-    default Observable<Event> execute(Command command) {
-        return execute(command, LoadBalancers.ROUND_ROBIN);
-    }
-
-    Observable<Event> execute(Command command, LoadBalancer<EventHandler> loadBalancer);
+    <E,C> Observable<? extends E> execute(C command, Class<? extends E> eventClass, LoadBalancer<EventHandler> loadBalancer);
 
 }

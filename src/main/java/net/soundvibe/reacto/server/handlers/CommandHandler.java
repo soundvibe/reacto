@@ -35,7 +35,8 @@ public final class CommandHandler {
                        ) {
         try {
             final Command receivedCommand = Mappers.fromBytesToCommand(bytes);
-            final Optional<Function<Command, Observable<Event>>> commandFunc = commands.findCommand(receivedCommand.name);
+            final CommandDescriptor descriptor = CommandDescriptor.fromCommand(receivedCommand);
+            final Optional<Function<Command, Observable<Event>>> commandFunc = commands.findCommand(descriptor);
             commandFunc
                     .map(cmdFunc -> cmdFunc.apply(receivedCommand)
                             .doOnEach(notification -> log.debug("Command "+ receivedCommand + " executed and received notification: " + notification))

@@ -4,15 +4,18 @@ import com.netflix.hystrix.exception.HystrixRuntimeException;
 import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.*;
-import io.vertx.core.json.JsonObject;
+import io.vertx.core.json.*;
 import io.vertx.ext.web.Router;
 import io.vertx.servicediscovery.*;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.client.errors.*;
 import net.soundvibe.reacto.discovery.*;
+import net.soundvibe.reacto.mappers.Mappers;
+import net.soundvibe.reacto.mappers.jackson.*;
 import net.soundvibe.reacto.server.*;
 import net.soundvibe.reacto.types.*;
-import net.soundvibe.reacto.utils.models.CustomError;
+import net.soundvibe.reacto.utils.*;
+import net.soundvibe.reacto.utils.models.*;
 import org.junit.*;
 import rx.Observable;
 import rx.observers.TestSubscriber;
@@ -50,6 +53,7 @@ public class CommandExecutorTest {
     private static VertxServer fallbackVertxServer;
     private static ServiceDiscovery serviceDiscovery;
     private static ReactoServiceRegistry reactoServiceRegistry;
+    private static ReactoServiceRegistry reactoServiceRegistry2;
 
     private final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
     private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(
@@ -57,10 +61,14 @@ public class CommandExecutorTest {
     private final CommandExecutor mainNodeAndFallbackExecutor = CommandExecutors.webSocket(Nodes.of(MAIN_NODE, FALLBACK_NODE));
     private static CommandRegistry mainCommands;
     private static Vertx vertx;
+    private final TestSubscriber<DemoMade> typedSubscriber = new TestSubscriber<>();
 
     @BeforeClass
     public static void setUp() throws Exception {
-        mainCommands = CommandRegistry.of(TEST_COMMAND, cmd ->
+        mainCommands = CommandRegistry.ofTyped(MakeDemo.class, DemoMade.class,
+                    makeDemo -> Observable.just(new DemoMade(makeDemo.name)),
+                    new DemoCommandRegistryMapper())
+                .and(TEST_COMMAND, cmd ->
                     event1Arg("Called command with arg: " + cmd.get("arg")).toObservable()
                 )
                 .and(TEST_COMMAND_MANY, o -> Observable.just(
@@ -89,15 +97,24 @@ public class CommandExecutorTest {
                         System.out.println(e.getMessage());
                         subscriber.onError(e);
                     }
-                }));
+                }))
+        ;
 
-        CommandRegistry fallbackCommands = CommandRegistry.of(TEST_FAIL_BUT_FALLBACK_COMMAND,
+        CommandRegistry fallbackCommands = CommandRegistry.ofTyped(
+                    Feed.class, Animal.class,
+                    feed -> Observable.just(
+                            new Dog("Dog ate " + feed.meal),
+                            new Cat("Cat ate " + feed.meal)
+                    ),
+                    new JacksonMapper(Json.mapper))
+                .and(JacksonCommand.class, JacksonEvent.class, jacksonCommand -> Observable.error(new RuntimeException("test error")))
+                .and(TEST_FAIL_BUT_FALLBACK_COMMAND,
                 o -> event1Arg("Recovered: " + o.get("arg")).toObservable());
 
         vertx = Vertx.vertx();
         serviceDiscovery = ServiceDiscovery.create(vertx);
-        reactoServiceRegistry = new ReactoServiceRegistry(serviceDiscovery);
-        ReactoServiceRegistry reactoServiceRegistry2 = new ReactoServiceRegistry(serviceDiscovery);
+        reactoServiceRegistry = new ReactoServiceRegistry(serviceDiscovery, new DemoServiceRegistryMapper());
+        reactoServiceRegistry2 = new ReactoServiceRegistry(serviceDiscovery, new JacksonMapper(Json.mapper));
 
         mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(MAIN_SERVER_PORT)
@@ -111,7 +128,6 @@ public class CommandExecutorTest {
 
         final Router router = Router.router(vertx);
         router.route("/health").handler(event -> event.response().end("ok"));
-        System.out.println("Before starting servers...");
         vertxServer = new VertxServer(new ServiceOptions("dist", "dist/", "0.1")
                 , router, mainHttpServer, mainCommands, reactoServiceRegistry);
         fallbackVertxServer = new VertxServer(new ServiceOptions("dist","dist/", "0.1")
@@ -277,7 +293,7 @@ public class CommandExecutorTest {
                         throw new RuntimeException(e);
                     }
                 })),
-                new ReactoServiceRegistry(serviceDiscovery));
+                new ReactoServiceRegistry(serviceDiscovery, Mappers.untypedServiceRegistryMapper()));
 
         final CommandExecutor executor = CommandExecutors.webSocket(Nodes.of("http://localhost:8183/distTest/"), 5000);
 
@@ -344,7 +360,7 @@ public class CommandExecutorTest {
                 CommandRegistry.of(TEST_COMMAND, cmd ->
                         event1Arg("Called command from second server with arg: "
                                 + cmd.get("arg")).toObservable()),
-                new ReactoServiceRegistry(serviceDiscovery));
+                new ReactoServiceRegistry(serviceDiscovery, Mappers.untypedServiceRegistryMapper()));
         reactoServer.start().toBlocking().subscribe();
 
         try {
@@ -367,9 +383,7 @@ public class CommandExecutorTest {
             CommandExecutors.find(service)
                     .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "bar")))
                     .subscribe(eventTestSubscriber);
-            eventTestSubscriber.awaitTerminalEvent();
-            eventTestSubscriber.assertNoErrors();
-            eventTestSubscriber.assertCompleted();
+            assertCompletedSuccessfully(eventTestSubscriber);
             eventTestSubscriber.assertValueCount(1);
 
             final Event actual2 = eventTestSubscriber.getOnNextEvents().get(0);
@@ -396,6 +410,58 @@ public class CommandExecutorTest {
 
         assertCompletedSuccessfully(testSubscriber2);
         testSubscriber2.assertValue(event1Arg("Called command with arg: bar"));
+    }
+
+    @Test
+    public void shouldExecuteTypedCommandAndReceiveTypedEvent() throws Exception {
+        reactoServiceRegistry.execute(new MakeDemo("Hello, World!"), DemoMade.class)
+                .subscribe(typedSubscriber);
+
+        assertCompletedSuccessfully(typedSubscriber);
+        typedSubscriber.assertValue(new DemoMade("Hello, World!"));
+    }
+
+    @Test
+    public void shouldFailWhenExecutingTypedCommand() throws Exception {
+        final TestSubscriber<JacksonEvent> jacksonEventTestSubscriber = new TestSubscriber<>();
+        reactoServiceRegistry2.execute(new JacksonCommand("test"), JacksonEvent.class)
+                .subscribe(jacksonEventTestSubscriber);
+
+        assertError(jacksonEventTestSubscriber, RuntimeException.class,
+                e -> assertEquals("test error", e.getMessage()));
+    }
+
+    @Test
+    public void shouldExecuteTypedCommandWithIncompatibleEventClass() throws Exception {
+        final TestSubscriber<Foo> fooTestSubscriber = new TestSubscriber<>();
+        reactoServiceRegistry.execute(new MakeDemo("Hello, World!"), Foo.class)
+                .subscribe(fooTestSubscriber);
+
+        fooTestSubscriber.awaitTerminalEvent();
+        fooTestSubscriber.assertNoValues();
+        fooTestSubscriber.assertError(CannotDiscoverService.class);
+        fooTestSubscriber.assertNotCompleted();
+    }
+
+    @Test
+    public void shouldExecuteTypedCommandAndReceivePolymorphicEvents() throws Exception {
+        final TestSubscriber<Animal> animalTestSubscriber = new TestSubscriber<>();
+        reactoServiceRegistry2.execute(new Feed("Pedigree"), Animal.class)
+                .subscribe(animalTestSubscriber);
+
+        assertCompletedSuccessfully(animalTestSubscriber);
+        animalTestSubscriber.assertValues(
+                new Dog("Dog ate Pedigree"),
+                new Cat("Cat ate Pedigree")
+        );
+    }
+
+    @Test
+    public void shouldExecutePlainAsTyped() throws Exception {
+        reactoServiceRegistry.execute(command1Arg(TEST_COMMAND, "foo"), Event.class)
+                .subscribe(testSubscriber);
+        assertCompletedSuccessfully();
+        testSubscriber.assertValue(event1Arg("Called command with arg: foo"));
     }
 
     @Test
@@ -482,7 +548,20 @@ public class CommandExecutorTest {
         testSubscriber.assertCompleted();
     }
 
+
     @SuppressWarnings({"ThrowableResultOfMethodCallIgnored", "unchecked"})
+    private <T extends Throwable> void assertError(TestSubscriber<?> testSubscriber, Class<T> expected, Consumer<T> errorChecker) {
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNotCompleted();
+        final List<Throwable> onErrorEvents = testSubscriber.getOnErrorEvents();
+        assertEquals("Should be one error", 1, onErrorEvents.size());
+
+        final Throwable throwable = onErrorEvents.get(0);
+        assertEquals("Should be HystrixRuntimeException", expected, throwable.getClass());
+        final Throwable actualCause = throwable.getCause();
+        errorChecker.accept((T) throwable);
+    }
+
     private <T extends Throwable> void assertActualHystrixError(Class<T> expected, Consumer<T> errorChecker) {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNotCompleted();

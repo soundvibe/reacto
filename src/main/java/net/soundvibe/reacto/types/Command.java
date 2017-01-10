@@ -9,7 +9,7 @@ import java.util.*;
 /**
  * @author Cipolinas on 2015.11.16.
  */
-public final class Command {
+public class Command {
 
     public final ObjectId id;
     public final String name;
@@ -33,6 +33,10 @@ public final class Command {
 
     public Observable<Command> toObservable() {
         return Observable.just(this);
+    }
+
+    public String eventType() {
+        return valueOf(CommandDescriptor.EVENT).orElse("");
     }
 
     public static Command create(String name, Optional<MetaData> metaData, Optional<byte[]> payload) {

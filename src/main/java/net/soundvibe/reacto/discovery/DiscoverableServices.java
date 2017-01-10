@@ -62,7 +62,7 @@ public final class DiscoverableServices {
     }
 
     public static Observable<Event> execute(Command command, ServiceDiscovery serviceDiscovery, LoadBalancer<EventHandler> loadBalancer) {
-        return findCommand(command.name, serviceDiscovery, loadBalancer)
+        return findCommand(command, serviceDiscovery, loadBalancer)
                 .flatMap(commandExecutor -> commandExecutor.execute(command));
     }
 
@@ -89,6 +89,13 @@ public final class DiscoverableServices {
                                                           LoadBalancer<EventHandler> loadBalancer) {
         return findCommandRecords(commandName, serviceDiscovery)
                 .compose(records -> findExecutor(records, commandName, serviceDiscovery, loadBalancer));
+    }
+
+    public static Observable<CommandExecutor> findCommand(Command command,
+                                                          ServiceDiscovery serviceDiscovery,
+                                                          LoadBalancer<EventHandler> loadBalancer) {
+        return findCommandRecords(command, serviceDiscovery)
+                .compose(records -> findExecutor(records, command.name + ":" + command.eventType(), serviceDiscovery, loadBalancer));
     }
 
     /**
@@ -128,6 +135,18 @@ public final class DiscoverableServices {
     private static Observable<Record> findCommandRecords(String commandName,
                                                          ServiceDiscovery serviceDiscovery) {
         return findRecord(record -> ServiceRecords.hasCommand(commandName, record), serviceDiscovery, commandName);
+    }
+
+    /**
+     * Finds running commands using service discovery and client load balancer
+     * @param command The command to look for
+     * @param serviceDiscovery service discovery to use when looking for a service
+     * @return Record observable, which emits multiple Records if services are found successfully
+     */
+    private static Observable<Record> findCommandRecords(Command command,
+                                                         ServiceDiscovery serviceDiscovery) {
+        return findRecord(record -> ServiceRecords.hasCommand(command.name, command.eventType(), record), serviceDiscovery,
+                command.name + ":" + command.eventType());
     }
 
     public static Observable<Record> publishRecord(Record record, ServiceDiscovery serviceDiscovery) {

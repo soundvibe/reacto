@@ -8,7 +8,7 @@ import io.vertx.servicediscovery.*;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.discovery.ServiceDiscoveryLifecycle;
 import net.soundvibe.reacto.server.handlers.*;
-import net.soundvibe.reacto.types.Pair;
+import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.*;
 import rx.Observable;
 
@@ -54,7 +54,6 @@ public class VertxServer implements Server<HttpServer> {
         this.metadataJson = createMetadata();
     }
 
-    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Override
     public Observable<HttpServer> start() {
         return Observable.<HttpServer>create(subscriber -> {
@@ -121,11 +120,15 @@ public class VertxServer implements Server<HttpServer> {
     static JsonArray commandsToJsonArray(CommandRegistry commands) {
         return commands.stream()
                 .map(Pair::getKey)
+                .map(commandDescriptor -> new JsonObject()
+                        .put(CommandDescriptor.COMMAND, commandDescriptor.commandType)
+                        .put(CommandDescriptor.EVENT, commandDescriptor.eventType)
+                )
                 .reduce(new JsonArray(), JsonArray::add, JsonArray::addAll);
     }
 
     @Override
-    public Observable<Void> stop() {
+    public Observable<Any> stop() {
         return Observable.<Record>create(subscriber ->
             httpServer.close(event -> {
                 if (event.succeeded()) {
@@ -145,7 +148,7 @@ public class VertxServer implements Server<HttpServer> {
             })).flatMap(rec -> discoveryLifecycle.isOpen() ?
                     discoveryLifecycle.closeDiscovery(rec) :
                     Observable.just(rec))
-                .map(__ -> Void.TYPE.cast(null));
+                .map(__ -> Any.VOID);
     }
 
     private void setupRoutes() {
