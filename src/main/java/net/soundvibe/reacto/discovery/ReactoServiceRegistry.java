@@ -3,7 +3,6 @@ package net.soundvibe.reacto.discovery;
 import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
-import net.soundvibe.reacto.client.errors.CommandIsNotTyped;
 import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.mappers.ServiceRegistryMapper;
 import net.soundvibe.reacto.server.ServiceRecords;
@@ -46,14 +45,25 @@ public final class ReactoServiceRegistry implements ServiceRegistry, ServiceDisc
 
     @Override
     public <E, C> Observable<? extends E> execute(C command, Class<? extends E> eventClass, LoadBalancer<EventHandler> loadBalancer) {
+        if (command == null) {
+            return Observable.error(new IllegalArgumentException("Command cannot be null"));
+        }
+
+        if (eventClass == null) {
+            return Observable.error(new IllegalArgumentException("eventClass cannot be null"));
+        }
+
+        if (loadBalancer == null) {
+            return Observable.error(new IllegalArgumentException("loadBalancer cannot be null"));
+        }
+
         if (command instanceof Command && eventClass.isAssignableFrom(Event.class)) {
             //noinspection unchecked
             return (Observable<E>) execute((Command)command, loadBalancer);
         }
         return Observable.just(command)
                 .map(cmd -> mapper.toCommand(cmd, eventClass))
-                .flatMap(cmd -> cmd.eventType().isEmpty() ? Observable.error(new CommandIsNotTyped(cmd)) : Observable.just(cmd))
-                .flatMap(cmd -> execute(cmd, loadBalancer))
+                .flatMap(typedCommand -> execute(typedCommand, loadBalancer))
                 .map(event -> mapper.toGenericEvent(event, eventClass));
     }
 
