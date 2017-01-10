@@ -62,7 +62,7 @@ public final class DiscoverableServices {
     }
 
     public static Observable<Event> execute(Command command, ServiceDiscovery serviceDiscovery, LoadBalancer<EventHandler> loadBalancer) {
-        return findCommand(command.name, serviceDiscovery, loadBalancer)
+        return findCommand(command, serviceDiscovery, loadBalancer)
                 .flatMap(commandExecutor -> commandExecutor.execute(command));
     }
 

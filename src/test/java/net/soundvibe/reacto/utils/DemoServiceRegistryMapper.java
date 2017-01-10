@@ -9,16 +9,16 @@ import net.soundvibe.reacto.types.*;
 public class DemoServiceRegistryMapper implements ServiceRegistryMapper {
 
     @Override
-    public <C> Command toCommand(C genericCommand) {
+    public <C> TypedCommand toCommand(C genericCommand) {
         if (!(genericCommand instanceof MakeDemo)) {
             throw new IllegalArgumentException("Expected MakeDemo class but got: " + genericCommand.getClass());
         }
         final MakeDemo makeDemo = (MakeDemo) genericCommand;
-        return Command.createTyped(MakeDemo.class, DemoMade.class, MetaData.of("name", makeDemo.name));
+        return TypedCommand.create(MakeDemo.class, DemoMade.class, MetaData.of("name", makeDemo.name));
     }
 
     @Override
-    public <E> E toGenericEvent(Event event, Class<? extends E> eventClass) {
+    public <E> E toGenericEvent(TypedEvent event, Class<? extends E> eventClass) {
         if (!(eventClass.equals(DemoMade.class))) {
             throw new IllegalArgumentException("Expected DemoMade event but got: " + eventClass);
         }

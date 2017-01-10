@@ -9,7 +9,7 @@ import java.util.*;
 /**
  * @author Cipolinas on 2015.11.16.
  */
-public final class Command {
+public class Command {
 
     public final ObjectId id;
     public final String name;
@@ -66,34 +66,6 @@ public final class Command {
         Objects.requireNonNull(metaData, "metaData cannot be null");
         Objects.requireNonNull(payload, "payload cannot be null");
         return new Command(ObjectId.get(), name, Optional.of(metaData), Optional.of(payload));
-    }
-
-    public static Command createTyped(Class<?> commandType, Class<?> eventType, byte[] serializedCommand) {
-        Objects.requireNonNull(commandType, "commandType cannot be null");
-        Objects.requireNonNull(eventType, "eventType cannot be null");
-        Objects.requireNonNull(serializedCommand, "serializedCommand cannot be null");
-        return new Command(ObjectId.get(), commandType.getName(),
-                Optional.of(MetaData.of(CommandDescriptor.EVENT, eventType.getName())),
-                Optional.of(serializedCommand));
-    }
-
-    public static Command createTyped(Class<?> commandType, Class<?> eventType, MetaData metaData) {
-        Objects.requireNonNull(commandType, "commandType cannot be null");
-        Objects.requireNonNull(eventType, "eventType cannot be null");
-        Objects.requireNonNull(metaData, "metaData cannot be null");
-        return new Command(ObjectId.get(), commandType.getName(),
-                Optional.of(MetaData.of(CommandDescriptor.EVENT, eventType.getName()).concat(metaData)),
-                Optional.empty());
-    }
-
-    public static Command createTyped(Class<?> commandType, Class<?> eventType, MetaData metaData, byte[] serializedCommand) {
-        Objects.requireNonNull(commandType, "commandType cannot be null");
-        Objects.requireNonNull(eventType, "eventType cannot be null");
-        Objects.requireNonNull(metaData, "metaData cannot be null");
-        Objects.requireNonNull(serializedCommand, "serializedCommand cannot be null");
-        return new Command(ObjectId.get(), commandType.getName(),
-                Optional.of(MetaData.of(CommandDescriptor.EVENT, eventType.getName()).concat(metaData)),
-                Optional.of(serializedCommand));
     }
 
     @Override

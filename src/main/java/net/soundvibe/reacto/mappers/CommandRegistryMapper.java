@@ -7,8 +7,8 @@ import net.soundvibe.reacto.types.*;
  */
 public interface CommandRegistryMapper {
 
-    <C> C toGenericCommand(Command command, Class<? extends C> commandClass);
+    <C> C toGenericCommand(TypedCommand command, Class<? extends C> commandClass);
 
-    <E> Event toEvent(E genericEvent);
+    <E> TypedEvent toEvent(E genericEvent);
 
 }

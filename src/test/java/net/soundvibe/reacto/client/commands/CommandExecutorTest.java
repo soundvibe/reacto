@@ -405,6 +405,16 @@ public class CommandExecutorTest {
     }
 
     @Test
+    public void shouldExecuteTypedCommandAndReceiveTypedEvent() throws Exception {
+        final TestSubscriber<DemoMade> typedSubscriber = new TestSubscriber<>();
+        reactoServiceRegistry.execute(new MakeDemo("Hello, World!"), DemoMade.class)
+                .subscribe(typedSubscriber);
+
+        assertCompletedSuccessfully(typedSubscriber);
+        typedSubscriber.assertValue(new DemoMade("Hello, World!"));
+    }
+
+    @Test
     public void shouldFailWhenConnectingToInExistingWebSocketStream() throws Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final AtomicReference<Throwable> ex = new AtomicReference<>();

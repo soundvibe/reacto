@@ -75,16 +75,16 @@ public interface Mappers {
     static ServiceRegistryMapper untypedServiceRegistryMapper() {
         return new ServiceRegistryMapper() {
             @Override
-            public <C> Command toCommand(C genericCommand) {
-                if (!genericCommand.getClass().equals(Command.class)) {
+            public <C> TypedCommand toCommand(C genericCommand) {
+                if (!genericCommand.getClass().equals(TypedCommand.class)) {
                     throw new IllegalArgumentException("untypedServiceRegistryMapper accepts only basic Command instances. Provided: " + genericCommand.getClass());
                 }
-                return (Command) genericCommand;
+                return (TypedCommand) genericCommand;
             }
 
             @Override
-            public <E> E toGenericEvent(Event event, Class<? extends E> eventClass) {
-                if (!eventClass.equals(Event.class)) {
+            public <E> E toGenericEvent(TypedEvent event, Class<? extends E> eventClass) {
+                if (!eventClass.equals(TypedEvent.class)) {
                     throw new IllegalArgumentException("untypedServiceRegistryMapper emits only basic Events. Provided: " + eventClass);
                 }
                 return eventClass.cast(event);
@@ -95,7 +95,7 @@ public interface Mappers {
     static CommandRegistryMapper untypedCommandRegistryMapper() {
         return new CommandRegistryMapper() {
             @Override
-            public <C> C toGenericCommand(Command command, Class<? extends C> commandClass) {
+            public <C> C toGenericCommand(TypedCommand command, Class<? extends C> commandClass) {
                 if (!commandClass.isInstance(command)) {
                     throw new IllegalArgumentException("untypedCommandRegistryMapper accepts only basic Command instances. Provided: " + commandClass);
                 }
@@ -103,11 +103,11 @@ public interface Mappers {
             }
 
             @Override
-            public <E> Event toEvent(E genericEvent) {
-                if (!genericEvent.getClass().equals(Event.class)) {
+            public <E> TypedEvent toEvent(E genericEvent) {
+                if (!genericEvent.getClass().equals(TypedEvent.class)) {
                     throw new IllegalArgumentException("untypedCommandRegistryMapper emits only basic Events. Provided: " + genericEvent.getClass());
                 }
-                return (Event) genericEvent;
+                return (TypedEvent) genericEvent;
             }
         };
     }

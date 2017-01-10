@@ -3,6 +3,7 @@ package net.soundvibe.reacto.discovery;
 import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
+import net.soundvibe.reacto.client.errors.CommandIsNotTyped;
 import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.mappers.ServiceRegistryMapper;
 import net.soundvibe.reacto.server.ServiceRecords;
@@ -44,15 +45,16 @@ public final class ReactoServiceRegistry implements ServiceRegistry, ServiceDisc
     }
 
     @Override
-    public <E, C> Observable<E> execute(C command, Class<? extends E> eventClass, LoadBalancer<EventHandler> loadBalancer) {
-        if (command instanceof Command && eventClass.equals(Event.class)) {
+    public <E, C> Observable<? extends E> execute(C command, Class<? extends E> eventClass, LoadBalancer<EventHandler> loadBalancer) {
+        if (command instanceof Command && eventClass.isAssignableFrom(Event.class)) {
             //noinspection unchecked
             return (Observable<E>) execute((Command)command, loadBalancer);
         }
         return Observable.just(command)
                 .map(mapper::toCommand)
+                .flatMap(cmd -> cmd.eventType().isEmpty() ? Observable.error(new CommandIsNotTyped(cmd)) : Observable.just(cmd))
                 .flatMap(cmd -> execute(cmd, loadBalancer))
-                .map(event -> mapper.toGenericEvent(event, eventClass));
+                .map(event -> mapper.toGenericEvent(TypedEvent.create(event), eventClass));
     }
 
     @Override

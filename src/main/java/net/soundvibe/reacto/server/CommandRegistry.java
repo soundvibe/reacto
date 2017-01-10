@@ -39,9 +39,14 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, F
         Objects.requireNonNull(onInvoke, "onInvoke cannot be null");
         Objects.requireNonNull(mapper, "mapper cannot be null");
 
-        final Function<Command, Observable<? extends E>> before = onInvoke.compose(c -> mapper.toGenericCommand(c, commandType));
-        final Function<Command, Observable<Event>> after = before.andThen(observable -> observable.map(mapper::toEvent));
-
+        final Function<Command, Observable<? extends E>> before = onInvoke
+                .compose(c -> mapper.toGenericCommand(
+                        TypedCommand.create(
+                                commandType,
+                                eventType,
+                                c), commandType));
+        final Function<Command, Observable<Event>> after = before
+                .andThen(observable -> observable.map(mapper::toEvent));
         commands.put(CommandDescriptor.ofTypes(commandType, eventType), after);
         return this;
     }

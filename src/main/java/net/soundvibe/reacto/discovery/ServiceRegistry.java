@@ -8,10 +8,10 @@ import rx.Observable;
  */
 public interface ServiceRegistry {
 
-    default <E,C> Observable<E> execute(C command, Class<? extends E> eventClass) {
+    default <E,C> Observable<? extends E> execute(C command, Class<? extends E> eventClass) {
         return execute(command, eventClass, LoadBalancers.ROUND_ROBIN);
     }
 
-    <E,C> Observable<E> execute(C command, Class<? extends E> eventClass, LoadBalancer<EventHandler> loadBalancer);
+    <E,C> Observable<? extends E> execute(C command, Class<? extends E> eventClass, LoadBalancer<EventHandler> loadBalancer);
 
 }
