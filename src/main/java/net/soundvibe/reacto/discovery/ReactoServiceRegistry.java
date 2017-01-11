@@ -39,7 +39,7 @@ public final class ReactoServiceRegistry implements ServiceRegistry, ServiceDisc
         return execute(command, LoadBalancers.ROUND_ROBIN);
     }
 
-    public Observable<Event> execute(Command command, LoadBalancer<EventHandler> loadBalancer) {
+    private Observable<Event> execute(Command command, LoadBalancer<EventHandler> loadBalancer) {
         return DiscoverableServices.execute(command, serviceDiscovery, loadBalancer);
     }
 
@@ -56,7 +56,7 @@ public final class ReactoServiceRegistry implements ServiceRegistry, ServiceDisc
 
         return Observable.just(command)
                 .map(cmd -> mapper.toCommand(cmd, eventClass))
-                .flatMap(typedCommand -> execute(typedCommand, loadBalancer))
+                .concatMap(typedCommand -> execute(typedCommand, loadBalancer)).onBackpressureBuffer()
                 .map(event -> mapper.toGenericEvent(event, eventClass));
     }
 

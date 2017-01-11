@@ -3,10 +3,11 @@ package net.soundvibe.reacto;
 import com.netflix.hystrix.*;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.*;
+import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import net.soundvibe.reacto.discovery.ReactoServiceRegistry;
-import net.soundvibe.reacto.mappers.Mappers;
+import net.soundvibe.reacto.mappers.jackson.JacksonMapper;
 import net.soundvibe.reacto.server.*;
 import net.soundvibe.reacto.server.handlers.*;
 import org.junit.*;
@@ -35,7 +36,9 @@ public class HystrixEventStreamHandlerTest {
         vertxServer = new VertxServer(new ServiceOptions("test", "test"),
                 router, vertx.createHttpServer(new HttpServerOptions().setPort(8282)),
                 CommandRegistry.of("bla", o -> Observable.empty()),
-                new ReactoServiceRegistry(ServiceDiscovery.create(vertx), Mappers.untypedServiceRegistryMapper()));
+                new ReactoServiceRegistry(
+                        ServiceDiscovery.create(vertx),
+                        new JacksonMapper(Json.mapper)));
         vertxServer.start().toBlocking().subscribe();
         lastData = new AtomicReference<>();
         httpClient = vertx.createHttpClient();

@@ -24,7 +24,6 @@ public final class Factories {
         return vertxLazy.get();
     }
 
-    public static final Scheduler COMPUTATION = Schedulers.computation();
     public static final Scheduler SINGLE_THREAD = Schedulers.from(Executors.newSingleThreadExecutor());
 
     public static final Predicate<Record> ALL_RECORDS = record -> true;

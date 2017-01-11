@@ -34,21 +34,6 @@ public class VertxWebSocketCommandExecutor implements CommandExecutor {
                 .flatMap(eventHandler -> eventHandler.toObservable(command)
                         .onBackpressureBuffer()
                         .onErrorResumeNext(error -> handleError(error, command, eventHandler)));
-
-        /*return eventHandlers.get()
-                .map(handlers -> handlers.fallbackNodeClient.isPresent() ?
-                        handlers.mainNodeClient.toObservable(command)
-                                .onBackpressureBuffer()
-                                .onExceptionResumeNext(handlers.fallbackNodeClient.get()
-                                        .toObservable(command)
-                                        .onBackpressureBuffer()
-                                ) :
-                        handlers.mainNodeClient
-                                .toObservable(command)
-                                .onBackpressureBuffer()
-                )
-                .orElseGet(() -> Observable.error(new CannotConnectToWebSocket("Unable to execute command: " + command)))
-                ;*/
     }
 
     private Observable<Event> handleError(Throwable error, Command command, EventHandler eventHandler) {

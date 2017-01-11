@@ -63,7 +63,7 @@ public final class DiscoverableServices {
 
     public static Observable<Event> execute(Command command, ServiceDiscovery serviceDiscovery, LoadBalancer<EventHandler> loadBalancer) {
         return findCommand(command, serviceDiscovery, loadBalancer)
-                .flatMap(commandExecutor -> commandExecutor.execute(command));
+                .concatMap(commandExecutor -> commandExecutor.execute(command));
     }
 
     private static Observable<CommandExecutor> findExecutor(Observable<Record> records,
@@ -77,18 +77,6 @@ public final class DiscoverableServices {
                 .filter(vertxDiscoverableEventHandlers -> !vertxDiscoverableEventHandlers.isEmpty())
                 .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + name))))
                 .map(eventHandlers -> new VertxDiscoverableCommandExecutor(eventHandlers, loadBalancer));
-    }
-
-    public static Observable<CommandExecutor> findCommand(String commandName,
-                                                          ServiceDiscovery serviceDiscovery) {
-        return findCommand(commandName, serviceDiscovery, LoadBalancers.ROUND_ROBIN);
-    }
-
-    public static Observable<CommandExecutor> findCommand(String commandName,
-                                                          ServiceDiscovery serviceDiscovery,
-                                                          LoadBalancer<EventHandler> loadBalancer) {
-        return findCommandRecords(commandName, serviceDiscovery)
-                .compose(records -> findExecutor(records, commandName, serviceDiscovery, loadBalancer));
     }
 
     public static Observable<CommandExecutor> findCommand(Command command,

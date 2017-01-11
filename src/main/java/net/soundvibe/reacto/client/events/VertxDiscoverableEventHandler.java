@@ -40,7 +40,8 @@ public class VertxDiscoverableEventHandler implements EventHandler {
         return Observable.just(record)
                 .<HttpClient>map(rec -> serviceDiscovery.getReference(rec).get())
                 .map(httpClient -> httpClient.websocketStream(includeStartDelimiter(includeEndDelimiter(record.getName()))))
-                .flatMap(webSocketStream -> eventHandler.apply(webSocketStream, command)
+                .concatMap(webSocketStream -> eventHandler.apply(webSocketStream, command)
+                        .onBackpressureBuffer()
                         .onErrorResumeNext(this::handleError))
                 ;
     }

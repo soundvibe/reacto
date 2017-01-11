@@ -19,8 +19,8 @@ public class Foo {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null) return false;
-        Foo foo = (Foo) o;
+        if (o == null || getClass() != o.getClass()) return false;
+        final Foo foo = (Foo) o;
         return Objects.equals(name, foo.name);
     }
 

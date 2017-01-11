@@ -10,7 +10,6 @@ import io.vertx.servicediscovery.*;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.client.errors.*;
 import net.soundvibe.reacto.discovery.*;
-import net.soundvibe.reacto.mappers.Mappers;
 import net.soundvibe.reacto.mappers.jackson.*;
 import net.soundvibe.reacto.server.*;
 import net.soundvibe.reacto.types.*;
@@ -48,7 +47,6 @@ public class CommandExecutorTest {
     private static final int MAIN_SERVER_PORT = 8282;
     private static final int FALLBACK_SERVER_PORT = 8383;
 
-    private static HttpServer mainHttpServer;
     private static VertxServer vertxServer;
     private static VertxServer fallbackVertxServer;
     private static ServiceDiscovery serviceDiscovery;
@@ -59,13 +57,51 @@ public class CommandExecutorTest {
     private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(
             Nodes.of(MAIN_NODE), CommandExecutors.defaultHystrixSetter());
     private final CommandExecutor mainNodeAndFallbackExecutor = CommandExecutors.webSocket(Nodes.of(MAIN_NODE, FALLBACK_NODE));
-    private static CommandRegistry mainCommands;
     private static Vertx vertx;
     private final TestSubscriber<DemoMade> typedSubscriber = new TestSubscriber<>();
 
     @BeforeClass
     public static void setUp() throws Exception {
-        mainCommands = CommandRegistry.ofTyped(MakeDemo.class, DemoMade.class,
+        vertx = Vertx.vertx();
+        serviceDiscovery = ServiceDiscovery.create(vertx);
+        reactoServiceRegistry = new ReactoServiceRegistry(serviceDiscovery, new DemoServiceRegistryMapper());
+        reactoServiceRegistry2 = new ReactoServiceRegistry(serviceDiscovery, new JacksonMapper(Json.mapper));
+
+        final HttpServer mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
+                .setPort(MAIN_SERVER_PORT)
+                .setSsl(false)
+                .setReuseAddress(true));
+
+        HttpServer fallbackHttpServer = vertx.createHttpServer(new HttpServerOptions()
+                .setPort(FALLBACK_SERVER_PORT)
+                .setSsl(false)
+                .setReuseAddress(true));
+
+        final Router router = Router.router(vertx);
+        router.route("/health").handler(event -> event.response().end("ok"));
+        vertxServer = new VertxServer(new ServiceOptions("dist", "dist/", "0.1")
+                , router, mainHttpServer, createMainCommands(), reactoServiceRegistry);
+        fallbackVertxServer = new VertxServer(new ServiceOptions("dist","dist/", "0.1")
+                , Router.router(vertx), fallbackHttpServer,  createFallbackCommands(), reactoServiceRegistry2);
+        fallbackVertxServer.start().toBlocking().subscribe();
+        vertxServer.start().toBlocking().subscribe();
+    }
+
+    private static CommandRegistry createFallbackCommands() {
+        return CommandRegistry.ofTyped(
+                    Feed.class, Animal.class,
+                    feed -> Observable.just(
+                            new Dog("Dog ate " + feed.meal),
+                            new Cat("Cat ate " + feed.meal)
+                    ),
+                    new JacksonMapper(Json.mapper))
+                .and(JacksonCommand.class, JacksonEvent.class, jacksonCommand -> Observable.error(new RuntimeException("test error")))
+                .and(TEST_FAIL_BUT_FALLBACK_COMMAND,
+                o -> event1Arg("Recovered: " + o.get("arg")).toObservable());
+    }
+
+    private static CommandRegistry createMainCommands() {
+        return CommandRegistry.ofTyped(MakeDemo.class, DemoMade.class,
                     makeDemo -> Observable.just(new DemoMade(makeDemo.name)),
                     new DemoCommandRegistryMapper())
                 .and(TEST_COMMAND, cmd ->
@@ -97,43 +133,7 @@ public class CommandExecutorTest {
                         System.out.println(e.getMessage());
                         subscriber.onError(e);
                     }
-                }))
-        ;
-
-        CommandRegistry fallbackCommands = CommandRegistry.ofTyped(
-                    Feed.class, Animal.class,
-                    feed -> Observable.just(
-                            new Dog("Dog ate " + feed.meal),
-                            new Cat("Cat ate " + feed.meal)
-                    ),
-                    new JacksonMapper(Json.mapper))
-                .and(JacksonCommand.class, JacksonEvent.class, jacksonCommand -> Observable.error(new RuntimeException("test error")))
-                .and(TEST_FAIL_BUT_FALLBACK_COMMAND,
-                o -> event1Arg("Recovered: " + o.get("arg")).toObservable());
-
-        vertx = Vertx.vertx();
-        serviceDiscovery = ServiceDiscovery.create(vertx);
-        reactoServiceRegistry = new ReactoServiceRegistry(serviceDiscovery, new DemoServiceRegistryMapper());
-        reactoServiceRegistry2 = new ReactoServiceRegistry(serviceDiscovery, new JacksonMapper(Json.mapper));
-
-        mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
-                .setPort(MAIN_SERVER_PORT)
-                .setSsl(false)
-                .setReuseAddress(true));
-
-        HttpServer fallbackHttpServer = vertx.createHttpServer(new HttpServerOptions()
-                .setPort(FALLBACK_SERVER_PORT)
-                .setSsl(false)
-                .setReuseAddress(true));
-
-        final Router router = Router.router(vertx);
-        router.route("/health").handler(event -> event.response().end("ok"));
-        vertxServer = new VertxServer(new ServiceOptions("dist", "dist/", "0.1")
-                , router, mainHttpServer, mainCommands, reactoServiceRegistry);
-        fallbackVertxServer = new VertxServer(new ServiceOptions("dist","dist/", "0.1")
-                , Router.router(vertx), fallbackHttpServer,  fallbackCommands, reactoServiceRegistry2);
-        fallbackVertxServer.start().toBlocking().subscribe();
-        vertxServer.start().toBlocking().subscribe();
+                }));
     }
 
     @AfterClass
@@ -293,7 +293,7 @@ public class CommandExecutorTest {
                         throw new RuntimeException(e);
                     }
                 })),
-                new ReactoServiceRegistry(serviceDiscovery, Mappers.untypedServiceRegistryMapper()));
+                new ReactoServiceRegistry(serviceDiscovery, new JacksonMapper(Json.mapper)));
 
         final CommandExecutor executor = CommandExecutors.webSocket(Nodes.of("http://localhost:8183/distTest/"), 5000);
 
@@ -360,7 +360,7 @@ public class CommandExecutorTest {
                 CommandRegistry.of(TEST_COMMAND, cmd ->
                         event1Arg("Called command from second server with arg: "
                                 + cmd.get("arg")).toObservable()),
-                new ReactoServiceRegistry(serviceDiscovery, Mappers.untypedServiceRegistryMapper()));
+                new ReactoServiceRegistry(serviceDiscovery, new JacksonMapper(Json.mapper)));
         reactoServer.start().toBlocking().subscribe();
 
         try {
@@ -573,7 +573,7 @@ public class CommandExecutorTest {
         final Throwable actualCause = throwable.getCause();
         assertTrue("Actual: " + actualCause.getClass() + ".Expected: " + expected,
                 expected.isAssignableFrom(actualCause.getClass()));
-        errorChecker.accept((T) actualCause);
+        errorChecker.accept(expected.cast(actualCause));
     }
 
     private static String createDataSize(int msgSize) {

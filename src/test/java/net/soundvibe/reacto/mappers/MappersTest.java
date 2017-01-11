@@ -39,9 +39,9 @@ public class MappersTest {
     public void shouldMapExceptions() throws Exception {
         CustomError exception = new CustomError("Not Implemented");
         final Optional<byte[]> bytes = Mappers.exceptionToBytes(exception);
-        assertTrue(bytes.get().length > 0);
-        final Optional<Throwable> throwable = Mappers.fromBytesToException(bytes.get());
-        assertEquals(CustomError.class, throwable.get().getClass());
+        assertTrue(bytes.orElse(new byte[0]).length > 0);
+        final Optional<Throwable> throwable = Mappers.fromBytesToException(bytes.orElse(new byte[0]));
+        assertEquals(CustomError.class, throwable.orElseGet(NullPointerException::new).getClass());
         final String message = throwable.map(e -> (CustomError) e)
                 .map(customError -> customError.data)
                 .orElse("foo");

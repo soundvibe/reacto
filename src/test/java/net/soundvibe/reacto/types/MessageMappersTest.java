@@ -44,7 +44,7 @@ public class MessageMappersTest {
 
         final InternalEvent actual = MessageMappers.toInternalEvent(expected);
         assertEquals("foo", actual.name);
-        assertEquals(ReactiveException.class, actual.error.get().getClass());
+        assertEquals(ReactiveException.class, actual.error.orElseGet(NullPointerException::new).getClass());
         assertEquals(Optional.empty(), actual.metaData);
     }
 }
