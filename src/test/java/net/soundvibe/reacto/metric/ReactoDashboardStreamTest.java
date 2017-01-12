@@ -13,12 +13,15 @@ import static org.junit.Assert.*;
  */
 public class ReactoDashboardStreamTest {
 
+    public static final long OBSERVE_DELAY = 100L;
+    public static final long WAIT_DELAY = 200L;
+
     @Test
     public void shouldPublishSomeCommandsAndEmitMetricEvents() throws Exception {
         TestSubscriber<CommandHandlerMetrics> testSubscriber = new TestSubscriber<>();
         TestSubscriber<CommandHandlerMetrics> testSubscriber2 = new TestSubscriber<>();
 
-        ReactoDashboardStream.observeCommandHandlers()
+        ReactoDashboardStream.observeCommandHandlers(OBSERVE_DELAY, TimeUnit.MILLISECONDS)
                 .filter(m -> !m.commands().isEmpty())
                 .subscribe(testSubscriber);
 
@@ -29,7 +32,7 @@ public class ReactoDashboardStreamTest {
                 .onNext().onNext()
                 .onError(new RuntimeException("error"));
 
-        testSubscriber.awaitTerminalEvent(ReactoDashboardStream.DELAY_IN_MS, TimeUnit.MILLISECONDS);
+        testSubscriber.awaitTerminalEvent(WAIT_DELAY, TimeUnit.MILLISECONDS);
         testSubscriber.assertNoErrors();
         testSubscriber.assertNotCompleted();
         testSubscriber.assertValueCount(1);
@@ -43,7 +46,7 @@ public class ReactoDashboardStreamTest {
         assertEquals(2, commandHandlerMetrics.commands().get(1).eventCount());
         assertTrue(commandHandlerMetrics.commands().get(1).hasError());
 
-        ReactoDashboardStream.observeCommandHandlers()
+        ReactoDashboardStream.observeCommandHandlers(OBSERVE_DELAY, TimeUnit.MILLISECONDS)
                 .filter(m -> !m.commands().isEmpty())
                 .subscribe(testSubscriber2);
 
@@ -51,7 +54,7 @@ public class ReactoDashboardStreamTest {
                 .onNext().onNext().onNext().onNext()
                 .onCompleted();
 
-        testSubscriber.awaitTerminalEventAndUnsubscribeOnTimeout(ReactoDashboardStream.DELAY_IN_MS, TimeUnit.MILLISECONDS);
+        testSubscriber.awaitTerminalEventAndUnsubscribeOnTimeout(WAIT_DELAY, TimeUnit.MILLISECONDS);
         testSubscriber.assertNoErrors();
         testSubscriber.assertUnsubscribed();
         testSubscriber.assertValueCount(2);
@@ -59,7 +62,7 @@ public class ReactoDashboardStreamTest {
         assertEquals("new", commandHandlerMetric.commandName());
         assertEquals(4, commandHandlerMetric.eventCount());
 
-        testSubscriber2.awaitTerminalEventAndUnsubscribeOnTimeout(ReactoDashboardStream.DELAY_IN_MS, TimeUnit.MILLISECONDS);
+        testSubscriber2.awaitTerminalEventAndUnsubscribeOnTimeout(WAIT_DELAY, TimeUnit.MILLISECONDS);
         testSubscriber2.assertNoErrors();
         testSubscriber2.assertUnsubscribed();
         testSubscriber2.assertValueCount(1);

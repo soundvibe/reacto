@@ -152,7 +152,7 @@ public class VertxServer implements Server<HttpServer> {
     }
 
     private void setupRoutes() {
-        httpServer.websocketHandler(new WebSocketCommandHandler(new CommandHandler(commands), root()));
+        httpServer.websocketHandler(new WebSocketCommandHandler(new CommandProcessor(commands), root()));
         router.route(root() + "hystrix.stream")
             .handler(new SSEHandler(HystrixEventStreamHandler::handle));
 
