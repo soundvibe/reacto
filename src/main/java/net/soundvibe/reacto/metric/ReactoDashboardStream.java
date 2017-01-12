@@ -1,7 +1,6 @@
 package net.soundvibe.reacto.metric;
 
 import rx.Observable;
-import rx.schedulers.Schedulers;
 import rx.subjects.*;
 
 import java.util.concurrent.TimeUnit;
@@ -16,12 +15,18 @@ public final class ReactoDashboardStream {
     private static final Subject<CommandHandlerMetric, CommandHandlerMetric> commandHandlerSubject =
             new SerializedSubject<>(PublishSubject.create());
 
-    private static final Subject<EventHandlerMetrics, EventHandlerMetrics> eventHandlerMetrics =
+    private static final Subject<EventHandlerMetrics, EventHandlerMetrics> eventHandlerSubject =
             new SerializedSubject<>(PublishSubject.create());
 
 
+    /**
+     * Observes metrics, collected from server side Command Handlers
+     * @return CommandHandlerMetrics observable. CommandHandlerMetrics is an aggregated entity.
+     * Observable will emit this event in DELAY_IN_MS intervals (500 ms).
+     * Subscribers should unsubscribe from this stream when it is not needed because stream will never complete.
+     */
     public static Observable<CommandHandlerMetrics> observeCommandHandlers() {
-        return commandHandlerSubject.buffer(DELAY_IN_MS, TimeUnit.MILLISECONDS, Schedulers.computation())
+        return commandHandlerSubject.buffer(DELAY_IN_MS, TimeUnit.MILLISECONDS)
                 .map(CommandHandlerMetrics::new)
                 .share()
                 .onBackpressureDrop();

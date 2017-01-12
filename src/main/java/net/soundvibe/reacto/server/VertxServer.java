@@ -156,6 +156,9 @@ public class VertxServer implements Server<HttpServer> {
         router.route(root() + "hystrix.stream")
             .handler(new SSEHandler(HystrixEventStreamHandler::handle));
 
+        router.route(root() + "reacto.command.stream")
+                .handler(new SSEHandler(new ReactoCommandMetricsStreamHandler()));
+
         router.route(root() + "service-discovery/:action")
             .produces("application/json")
             .handler(new ServiceDiscoveryHandler(discoveryLifecycle, record::get));
