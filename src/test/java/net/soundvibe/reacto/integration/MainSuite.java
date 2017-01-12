@@ -194,7 +194,7 @@ public class MainSuite {
 
     @Test
     public void shouldComposeDifferentCommands() throws Exception {
-        final TestSubscriber<CommandHandlerMetrics> metricsTestSubscriber = new TestSubscriber<>();
+        final TestSubscriber<CommandProcessorMetrics> metricsTestSubscriber = new TestSubscriber<>();
         ReactoDashboardStream.observeCommandHandlers()
                 .subscribe(metricsTestSubscriber);
 
@@ -215,7 +215,7 @@ public class MainSuite {
         metricsTestSubscriber.awaitTerminalEventAndUnsubscribeOnTimeout(ReactoDashboardStream.DELAY_IN_MS, TimeUnit.MILLISECONDS);
         metricsTestSubscriber.assertNoErrors();
         metricsTestSubscriber.assertValueCount(1);
-        final CommandHandlerMetrics metrics = metricsTestSubscriber.getOnNextEvents().get(0);
+        final CommandProcessorMetrics metrics = metricsTestSubscriber.getOnNextEvents().get(0);
         assertEquals(2, metrics.commands().size());
     }
 
@@ -361,7 +361,7 @@ public class MainSuite {
 
     @Test
     public void shouldFindServicesAndBalanceTheLoad() throws Exception {
-        final TestSubscriber<CommandHandlerMetrics> metricsTestSubscriber = new TestSubscriber<>();
+        final TestSubscriber<CommandProcessorMetrics> metricsTestSubscriber = new TestSubscriber<>();
         ReactoDashboardStream.observeCommandHandlers()
                 .subscribe(metricsTestSubscriber);
 

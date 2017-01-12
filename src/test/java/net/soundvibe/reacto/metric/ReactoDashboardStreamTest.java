@@ -15,20 +15,21 @@ public class ReactoDashboardStreamTest {
 
     public static final long OBSERVE_DELAY = 100L;
     public static final long WAIT_DELAY = 200L;
+    public static final String CMD_ONE = "one111";
 
     @Test
     public void shouldPublishSomeCommandsAndEmitMetricEvents() throws Exception {
-        TestSubscriber<CommandHandlerMetrics> testSubscriber = new TestSubscriber<>();
-        TestSubscriber<CommandHandlerMetrics> testSubscriber2 = new TestSubscriber<>();
+        TestSubscriber<CommandProcessorMetrics> testSubscriber = new TestSubscriber<>();
+        TestSubscriber<CommandProcessorMetrics> testSubscriber2 = new TestSubscriber<>();
 
         ReactoDashboardStream.observeCommandHandlers(OBSERVE_DELAY, TimeUnit.MILLISECONDS)
                 .filter(m -> !m.commands().isEmpty())
                 .subscribe(testSubscriber);
 
-        CommandHandlerMetric.of(Command.create("test"))
+        CommandProcessorMetric.of(Command.create("test"))
                 .onNext().onNext().onNext()
                 .onCompleted();
-        CommandHandlerMetric.of(Command.create("foo"))
+        CommandProcessorMetric.of(Command.create("foo"))
                 .onNext().onNext()
                 .onError(new RuntimeException("error"));
 
@@ -37,20 +38,21 @@ public class ReactoDashboardStreamTest {
         testSubscriber.assertNotCompleted();
         testSubscriber.assertValueCount(1);
 
-        final CommandHandlerMetrics commandHandlerMetrics = testSubscriber.getOnNextEvents().get(0);
-        assertTrue(commandHandlerMetrics.memoryUsage().getMax() > 0L);
-        assertTrue(commandHandlerMetrics.memoryUsage().getUsed() > 0L);
-        assertEquals("Should contain 2 commands but was: " + commandHandlerMetrics.commands(),
-                2, commandHandlerMetrics.commands().size());
-        assertEquals(3, commandHandlerMetrics.commands().get(0).eventCount());
-        assertEquals(2, commandHandlerMetrics.commands().get(1).eventCount());
-        assertTrue(commandHandlerMetrics.commands().get(1).hasError());
+        final CommandProcessorMetrics commandProcessorMetrics = testSubscriber.getOnNextEvents().get(0);
+        assertTrue(commandProcessorMetrics.memoryUsage().getMax() > 0L);
+        assertTrue(commandProcessorMetrics.memoryUsage().getUsed() > 0L);
+        assertEquals("Should contain 2 commands but was: " + commandProcessorMetrics.commands(),
+                2, commandProcessorMetrics.commands().size());
+        assertEquals(2, commandProcessorMetrics.getCommand(0).eventCount());
+        assertEquals(1, commandProcessorMetrics.getCommand(0).errors());
+        assertEquals(3, commandProcessorMetrics.getCommand(1).eventCount());
+
 
         ReactoDashboardStream.observeCommandHandlers(OBSERVE_DELAY, TimeUnit.MILLISECONDS)
                 .filter(m -> !m.commands().isEmpty())
                 .subscribe(testSubscriber2);
 
-        CommandHandlerMetric.of(Command.create("new"))
+        CommandProcessorMetric.of(Command.create("new"))
                 .onNext().onNext().onNext().onNext()
                 .onCompleted();
 
@@ -58,16 +60,48 @@ public class ReactoDashboardStreamTest {
         testSubscriber.assertNoErrors();
         testSubscriber.assertUnsubscribed();
         testSubscriber.assertValueCount(2);
-        final CommandHandlerMetric commandHandlerMetric = testSubscriber.getOnNextEvents().get(1).commands().get(0);
-        assertEquals("new", commandHandlerMetric.commandName());
-        assertEquals(4, commandHandlerMetric.eventCount());
+        final CommandProcessorMetric commandProcessorMetric = testSubscriber.getOnNextEvents().get(1).getCommand(0);
+        assertEquals("new", commandProcessorMetric.commandName());
+        assertEquals(4, commandProcessorMetric.eventCount());
 
         testSubscriber2.awaitTerminalEventAndUnsubscribeOnTimeout(WAIT_DELAY, TimeUnit.MILLISECONDS);
         testSubscriber2.assertNoErrors();
         testSubscriber2.assertUnsubscribed();
         testSubscriber2.assertValueCount(1);
-        final CommandHandlerMetric commandHandlerMetric2 = testSubscriber2.getOnNextEvents().get(0).commands().get(0);
-        assertEquals("new", commandHandlerMetric.commandName());
-        assertEquals(4, commandHandlerMetric.eventCount());
+        final CommandProcessorMetric commandProcessorMetric2 = testSubscriber2.getOnNextEvents().get(0).getCommand(0);
+        assertEquals("new", commandProcessorMetric.commandName());
+        assertEquals(4, commandProcessorMetric.eventCount());
+    }
+
+    @Test
+    public void shouldAggregateCommands() throws Exception {
+        TestSubscriber<CommandProcessorMetrics> testSubscriber = new TestSubscriber<>();
+        ReactoDashboardStream.observeCommandHandlers(OBSERVE_DELAY, TimeUnit.MILLISECONDS)
+                .filter(m -> !m.commands().isEmpty())
+                .subscribe(testSubscriber);
+
+        CommandProcessorMetric.of(Command.create(CMD_ONE))
+                .onNext().onNext().onNext()
+                .onCompleted();
+        CommandProcessorMetric.of(Command.create("two"))
+                .onNext()
+                .onCompleted();
+        CommandProcessorMetric.of(Command.create(CMD_ONE))
+                .onNext().onNext()
+                .onCompleted();
+
+        testSubscriber.awaitTerminalEvent(WAIT_DELAY, TimeUnit.MILLISECONDS);
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertNotCompleted();
+        testSubscriber.assertValueCount(1);
+        final CommandProcessorMetrics commandProcessorMetrics = testSubscriber.getOnNextEvents().get(0);
+
+        assertEquals("Should be 2 commands",2, commandProcessorMetrics.commands().size());
+
+        assertEquals(CMD_ONE, commandProcessorMetrics.getCommand(0).commandName());
+        assertEquals(commandProcessorMetrics.getCommand(0).toString(),5, commandProcessorMetrics.getCommand(0).eventCount());
+
+        assertEquals("two", commandProcessorMetrics.getCommand(1).commandName());
+        assertEquals(1, commandProcessorMetrics.getCommand(1).eventCount());
     }
 }

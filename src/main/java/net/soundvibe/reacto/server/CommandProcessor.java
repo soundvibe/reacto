@@ -3,7 +3,7 @@ package net.soundvibe.reacto.server;
 import io.vertx.core.logging.*;
 import net.soundvibe.reacto.client.errors.CommandNotFound;
 import net.soundvibe.reacto.mappers.Mappers;
-import net.soundvibe.reacto.metric.CommandHandlerMetric;
+import net.soundvibe.reacto.metric.CommandProcessorMetric;
 import net.soundvibe.reacto.types.*;
 import rx.*;
 import rx.schedulers.Schedulers;
@@ -36,14 +36,14 @@ public class CommandProcessor {
                 .concatMap(cmd -> {
                     final CommandDescriptor descriptor = CommandDescriptor.fromCommand(cmd);
                     return commands.findCommand(descriptor)
-                            .map(cmdFunc -> Observable.just(CommandHandlerMetric.of(cmd))
+                            .map(cmdFunc -> Observable.just(CommandProcessorMetric.of(cmd))
                                     .concatMap(metric -> cmdFunc.apply(cmd)
                                             .doOnEach(notification -> publishMetrics(notification, cmd, metric))))
                             .orElseGet(() -> Observable.error(new CommandNotFound(cmd.name)));
                 }).subscribeOn(SINGLE_THREAD);
     }
 
-    private void publishMetrics(Notification<? super Event> notification, Command command, CommandHandlerMetric metric) {
+    private void publishMetrics(Notification<? super Event> notification, Command command, CommandProcessorMetric metric) {
         log.debug("Command "+ command + " executed and received notification: " + notification);
         switch (notification.getKind()) {
             case OnNext:
