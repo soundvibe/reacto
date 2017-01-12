@@ -4,6 +4,7 @@ import io.vertx.core.logging.*;
 import net.soundvibe.reacto.client.errors.CommandNotFound;
 import net.soundvibe.reacto.internal.InternalEvent;
 import net.soundvibe.reacto.mappers.Mappers;
+import net.soundvibe.reacto.metric.CommandHandlerMetric;
 import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.types.*;
 import rx.*;
@@ -37,9 +38,10 @@ public final class CommandHandler {
             final Command receivedCommand = Mappers.fromBytesToCommand(bytes);
             final CommandDescriptor descriptor = CommandDescriptor.fromCommand(receivedCommand);
             final Optional<Function<Command, Observable<Event>>> commandFunc = commands.findCommand(descriptor);
+            final CommandHandlerMetric metric = CommandHandlerMetric.of(receivedCommand);
             commandFunc
                     .map(cmdFunc -> cmdFunc.apply(receivedCommand)
-                            .doOnEach(notification -> log.debug("Command "+ receivedCommand + " executed and received notification: " + notification))
+                            .doOnEach(notification -> publishMetrics(notification, receivedCommand, metric))
                             .subscribeOn(SINGLE_THREAD)
                             .observeOn(SINGLE_THREAD)
                             .subscribe(
@@ -61,6 +63,21 @@ public final class CommandHandler {
         } catch (Throwable e) {
             sender.accept(toBytes(InternalEvent.onError(e)));
             closeHandler.run();
+        }
+    }
+
+    private void publishMetrics(Notification<? super Event> notification, Command receivedCommand, CommandHandlerMetric metric) {
+        log.debug("Command "+ receivedCommand + " executed and received notification: " + notification);
+        switch (notification.getKind()) {
+            case OnNext:
+                metric.onNext();
+                break;
+            case OnError:
+                metric.onError(notification.getThrowable());
+                break;
+            case OnCompleted:
+                metric.onCompleted();
+                break;
         }
     }
 

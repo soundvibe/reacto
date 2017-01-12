@@ -11,6 +11,7 @@ import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.client.errors.*;
 import net.soundvibe.reacto.discovery.*;
 import net.soundvibe.reacto.mappers.jackson.*;
+import net.soundvibe.reacto.metric.*;
 import net.soundvibe.reacto.server.*;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.*;
@@ -192,6 +193,10 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldComposeDifferentCommands() throws Exception {
+        final TestSubscriber<CommandHandlerMetrics> metricsTestSubscriber = new TestSubscriber<>();
+        ReactoDashboardStream.observeCommandHandlers()
+                .subscribe(metricsTestSubscriber);
+
         mainNodeExecutor.execute(command1Arg(TEST_COMMAND, "foo"))
                 .mergeWith(mainNodeExecutor.execute(command1Arg(TEST_COMMAND_MANY, "bar")))
                 .observeOn(Schedulers.computation())
@@ -205,6 +210,12 @@ public class CommandExecutorTest {
         assertTrue(onNextEvents.contains(event1Arg("2. Called command with arg: bar")));
         assertTrue(onNextEvents.contains(event1Arg("3. Called command with arg: bar")));
         assertTrue(onNextEvents.contains(event1Arg("Called command with arg: foo")));
+
+        metricsTestSubscriber.awaitTerminalEventAndUnsubscribeOnTimeout(ReactoDashboardStream.DELAY_IN_MS, TimeUnit.MILLISECONDS);
+        metricsTestSubscriber.assertNoErrors();
+        metricsTestSubscriber.assertValueCount(1);
+        final CommandHandlerMetrics metrics = metricsTestSubscriber.getOnNextEvents().get(0);
+        assertEquals(2, metrics.commands().size());
     }
 
     @Test
@@ -349,6 +360,10 @@ public class CommandExecutorTest {
 
     @Test
     public void shouldFindServicesAndBalanceTheLoad() throws Exception {
+        final TestSubscriber<CommandHandlerMetrics> metricsTestSubscriber = new TestSubscriber<>();
+        ReactoDashboardStream.observeCommandHandlers()
+                .subscribe(metricsTestSubscriber);
+
         //start new service
         final HttpServer server = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(8183)
