@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.client.commands;
+package net.soundvibe.reacto.integration;
 
 import com.netflix.hystrix.exception.HystrixRuntimeException;
 import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
@@ -8,6 +8,7 @@ import io.vertx.core.json.*;
 import io.vertx.ext.web.Router;
 import io.vertx.servicediscovery.*;
 import io.vertx.servicediscovery.types.HttpEndpoint;
+import net.soundvibe.reacto.client.commands.*;
 import net.soundvibe.reacto.client.errors.*;
 import net.soundvibe.reacto.discovery.*;
 import net.soundvibe.reacto.mappers.jackson.*;
@@ -32,7 +33,7 @@ import static org.junit.Assert.*;
 /**
  * @author Cipolinas on 2015.12.01.
  */
-public class CommandExecutorTest {
+public class MainSuite {
 
     private static final String TEST_COMMAND = "test";
     private static final String TEST_COMMAND_MANY = "testMany";

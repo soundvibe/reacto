@@ -8,9 +8,7 @@ import net.soundvibe.reacto.types.*;
 import rx.*;
 import rx.schedulers.Schedulers;
 
-import java.util.Optional;
 import java.util.concurrent.Executors;
-import java.util.function.Function;
 
 /**
  * @author Linas on 2017.01.12.
@@ -37,8 +35,7 @@ public class CommandProcessor {
                 .observeOn(SINGLE_THREAD)
                 .concatMap(cmd -> {
                     final CommandDescriptor descriptor = CommandDescriptor.fromCommand(cmd);
-                    final Optional<Function<Command, Observable<Event>>> commandFunc = commands.findCommand(descriptor);
-                    return commandFunc
+                    return commands.findCommand(descriptor)
                             .map(cmdFunc -> Observable.just(CommandHandlerMetric.of(cmd))
                                     .concatMap(metric -> cmdFunc.apply(cmd)
                                             .doOnEach(notification -> publishMetrics(notification, cmd, metric))))
@@ -46,8 +43,8 @@ public class CommandProcessor {
                 }).subscribeOn(SINGLE_THREAD);
     }
 
-    private void publishMetrics(Notification<? super Event> notification, Command receivedCommand, CommandHandlerMetric metric) {
-        log.debug("Command "+ receivedCommand + " executed and received notification: " + notification);
+    private void publishMetrics(Notification<? super Event> notification, Command command, CommandHandlerMetric metric) {
+        log.debug("Command "+ command + " executed and received notification: " + notification);
         switch (notification.getKind()) {
             case OnNext:
                 metric.onNext();
