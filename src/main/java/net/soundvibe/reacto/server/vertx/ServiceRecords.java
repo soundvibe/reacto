@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.server;
+package net.soundvibe.reacto.server.vertx;
 
 import io.vertx.core.json.*;
 import io.vertx.servicediscovery.*;

@@ -7,9 +7,11 @@ import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import net.soundvibe.reacto.client.events.*;
-import net.soundvibe.reacto.discovery.ReactoServiceRegistry;
+import net.soundvibe.reacto.client.events.vertx.VertxEventSource;
+import net.soundvibe.reacto.discovery.vertx.VertxServiceRegistry;
 import net.soundvibe.reacto.mappers.jackson.JacksonMapper;
 import net.soundvibe.reacto.server.*;
+import net.soundvibe.reacto.server.vertx.VertxServer;
 import net.soundvibe.reacto.types.*;
 import org.junit.*;
 import rx.Observable;
@@ -18,6 +20,8 @@ import rx.observers.TestSubscriber;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static net.soundvibe.reacto.server.vertx.VertxServer.HYSTRIX_STREAM_PATH;
+import static net.soundvibe.reacto.server.vertx.VertxServer.REACTO_STREAM_PATH;
 import static org.junit.Assert.*;
 
 /**
@@ -28,10 +32,10 @@ public class HystrixEventStreamHandlerTest {
     private static final int PORT = 8282;
     public static final String SUFFIX = "}" + "\n\n";
     public static final String PREFIX = "{";
-    public static final String URL_HYSTRIX = "http://localhost:8282/test/hystrix.stream";
-    public static final String URL_REACTO = "http://localhost:8282/test/reacto.command.stream";
+    public static final String URL_HYSTRIX = "http://localhost:8282/test/" + HYSTRIX_STREAM_PATH;
+    public static final String URL_REACTO = "http://localhost:8282/test/" + REACTO_STREAM_PATH;
     private VertxServer vertxServer;
-    private ReactoServiceRegistry serviceRegistry;
+    private VertxServiceRegistry serviceRegistry;
     private final Vertx vertx = Vertx.vertx();
     private HttpClient httpClient = null;
     private final AtomicInteger count = new AtomicInteger(0);
@@ -40,7 +44,7 @@ public class HystrixEventStreamHandlerTest {
     @Before
     public void setUp() throws Exception {
         final Router router = Router.router(vertx);
-        serviceRegistry = new ReactoServiceRegistry(
+        serviceRegistry = new VertxServiceRegistry(
                 ServiceDiscovery.create(vertx),
                 new JacksonMapper(Json.mapper));
         vertxServer = new VertxServer(new ServiceOptions("test", "test"),

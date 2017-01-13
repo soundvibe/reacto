@@ -1,6 +1,7 @@
-package net.soundvibe.reacto.client.commands;
+package net.soundvibe.reacto.client.commands.vertx;
 
 import io.vertx.core.logging.*;
+import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.client.errors.CannotConnectToWebSocket;
 import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.discovery.LoadBalancer;

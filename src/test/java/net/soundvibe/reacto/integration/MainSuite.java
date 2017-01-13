@@ -10,10 +10,11 @@ import io.vertx.servicediscovery.*;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.client.commands.*;
 import net.soundvibe.reacto.client.errors.*;
-import net.soundvibe.reacto.discovery.*;
+import net.soundvibe.reacto.discovery.vertx.*;
 import net.soundvibe.reacto.mappers.jackson.*;
 import net.soundvibe.reacto.metric.*;
 import net.soundvibe.reacto.server.*;
+import net.soundvibe.reacto.server.vertx.*;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.*;
 import net.soundvibe.reacto.utils.models.*;
@@ -52,8 +53,8 @@ public class MainSuite {
     private static VertxServer vertxServer;
     private static VertxServer fallbackVertxServer;
     private static ServiceDiscovery serviceDiscovery;
-    private static ReactoServiceRegistry reactoServiceRegistry;
-    private static ReactoServiceRegistry reactoServiceRegistry2;
+    private static VertxServiceRegistry vertxServiceRegistry;
+    private static VertxServiceRegistry vertxServiceRegistry2;
 
     private final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
     private final CommandExecutor mainNodeExecutor = CommandExecutors.webSocket(
@@ -66,8 +67,8 @@ public class MainSuite {
     public static void setUp() throws Exception {
         vertx = Vertx.vertx();
         serviceDiscovery = ServiceDiscovery.create(vertx);
-        reactoServiceRegistry = new ReactoServiceRegistry(serviceDiscovery, new DemoServiceRegistryMapper());
-        reactoServiceRegistry2 = new ReactoServiceRegistry(serviceDiscovery, new JacksonMapper(Json.mapper));
+        vertxServiceRegistry = new VertxServiceRegistry(serviceDiscovery, new DemoServiceRegistryMapper());
+        vertxServiceRegistry2 = new VertxServiceRegistry(serviceDiscovery, new JacksonMapper(Json.mapper));
 
         final HttpServer mainHttpServer = vertx.createHttpServer(new HttpServerOptions()
                 .setPort(MAIN_SERVER_PORT)
@@ -82,9 +83,9 @@ public class MainSuite {
         final Router router = Router.router(vertx);
         router.route("/health").handler(event -> event.response().end("ok"));
         vertxServer = new VertxServer(new ServiceOptions("dist", "dist/", "0.1")
-                , router, mainHttpServer, createMainCommands(), reactoServiceRegistry);
+                , router, mainHttpServer, createMainCommands(), vertxServiceRegistry);
         fallbackVertxServer = new VertxServer(new ServiceOptions("dist","dist/", "0.1")
-                , Router.router(vertx), fallbackHttpServer,  createFallbackCommands(), reactoServiceRegistry2);
+                , Router.router(vertx), fallbackHttpServer,  createFallbackCommands(), vertxServiceRegistry2);
         fallbackVertxServer.start().toBlocking().subscribe();
         vertxServer.start().toBlocking().subscribe();
     }
@@ -305,7 +306,7 @@ public class MainSuite {
                         throw new RuntimeException(e);
                     }
                 })),
-                new ReactoServiceRegistry(serviceDiscovery, new JacksonMapper(Json.mapper)));
+                new VertxServiceRegistry(serviceDiscovery, new JacksonMapper(Json.mapper)));
 
         final CommandExecutor executor = CommandExecutors.webSocket(Nodes.of("http://localhost:8183/distTest/"), 5000);
 
@@ -376,7 +377,7 @@ public class MainSuite {
                 CommandRegistry.of(TEST_COMMAND, cmd ->
                         event1Arg("Called command from second server with arg: "
                                 + cmd.get("arg")).toObservable()),
-                new ReactoServiceRegistry(serviceDiscovery, new JacksonMapper(Json.mapper)));
+                new VertxServiceRegistry(serviceDiscovery, new JacksonMapper(Json.mapper)));
         reactoServer.start().toBlocking().subscribe();
 
         try {
@@ -413,7 +414,7 @@ public class MainSuite {
 
     @Test
     public void shouldFindAndExecuteCommand() throws Exception {
-        reactoServiceRegistry.execute(command1Arg(TEST_COMMAND, "foo"))
+        vertxServiceRegistry.execute(command1Arg(TEST_COMMAND, "foo"))
                 .subscribe(testSubscriber);
 
         assertCompletedSuccessfully();
@@ -421,7 +422,7 @@ public class MainSuite {
 
         final TestSubscriber<Event> testSubscriber2 = new TestSubscriber<>();
 
-        reactoServiceRegistry.execute(command1Arg(TEST_COMMAND, "bar"))
+        vertxServiceRegistry.execute(command1Arg(TEST_COMMAND, "bar"))
                 .subscribe(testSubscriber2);
 
         assertCompletedSuccessfully(testSubscriber2);
@@ -430,7 +431,7 @@ public class MainSuite {
 
     @Test
     public void shouldExecuteTypedCommandAndReceiveTypedEvent() throws Exception {
-        reactoServiceRegistry.execute(new MakeDemo("Hello, World!"), DemoMade.class)
+        vertxServiceRegistry.execute(new MakeDemo("Hello, World!"), DemoMade.class)
                 .subscribe(typedSubscriber);
 
         assertCompletedSuccessfully(typedSubscriber);
@@ -440,7 +441,7 @@ public class MainSuite {
     @Test
     public void shouldFailWhenExecutingTypedCommand() throws Exception {
         final TestSubscriber<JacksonEvent> jacksonEventTestSubscriber = new TestSubscriber<>();
-        reactoServiceRegistry2.execute(new JacksonCommand("test"), JacksonEvent.class)
+        vertxServiceRegistry2.execute(new JacksonCommand("test"), JacksonEvent.class)
                 .subscribe(jacksonEventTestSubscriber);
 
         assertError(jacksonEventTestSubscriber, RuntimeException.class,
@@ -450,7 +451,7 @@ public class MainSuite {
     @Test
     public void shouldExecuteTypedCommandWithIncompatibleEventClass() throws Exception {
         final TestSubscriber<Foo> fooTestSubscriber = new TestSubscriber<>();
-        reactoServiceRegistry.execute(new MakeDemo("Hello, World!"), Foo.class)
+        vertxServiceRegistry.execute(new MakeDemo("Hello, World!"), Foo.class)
                 .subscribe(fooTestSubscriber);
 
         fooTestSubscriber.awaitTerminalEvent();
@@ -462,7 +463,7 @@ public class MainSuite {
     @Test
     public void shouldExecuteTypedCommandAndReceivePolymorphicEvents() throws Exception {
         final TestSubscriber<Animal> animalTestSubscriber = new TestSubscriber<>();
-        reactoServiceRegistry2.execute(new Feed("Pedigree"), Animal.class)
+        vertxServiceRegistry2.execute(new Feed("Pedigree"), Animal.class)
                 .subscribe(animalTestSubscriber);
 
         assertCompletedSuccessfully(animalTestSubscriber);
@@ -474,7 +475,7 @@ public class MainSuite {
 
     @Test
     public void shouldExecutePlainAsTyped() throws Exception {
-        reactoServiceRegistry.execute(command1Arg(TEST_COMMAND, "foo"), Event.class)
+        vertxServiceRegistry.execute(command1Arg(TEST_COMMAND, "foo"), Event.class)
                 .subscribe(testSubscriber);
         assertCompletedSuccessfully();
         testSubscriber.assertValue(event1Arg("Called command with arg: foo"));

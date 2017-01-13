@@ -1,10 +1,11 @@
-package net.soundvibe.reacto.client.events;
+package net.soundvibe.reacto.client.events.vertx;
 
 import io.vertx.core.http.*;
 import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
-import net.soundvibe.reacto.discovery.DiscoverableServices;
-import net.soundvibe.reacto.server.ServiceRecords;
+import net.soundvibe.reacto.client.events.EventHandler;
+import net.soundvibe.reacto.discovery.vertx.DiscoverableServices;
+import net.soundvibe.reacto.server.vertx.ServiceRecords;
 import net.soundvibe.reacto.types.*;
 import rx.Observable;
 import rx.internal.util.ActionObserver;

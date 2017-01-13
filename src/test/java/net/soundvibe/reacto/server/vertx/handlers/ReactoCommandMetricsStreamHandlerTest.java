@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.server.handlers;
+package net.soundvibe.reacto.server.vertx.handlers;
 
 import net.soundvibe.reacto.metric.*;
 import net.soundvibe.reacto.types.Command;

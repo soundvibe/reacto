@@ -1,8 +1,9 @@
-package net.soundvibe.reacto.client.events;
+package net.soundvibe.reacto.client.events.vertx;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.*;
 import io.vertx.core.logging.*;
+import net.soundvibe.reacto.client.events.EventSource;
 
 import java.util.*;
 import java.util.function.Consumer;

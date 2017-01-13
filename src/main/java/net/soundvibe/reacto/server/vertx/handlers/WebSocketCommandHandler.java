@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.server.handlers;
+package net.soundvibe.reacto.server.vertx.handlers;
 
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;

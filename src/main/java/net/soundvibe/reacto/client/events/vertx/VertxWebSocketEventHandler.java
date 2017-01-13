@@ -1,12 +1,13 @@
-package net.soundvibe.reacto.client.events;
+package net.soundvibe.reacto.client.events.vertx;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.*;
 import io.vertx.core.logging.*;
 import net.soundvibe.reacto.client.errors.ConnectionClosedUnexpectedly;
+import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.internal.InternalEvent;
 import net.soundvibe.reacto.mappers.Mappers;
-import net.soundvibe.reacto.server.handlers.WebSocketFrameHandler;
+import net.soundvibe.reacto.server.vertx.handlers.WebSocketFrameHandler;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.Factories;
 import rx.*;

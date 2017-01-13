@@ -1,11 +1,12 @@
-package net.soundvibe.reacto.discovery;
+package net.soundvibe.reacto.discovery.vertx;
 
 import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.client.events.EventHandler;
+import net.soundvibe.reacto.discovery.*;
 import net.soundvibe.reacto.mappers.ServiceRegistryMapper;
-import net.soundvibe.reacto.server.ServiceRecords;
+import net.soundvibe.reacto.server.vertx.ServiceRecords;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
@@ -13,21 +14,21 @@ import rx.Observable;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static net.soundvibe.reacto.discovery.DiscoverableServices.publishRecord;
+import static net.soundvibe.reacto.discovery.vertx.DiscoverableServices.publishRecord;
 
 /**
  * @author linas on 17.1.9.
  */
-public final class ReactoServiceRegistry implements ServiceRegistry, ServiceDiscoveryLifecycle, CommandExecutor {
+public final class VertxServiceRegistry implements ServiceRegistry, ServiceDiscoveryLifecycle, CommandExecutor {
 
-    private static final Logger log = LoggerFactory.getLogger(ReactoServiceRegistry.class);
+    private static final Logger log = LoggerFactory.getLogger(VertxServiceRegistry.class);
 
     private final AtomicBoolean isClosed = new AtomicBoolean(true);
 
     private final ServiceDiscovery serviceDiscovery;
     private final ServiceRegistryMapper mapper;
 
-    public ReactoServiceRegistry(ServiceDiscovery serviceDiscovery, ServiceRegistryMapper mapper) {
+    public VertxServiceRegistry(ServiceDiscovery serviceDiscovery, ServiceRegistryMapper mapper) {
         Objects.requireNonNull(serviceDiscovery, "serviceDiscovery cannot be null");
         Objects.requireNonNull(mapper, "mapper cannot be null");
         this.serviceDiscovery = serviceDiscovery;

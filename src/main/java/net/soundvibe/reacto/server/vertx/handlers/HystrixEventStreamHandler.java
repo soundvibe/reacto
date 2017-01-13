@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.server.handlers;
+package net.soundvibe.reacto.server.vertx.handlers;
 
 import com.fasterxml.jackson.core.*;
 import com.netflix.hystrix.*;

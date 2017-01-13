@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.discovery;
+package net.soundvibe.reacto.discovery.vertx;
 
 import io.vertx.servicediscovery.Record;
 import rx.Observable;

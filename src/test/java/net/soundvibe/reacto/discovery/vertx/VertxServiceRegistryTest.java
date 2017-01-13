@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.discovery;
+package net.soundvibe.reacto.discovery.vertx;
 
 import io.vertx.core.Vertx;
 import io.vertx.servicediscovery.*;
@@ -17,7 +17,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * @author linas on 17.1.9.
  */
-public class ReactoServiceRegistryTest {
+public class VertxServiceRegistryTest {
 
     private static final String TEST_SERVICE = "testService";
     private static final String ROOT = "/test/";
@@ -25,7 +25,7 @@ public class ReactoServiceRegistryTest {
     private final Vertx vertx = Vertx.vertx();
     private final ServiceDiscovery serviceDiscovery = ServiceDiscovery.create(vertx);
 
-    private final ReactoServiceRegistry sut = new ReactoServiceRegistry(serviceDiscovery, new DemoServiceRegistryMapper());
+    private final VertxServiceRegistry sut = new VertxServiceRegistry(serviceDiscovery, new DemoServiceRegistryMapper());
 
     @Test
     public void shouldStartDiscovery() throws Exception {

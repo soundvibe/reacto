@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.server;
+package net.soundvibe.reacto.server.vertx;
 
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.*;
@@ -6,8 +6,9 @@ import io.vertx.core.logging.*;
 import io.vertx.ext.web.Router;
 import io.vertx.servicediscovery.*;
 import io.vertx.servicediscovery.types.HttpEndpoint;
-import net.soundvibe.reacto.discovery.ServiceDiscoveryLifecycle;
-import net.soundvibe.reacto.server.handlers.*;
+import net.soundvibe.reacto.discovery.vertx.ServiceDiscoveryLifecycle;
+import net.soundvibe.reacto.server.*;
+import net.soundvibe.reacto.server.vertx.handlers.*;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.*;
 import rx.Observable;
@@ -16,7 +17,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static net.soundvibe.reacto.server.ServiceRecords.COMMANDS;
+import static net.soundvibe.reacto.server.vertx.ServiceRecords.COMMANDS;
 import static net.soundvibe.reacto.utils.WebUtils.*;
 
 /**
@@ -25,7 +26,11 @@ import static net.soundvibe.reacto.utils.WebUtils.*;
 public class VertxServer implements Server<HttpServer> {
 
     public static final int INTERNAL_SERVER_ERROR = 500;
+
     private static final Logger log = LoggerFactory.getLogger(VertxServer.class);
+
+    public static final String HYSTRIX_STREAM_PATH = "hystrix.stream";
+    public static final String REACTO_STREAM_PATH = "reacto.stream";
 
     private final ServiceOptions serviceOptions;
     private final CommandRegistry commands;
@@ -153,10 +158,10 @@ public class VertxServer implements Server<HttpServer> {
 
     private void setupRoutes() {
         httpServer.websocketHandler(new WebSocketCommandHandler(new CommandProcessor(commands), root()));
-        router.route(root() + "hystrix.stream")
+        router.route(root() + HYSTRIX_STREAM_PATH)
             .handler(new SSEHandler(HystrixEventStreamHandler::handle));
 
-        router.route(root() + "reacto.command.stream")
+        router.route(root() + REACTO_STREAM_PATH)
                 .handler(new SSEHandler(new ReactoCommandMetricsStreamHandler()));
 
         router.route(root() + "service-discovery/:action")

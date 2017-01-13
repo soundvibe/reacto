@@ -1,6 +1,7 @@
-package net.soundvibe.reacto.server;
+package net.soundvibe.reacto.server.vertx;
 
 import io.vertx.core.json.*;
+import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.DemoCommandRegistryMapper;
 import org.junit.Test;

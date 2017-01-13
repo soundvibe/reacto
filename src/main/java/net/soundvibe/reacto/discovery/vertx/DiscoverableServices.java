@@ -1,12 +1,15 @@
-package net.soundvibe.reacto.discovery;
+package net.soundvibe.reacto.discovery.vertx;
 
 import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
 import net.soundvibe.reacto.client.commands.*;
+import net.soundvibe.reacto.client.commands.vertx.VertxDiscoverableCommandExecutor;
 import net.soundvibe.reacto.client.events.*;
+import net.soundvibe.reacto.client.events.vertx.*;
+import net.soundvibe.reacto.discovery.*;
+import net.soundvibe.reacto.server.vertx.*;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.client.errors.CannotDiscoverService;
-import net.soundvibe.reacto.server.ServiceRecords;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 

@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.types;
+package net.soundvibe.reacto.server.vertx;
 
 import io.vertx.servicediscovery.ServiceDiscovery;
 
