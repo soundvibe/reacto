@@ -93,7 +93,7 @@ public class HystrixEventStreamHandlerTest {
 
     private void await() {
         try {
-            countDownLatch.await(500L, TimeUnit.MILLISECONDS);
+            countDownLatch.await(1000L, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             //
         }
