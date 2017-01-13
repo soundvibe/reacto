@@ -68,6 +68,7 @@ public final class ReactoCommandMetricsStreamHandler implements Consumer<HttpSer
                     json.writeNumberField("totalExecutionTimeInMs", commandMetric.totalExecutionTimeInMs());
                     json.writeNumberField("avgExecutionTimeInMs", commandMetric.avgExecutionTimeInMs());
                     json.writeNumberField("commandsPerSecond", commandMetric.commandsPerSecond(metrics.delayInMs));
+                    json.writeNumberField("eventsPerSecond", commandMetric.eventsPerSecond(metrics.delayInMs));
                     json.writeNumberField("completed", commandMetric.completed());
                     json.writeNumberField("errors", commandMetric.errors());
                     json.writeEndObject();

@@ -119,6 +119,10 @@ public final class CommandProcessorMetric {
         return delayInMs < 1L ? 0 : (int) (((double) commandCount() / delayInMs) * 1000);
     }
 
+    public int eventsPerSecond(long delayInMs) {
+        return delayInMs < 1L ? 0 : (int) (((double) eventCount() / delayInMs) * 1000);
+    }
+
     //private
 
     private void calculateElapsed() {

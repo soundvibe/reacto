@@ -28,4 +28,14 @@ public class CommandProcessorMetricTest {
         assertEquals(4, actual);
         assertEquals(6, sut.commandsPerSecond(600L));
     }
+
+    @Test
+    public void shouldCalculateEventsPerSecond() throws Exception {
+        CommandProcessorMetric sut = CommandProcessorMetric.of("foo", "bar");
+        sut.onNext().onNext().onNext().onNext();
+
+        final long actual = sut.eventsPerSecond(1000L);
+        assertEquals(4, actual);
+        assertEquals(6, sut.eventsPerSecond(600L));
+    }
 }
