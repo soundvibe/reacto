@@ -1,6 +1,8 @@
 package net.soundvibe.reacto.server.vertx;
 
+import io.vertx.core.Vertx;
 import io.vertx.core.json.*;
+import io.vertx.ext.web.Router;
 import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.DemoCommandRegistryMapper;
@@ -39,5 +41,20 @@ public class VertxServerTest {
         final String actual = jsonObject.encode();
         final String expected = "{\"commands\":[{\"commandType\":\"net.soundvibe.reacto.types.MakeDemo\",\"eventType\":\"net.soundvibe.reacto.types.DemoMade\"}]}";
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void shouldSerializeRoutes() throws Exception {
+        Router router = Router.router(Vertx.vertx());
+        router.route("/root/sub")
+            .handler(ctx -> ctx.response().end("ok"));
+
+        router.route("/root/")
+                .handler(ctx -> ctx.response().end("ok"));
+
+        final JsonArray routes = VertxServer.routesToJsonArray(router, "localhost", 8181, false);
+        final JsonObject jsonObject = new JsonObject().put("routes", routes);
+        final String actual = jsonObject.encode();
+        assertEquals("{\"routes\":[\"http://localhost:8181/root/sub\",\"http://localhost:8181/root/\"]}", actual);
     }
 }
