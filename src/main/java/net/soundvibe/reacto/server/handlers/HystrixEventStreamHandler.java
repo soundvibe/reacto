@@ -5,8 +5,8 @@ import com.netflix.hystrix.*;
 import com.netflix.hystrix.metric.consumer.HystrixDashboardStream;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.*;
+import rx.Subscription;
 import rx.functions.Func0;
-import rx.schedulers.Schedulers;
 
 import java.io.*;
 
@@ -20,11 +20,23 @@ public interface HystrixEventStreamHandler {
     JsonFactory jsonFactory = new JsonFactory();
 
     static void handle(HttpServerResponse response) {
-        HystrixDashboardStream.getInstance().observe()
-                .retry()
-                .subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.io())
-                .subscribe(dashboardData -> writeDashboardData(dashboardData, response));
+        final Subscription subscription = HystrixDashboardStream.getInstance().observe()
+                .subscribe(dashboardData -> writeDashboardData(dashboardData, response),
+                        throwable -> log.error("Error when getting hystrix metrics data: " + throwable));
+
+        response
+                .exceptionHandler(error -> unsubscribeOnError(error, subscription))
+                .closeHandler(__ -> unsubscribeOnClose(subscription));
+    }
+
+    static void unsubscribeOnClose(Subscription subscription) {
+        log.info("HttpResponse is closed so we are unsubscribing from the metrics stream");
+        subscription.unsubscribe();
+    }
+
+    static void unsubscribeOnError(Throwable error, Subscription subscription) {
+        log.error("HttpResponse Error: " + error);
+        subscription.unsubscribe();
     }
 
     static void writeDashboardData(HystrixDashboardStream.DashboardData dashboardData, HttpServerResponse response) {

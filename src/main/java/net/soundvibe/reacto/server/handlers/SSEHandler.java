@@ -22,14 +22,15 @@ public class SSEHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext routingContext) {
-        routingContext.setAcceptableContentType("text/event-stream");
+        routingContext
+                .setAcceptableContentType("text/event-stream");
         response = routingContext.response();
-        response.putHeader("Content-Type", "text/event-stream");
-        response.putHeader("Connection", "keep-alive");
-        response.putHeader("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
-        response.putHeader("Content-Encoding", "UTF-8");
-        response.putHeader("Pragma", "no-cache");
-        response.setChunked(true);
+        response.putHeader("Content-Type", "text/event-stream")
+                .putHeader("Connection", "keep-alive")
+                .putHeader("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate")
+                .putHeader("Content-Encoding", "UTF-8")
+                .putHeader("Pragma", "no-cache")
+                .setChunked(true);
         responseConsumer.accept(response);
     }
 

@@ -9,9 +9,11 @@ import java.util.*;
 public final class CommandProcessorMetrics {
 
     private final Collection<CommandProcessorMetric> elements;
+    public final long delayInMs;
 
-    public CommandProcessorMetrics(Collection<CommandProcessorMetric> elements) {
+    public CommandProcessorMetrics(Collection<CommandProcessorMetric> elements, long delayInMs) {
         this.elements = elements;
+        this.delayInMs = delayInMs;
     }
 
     public Collection<CommandProcessorMetric> commands() {
@@ -31,11 +33,21 @@ public final class CommandProcessorMetrics {
         return ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
     }
 
+    public ThreadData threadUsage() {
+        final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+        return new ThreadData(
+                threadMXBean.getThreadCount(),
+                threadMXBean.getDaemonThreadCount(),
+                threadMXBean.getPeakThreadCount());
+    }
+
     @Override
     public String toString() {
         return "CommandProcessorMetrics{" +
                 "elements=" + elements +
+                ",delayInMs=" + delayInMs +
                 ",memoryUsage=" + memoryUsage() +
+                ",threadUsage=" + threadUsage() +
                 '}';
     }
 }

@@ -19,7 +19,7 @@ public class ReactoCommandMetricsStreamHandlerTest {
         final CommandProcessorMetrics metrics = new CommandProcessorMetrics(Arrays.asList(
                 CommandProcessorMetric.of(Command.create("demo")).onNext().onNext().onCompleted(),
                 CommandProcessorMetric.of(Command.create("foo")).onNext().onNext().onCompleted()
-        ));
+        ), ReactoDashboardStream.DELAY_IN_MS);
         final String json = ReactoCommandMetricsStreamHandler.getJson(metrics);
         System.out.println(json);
         assertTrue(json.startsWith("{"));

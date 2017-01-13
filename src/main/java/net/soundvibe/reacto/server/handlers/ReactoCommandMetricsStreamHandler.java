@@ -7,6 +7,7 @@ import net.soundvibe.reacto.metric.*;
 import rx.Subscription;
 
 import java.io.*;
+import java.lang.management.MemoryUsage;
 import java.util.function.Consumer;
 
 /**
@@ -43,10 +44,18 @@ public final class ReactoCommandMetricsStreamHandler implements Consumer<HttpSer
             json.writeStartObject();
 
                 json.writeObjectFieldStart("memoryUsage");
-                json.writeNumberField("committed", metrics.memoryUsage().getCommitted());
-                json.writeNumberField("init", metrics.memoryUsage().getInit());
-                json.writeNumberField("max", metrics.memoryUsage().getMax());
-                json.writeNumberField("used", metrics.memoryUsage().getUsed());
+                final MemoryUsage memoryUsage = metrics.memoryUsage();
+                json.writeNumberField("committed", memoryUsage.getCommitted());
+                json.writeNumberField("init", memoryUsage.getInit());
+                json.writeNumberField("max", memoryUsage.getMax());
+                json.writeNumberField("used", memoryUsage.getUsed());
+                json.writeEndObject();
+
+                json.writeObjectFieldStart("threadUsage");
+                final ThreadData threadData = metrics.threadUsage();
+                json.writeNumberField("threadCount", threadData.threadCount);
+                json.writeNumberField("daemonThreadCount", threadData.daemonThreadCount);
+                json.writeNumberField("peakThreadCount", threadData.peakThreadCount);
                 json.writeEndObject();
 
                 json.writeArrayFieldStart("commands");
@@ -57,6 +66,8 @@ public final class ReactoCommandMetricsStreamHandler implements Consumer<HttpSer
                     json.writeNumberField("eventCount", commandMetric.eventCount());
                     json.writeNumberField("commandCount", commandMetric.commandCount());
                     json.writeNumberField("totalExecutionTimeInMs", commandMetric.totalExecutionTimeInMs());
+                    json.writeNumberField("avgExecutionTimeInMs", commandMetric.avgExecutionTimeInMs());
+                    json.writeNumberField("commandsPerSecond", commandMetric.commandsPerSecond(metrics.delayInMs));
                     json.writeNumberField("completed", commandMetric.completed());
                     json.writeNumberField("errors", commandMetric.errors());
                     json.writeEndObject();

@@ -12,11 +12,11 @@ public final class CommandProcessorMetric {
     private final String commandName;
     private final String eventName;
     private final AtomicInteger onNextCount;
-    private final AtomicInteger commandCount;
+    final AtomicInteger commandCount;
     private final AtomicInteger hasCompleted;
     private final AtomicInteger hasErrors;
     private final long timeStarted;
-    private final AtomicLong timeElapsedInMs;
+    final AtomicLong timeElapsedInMs;
 
     private CommandProcessorMetric(String commandName, String eventName) {
         this.commandName = commandName;
@@ -110,6 +110,15 @@ public final class CommandProcessorMetric {
         return timeElapsedInMs.get();
     }
 
+    public long avgExecutionTimeInMs() {
+        final int count = commandCount();
+        return count < 1 ? 0L : Math.floorDiv(totalExecutionTimeInMs(), count);
+    }
+
+    public int commandsPerSecond(long delayInMs) {
+        return delayInMs < 1L ? 0 : (int) (((double) commandCount() / delayInMs) * 1000);
+    }
+
     //private
 
     private void calculateElapsed() {
@@ -126,6 +135,7 @@ public final class CommandProcessorMetric {
                 ", errors=" + hasErrors +
                 ", timeStarted=" + timeStarted +
                 ", timeElapsedInMs=" + timeElapsedInMs +
+                ", avgExecutionTimeInMs=" + avgExecutionTimeInMs() +
                 '}';
     }
 }

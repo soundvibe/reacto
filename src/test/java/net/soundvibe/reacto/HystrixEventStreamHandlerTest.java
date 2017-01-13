@@ -6,6 +6,7 @@ import io.vertx.core.http.*;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
 import io.vertx.servicediscovery.ServiceDiscovery;
+import net.soundvibe.reacto.client.events.*;
 import net.soundvibe.reacto.discovery.ReactoServiceRegistry;
 import net.soundvibe.reacto.mappers.jackson.JacksonMapper;
 import net.soundvibe.reacto.server.*;
@@ -15,9 +16,9 @@ import rx.Observable;
 import rx.observers.TestSubscriber;
 
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * @author Cipolinas on 2015.11.23.
@@ -25,9 +26,16 @@ import static org.junit.Assert.assertTrue;
 public class HystrixEventStreamHandlerTest {
 
     private static final int PORT = 8282;
+    public static final String SUFFIX = "}" + "\n\n";
+    public static final String PREFIX = "{";
+    public static final String URL_HYSTRIX = "http://localhost:8282/test/hystrix.stream";
+    public static final String URL_REACTO = "http://localhost:8282/test/reacto.command.stream";
     private VertxServer vertxServer;
     private ReactoServiceRegistry serviceRegistry;
     private final Vertx vertx = Vertx.vertx();
+    private HttpClient httpClient = null;
+    private final AtomicInteger count = new AtomicInteger(0);
+    private final CountDownLatch countDownLatch = new CountDownLatch(1);
 
     @Before
     public void setUp() throws Exception {
@@ -39,16 +47,21 @@ public class HystrixEventStreamHandlerTest {
                 router, vertx.createHttpServer(new HttpServerOptions().setPort(PORT)),
                 CommandRegistry.of("demo", o -> Observable.just(Event.create("foo"), Event.create("bar"))),
                 serviceRegistry);
+
         vertxServer.start().toBlocking().subscribe();
     }
 
     @After
     public void tearDown() throws Exception {
+        if (httpClient != null) {
+            httpClient.close();
+        }
         vertxServer.stop().toBlocking().subscribe();
     }
 
     @Test
     public void shouldWriteSomeDataWhenCommandIsExecuted() throws Exception {
+        createEventSource(URL_HYSTRIX);
         TestSubscriber<String> testSubscriber = new TestSubscriber<>();
         new FooCommand("foo").toObservable()
                 .subscribe(testSubscriber);
@@ -58,12 +71,14 @@ public class HystrixEventStreamHandlerTest {
         testSubscriber.assertNoErrors();
         testSubscriber.assertValue("foo");
 
-        final String actual = getBodyAsString("/test/hystrix.stream");
-        assertTrue("Should start with data: ", actual.startsWith("data: {"));
+        await();
+        assertTrue("Should received at least one message", count.get() > 0);
     }
 
     @Test
     public void shouldExecuteCommandAndPushEventStream() throws Exception {
+        createEventSource(URL_REACTO);
+
         TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
         serviceRegistry.execute(Command.create("demo"))
                 .subscribe(testSubscriber);
@@ -71,30 +86,40 @@ public class HystrixEventStreamHandlerTest {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
         testSubscriber.assertValueCount(2);
-        final String actual = getBodyAsString("/test/reacto.command.stream");
-        assertTrue("Should start with data: ", actual.startsWith("data: {"));
+
+        await();
+        assertTrue("Should received at least one message", count.get() > 0);
     }
 
-    private String getBodyAsString(String relativeUrl) {
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<String> bodyAsString = new AtomicReference<>();
-        final HttpClient httpClient = vertx.createHttpClient();
-        httpClient.getNow(PORT, "localhost", relativeUrl,
-                httpClientResponse -> httpClientResponse.handler(buffer -> {
-                    final byte[] bytes = buffer.getBytes();
-                    String data = new String(bytes);
-                    bodyAsString.set(data);
-                    countDownLatch.countDown();
-                }));
+    private void await() {
         try {
-            countDownLatch.await(1000L, TimeUnit.MILLISECONDS);
-            return bodyAsString.get();
+            countDownLatch.await(500L, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } finally {
-            httpClient.close();
+            //
         }
     }
+
+    private void createEventSource(String url) {
+        final EventSource eventSource = new VertxEventSource(vertx, url);
+        eventSource.open();
+        eventSource.onMessage(this::assertDataMessage);
+        eventSource.onError(this::assertError);
+    }
+
+    private void assertDataMessage(String json) {
+        count.incrementAndGet();
+        assertTrue("Should start with { but was: " + json, json.startsWith(PREFIX));
+        assertTrue("Should end with } but was: " + json.substring(json.length() - 3), json.endsWith(SUFFIX));
+        countDownLatch.countDown();
+    }
+
+    private void assertError(Throwable error) {
+        countDownLatch.countDown();
+        fail(error.toString());
+    }
+
+
+
 
     private class FooCommand extends HystrixObservableCommand<String> {
         private final String value;
