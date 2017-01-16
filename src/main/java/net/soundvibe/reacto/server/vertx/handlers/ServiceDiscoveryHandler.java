@@ -3,7 +3,7 @@ package net.soundvibe.reacto.server.vertx.handlers;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.servicediscovery.Record;
-import net.soundvibe.reacto.discovery.vertx.ServiceDiscoveryLifecycle;
+import net.soundvibe.reacto.discovery.ServiceDiscoveryLifecycle;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
@@ -16,10 +16,10 @@ import static net.soundvibe.reacto.server.vertx.VertxServer.INTERNAL_SERVER_ERRO
  */
 public class ServiceDiscoveryHandler implements Handler<RoutingContext> {
 
-    private final ServiceDiscoveryLifecycle controller;
+    private final ServiceDiscoveryLifecycle<Record> controller;
     private final Supplier<Record> record;
 
-    public ServiceDiscoveryHandler(ServiceDiscoveryLifecycle controller, Supplier<Record> record) {
+    public ServiceDiscoveryHandler(ServiceDiscoveryLifecycle<Record> controller, Supplier<Record> record) {
         this.controller = controller;
         this.record = record;
     }

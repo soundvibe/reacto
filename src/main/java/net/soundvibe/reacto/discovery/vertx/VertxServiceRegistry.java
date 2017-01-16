@@ -19,7 +19,7 @@ import static net.soundvibe.reacto.discovery.vertx.DiscoverableServices.publishR
 /**
  * @author linas on 17.1.9.
  */
-public final class VertxServiceRegistry implements ServiceRegistry, ServiceDiscoveryLifecycle, CommandExecutor {
+public final class VertxServiceRegistry implements ServiceRegistry, ServiceDiscoveryLifecycle<Record>, CommandExecutor {
 
     private static final Logger log = LoggerFactory.getLogger(VertxServiceRegistry.class);
 

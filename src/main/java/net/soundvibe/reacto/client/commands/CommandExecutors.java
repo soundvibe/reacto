@@ -3,7 +3,6 @@ package net.soundvibe.reacto.client.commands;
 import com.netflix.hystrix.HystrixCommandProperties;
 import io.vertx.servicediscovery.Record;
 import net.soundvibe.reacto.client.commands.hystrix.*;
-import net.soundvibe.reacto.client.commands.vertx.VertxWebSocketCommandExecutor;
 import net.soundvibe.reacto.client.events.*;
 import net.soundvibe.reacto.client.events.vertx.VertxWebSocketEventHandler;
 import net.soundvibe.reacto.discovery.*;
@@ -56,7 +55,7 @@ public interface CommandExecutors {
     }
 
     static CommandExecutor webSocket(Nodes nodes) {
-        return new VertxWebSocketCommandExecutor(Mappers.mapToEventHandlers(nodes, VertxWebSocketEventHandler::new), LoadBalancers.ROUND_ROBIN);
+        return new ReactoCommandExecutor(Mappers.mapToEventHandlers(nodes, VertxWebSocketEventHandler::new), LoadBalancers.ROUND_ROBIN);
     }
 
     static CommandExecutor webSocket(Nodes nodes, int executionTimeoutInMs) {

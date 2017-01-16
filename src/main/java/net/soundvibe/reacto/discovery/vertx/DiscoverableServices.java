@@ -2,14 +2,14 @@ package net.soundvibe.reacto.discovery.vertx;
 
 import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
-import net.soundvibe.reacto.client.commands.*;
-import net.soundvibe.reacto.client.commands.vertx.VertxDiscoverableCommandExecutor;
-import net.soundvibe.reacto.client.events.*;
+import net.soundvibe.reacto.client.commands.CommandExecutor;
+import net.soundvibe.reacto.client.commands.ReactoCommandExecutor;
+import net.soundvibe.reacto.client.errors.CannotDiscoverService;
+import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.client.events.vertx.*;
 import net.soundvibe.reacto.discovery.*;
 import net.soundvibe.reacto.server.vertx.*;
 import net.soundvibe.reacto.types.*;
-import net.soundvibe.reacto.client.errors.CannotDiscoverService;
 import net.soundvibe.reacto.utils.Factories;
 import rx.Observable;
 
@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.function.*;
 
 import static java.util.Comparator.comparing;
+import static java.util.stream.Collectors.toList;
 
 /**
  * @author OZY on 2016.08.26.
@@ -69,17 +70,17 @@ public final class DiscoverableServices {
                 .concatMap(commandExecutor -> commandExecutor.execute(command));
     }
 
-    private static Observable<CommandExecutor> findExecutor(Observable<Record> records,
+    private static Observable<CommandExecutor> findExecutor(Observable<List<Record>> records,
                                                            String name,
                                                            ServiceDiscovery serviceDiscovery,
                                                            LoadBalancer<EventHandler> loadBalancer) {
         return records
+                .filter(recs -> !recs.isEmpty())
                 .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + name))))
-                .map(record -> (EventHandler) new VertxDiscoverableEventHandler(record, serviceDiscovery, VertxWebSocketEventHandler::observe))
-                .toList()
-                .filter(vertxDiscoverableEventHandlers -> !vertxDiscoverableEventHandlers.isEmpty())
-                .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + name))))
-                .map(eventHandlers -> new VertxDiscoverableCommandExecutor(eventHandlers, loadBalancer));
+                .map(recs -> recs.stream()
+                        .map(rec -> (EventHandler) new VertxDiscoverableEventHandler(rec, serviceDiscovery, VertxWebSocketEventHandler::observe))
+                        .collect(toList()))
+                .map(eventHandlers -> new ReactoCommandExecutor(eventHandlers, loadBalancer));
     }
 
     public static Observable<CommandExecutor> findCommand(Command command,
@@ -96,7 +97,7 @@ public final class DiscoverableServices {
      * @param name name of something we are looking for. Needed for constructing an error if not found
      * @return Record observable, which emits multiple Records if services are found successfully
      */
-    private static Observable<Record> findRecord(Predicate<Record> filter, ServiceDiscovery serviceDiscovery, String name) {
+    private static Observable<List<Record>> findRecord(Predicate<Record> filter, ServiceDiscovery serviceDiscovery, String name) {
         return Observable.create(subscriber ->
                 serviceDiscovery.getRecords(record -> ServiceRecords.isUpdatedRecently(record) && filter.test(record),
                         false,
@@ -106,7 +107,7 @@ public final class DiscoverableServices {
                                 if (!records.isEmpty()) {
                                     final Instant now = Instant.now();
                                     records.sort(comparing(rec -> rec.getMetadata().getInstant(ServiceRecords.LAST_UPDATED, now)));
-                                    records.forEach(subscriber::onNext);
+                                    subscriber.onNext(records);
                                 }
                                 subscriber.onCompleted();
                             }
@@ -123,7 +124,7 @@ public final class DiscoverableServices {
      * @param serviceDiscovery service discovery to use when looking for a service
      * @return Record observable, which emits multiple Records if services are found successfully
      */
-    private static Observable<Record> findCommandRecords(String commandName,
+    private static Observable<List<Record>> findCommandRecords(String commandName,
                                                          ServiceDiscovery serviceDiscovery) {
         return findRecord(record -> ServiceRecords.hasCommand(commandName, record), serviceDiscovery, commandName);
     }
@@ -134,7 +135,7 @@ public final class DiscoverableServices {
      * @param serviceDiscovery service discovery to use when looking for a service
      * @return Record observable, which emits multiple Records if services are found successfully
      */
-    private static Observable<Record> findCommandRecords(Command command,
+    private static Observable<List<Record>> findCommandRecords(Command command,
                                                          ServiceDiscovery serviceDiscovery) {
         return findRecord(record -> ServiceRecords.hasCommand(command.name, command.eventType(), record), serviceDiscovery,
                 command.name + ":" + command.eventType());

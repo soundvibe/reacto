@@ -6,7 +6,7 @@ import io.vertx.core.logging.*;
 import io.vertx.ext.web.Router;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.types.HttpEndpoint;
-import net.soundvibe.reacto.discovery.vertx.ServiceDiscoveryLifecycle;
+import net.soundvibe.reacto.discovery.ServiceDiscoveryLifecycle;
 import net.soundvibe.reacto.server.*;
 import net.soundvibe.reacto.server.vertx.handlers.*;
 import net.soundvibe.reacto.types.*;
@@ -39,14 +39,14 @@ public class VertxServer implements Server<HttpServer> {
     private final HttpServer httpServer;
     private final Router router;
     private final AtomicReference<Record> record = new AtomicReference<>();
-    private final ServiceDiscoveryLifecycle discoveryLifecycle;
+    private final ServiceDiscoveryLifecycle<Record> discoveryLifecycle;
 
     public VertxServer(
             ServiceOptions serviceOptions,
             Router router,
             HttpServer httpServer,
             CommandRegistry commands,
-            ServiceDiscoveryLifecycle discoveryLifecycle) {
+            ServiceDiscoveryLifecycle<Record> discoveryLifecycle) {
         Objects.requireNonNull(serviceOptions, "serviceOptions cannot be null");
         Objects.requireNonNull(router, "Router cannot be null");
         Objects.requireNonNull(httpServer, "HttpServer cannot be null");

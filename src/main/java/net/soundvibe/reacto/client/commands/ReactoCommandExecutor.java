@@ -1,7 +1,6 @@
-package net.soundvibe.reacto.client.commands.vertx;
+package net.soundvibe.reacto.client.commands;
 
 import io.vertx.core.logging.*;
-import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.client.errors.*;
 import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.discovery.LoadBalancer;
@@ -11,16 +10,17 @@ import rx.Observable;
 import java.util.*;
 
 /**
- * @author OZY on 2016.05.09.
+ * @author OZY on 2016.09.06.
  */
-public class VertxWebSocketCommandExecutor implements CommandExecutor {
+public final class ReactoCommandExecutor implements CommandExecutor {
 
-    private static final Logger log = LoggerFactory.getLogger(VertxWebSocketCommandExecutor.class);
+    private static final Logger log = LoggerFactory.getLogger(ReactoCommandExecutor.class);
 
     private final List<EventHandler> eventHandlers;
     private final LoadBalancer<EventHandler> loadBalancer;
 
-    public VertxWebSocketCommandExecutor(List<EventHandler> eventHandlers, LoadBalancer<EventHandler> loadBalancer) {
+    public ReactoCommandExecutor(List<EventHandler> eventHandlers,
+                                 LoadBalancer<EventHandler> loadBalancer) {
         Objects.requireNonNull(eventHandlers, "eventHandlers cannot be null");
         Objects.requireNonNull(loadBalancer, "loadBalancer cannot be null");
         this.eventHandlers = eventHandlers;
@@ -34,7 +34,8 @@ public class VertxWebSocketCommandExecutor implements CommandExecutor {
                 .map(loadBalancer::balance)
                 .flatMap(eventHandler -> eventHandler.toObservable(command)
                         .onBackpressureBuffer()
-                        .onErrorResumeNext(error -> handleError(error, command, eventHandler)));
+                        .onErrorResumeNext(error -> handleError(error, command, eventHandler)))
+                ;
     }
 
     private Observable<Event> handleError(Throwable error, Command command, EventHandler eventHandler) {
@@ -45,5 +46,4 @@ public class VertxWebSocketCommandExecutor implements CommandExecutor {
         log.error("Handling error: " + error);
         return execute(command);
     }
-
 }
