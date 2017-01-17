@@ -1,8 +1,9 @@
-package net.soundvibe.reacto.server;
+package net.soundvibe.reacto.server.vertx;
 
 import io.vertx.core.json.*;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.types.HttpEndpoint;
+import net.soundvibe.reacto.server.vertx.ServiceRecords;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.models.*;
 import org.junit.Test;

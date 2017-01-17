@@ -1,17 +1,16 @@
 package net.soundvibe.reacto.discovery;
 
-import io.vertx.servicediscovery.Record;
 import rx.Observable;
 
 /**
  * @author linas on 17.1.9.
  */
-public interface ServiceDiscoveryLifecycle {
+public interface ServiceDiscoveryLifecycle<T> {
 
-    Observable<Record> startDiscovery(Record record);
-    Observable<Record> closeDiscovery(Record record);
-    Observable<Record> publish(Record record);
-    Observable<Record> cleanServices();
+    Observable<T> startDiscovery(T record);
+    Observable<T> closeDiscovery(T record);
+    Observable<T> publish(T record);
+    Observable<T> cleanServices();
 
     boolean isOpen();
 
