@@ -2,12 +2,15 @@ package net.soundvibe.reacto.discovery.vertx;
 
 import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
+import io.vertx.servicediscovery.Status;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.discovery.*;
+import net.soundvibe.reacto.discovery.types.*;
 import net.soundvibe.reacto.mappers.ServiceRegistryMapper;
 import net.soundvibe.reacto.server.vertx.ServiceRecords;
 import net.soundvibe.reacto.types.*;
+import net.soundvibe.reacto.types.json.JsonObject;
 import net.soundvibe.reacto.utils.*;
 import rx.Observable;
 
@@ -113,6 +116,31 @@ public final class VertxServiceRegistry implements ServiceRegistry, ServiceDisco
     @Override
     public Observable<Record> cleanServices() {
         return DiscoverableServices.removeRecordsWithStatus(Status.DOWN, serviceDiscovery);
+    }
+
+    public static ServiceRecord createServiceRecord(Record record) {
+        return ServiceRecord.create(
+                record.getName(),
+                fromStatus(record.getStatus()),
+                ServiceType.HTTP_ENDPOINT,
+                record.getRegistration(),
+                new JsonObject(record.getLocation().getMap()),
+                new JsonObject(record.getMetadata().getMap()));
+    }
+
+    private static net.soundvibe.reacto.discovery.types.Status fromStatus(Status status) {
+        switch (status) {
+            case UP:
+                return net.soundvibe.reacto.discovery.types.Status.UP;
+            case DOWN:
+                return net.soundvibe.reacto.discovery.types.Status.DOWN;
+            case OUT_OF_SERVICE:
+                return net.soundvibe.reacto.discovery.types.Status.OUT_OF_SERVICE;
+            case UNKNOWN:
+                return net.soundvibe.reacto.discovery.types.Status.UNKNOWN;
+            default:
+                return net.soundvibe.reacto.discovery.types.Status.UNKNOWN;
+        }
     }
 
     private void startHeartBeat(Record record) {
