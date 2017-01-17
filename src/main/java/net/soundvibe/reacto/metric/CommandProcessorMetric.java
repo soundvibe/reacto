@@ -15,22 +15,17 @@ public final class CommandProcessorMetric {
     final AtomicInteger commandCount;
     private final AtomicInteger hasCompleted;
     private final AtomicInteger hasErrors;
-    private final long timeStarted;
+    private final long timeStartedInMs;
     final AtomicLong timeElapsedInMs;
 
     private CommandProcessorMetric(String commandName, String eventName) {
-        this.commandName = commandName;
-        this.eventName = eventName;
-        this.onNextCount = new AtomicInteger(0);
-        this.commandCount = new AtomicInteger(1);
-        this.hasCompleted = new AtomicInteger(0);
-        this.hasErrors = new AtomicInteger(0);
-        this.timeElapsedInMs = new AtomicLong(0L);
-        this.timeStarted = System.nanoTime();
+        this(commandName, eventName, 0, 1, 0, 0, 0L,
+                System.currentTimeMillis());
     }
 
     private CommandProcessorMetric(String commandName, String eventName, int eventCount,
-                                   int commandCount, int hasCompleted, int hasErrors, long timeElapsedInMs) {
+                                   int commandCount, int hasCompleted, int hasErrors, long timeElapsedInMs,
+                                   long timeStartedInMs) {
         this.commandName = commandName;
         this.eventName = eventName;
         this.onNextCount = new AtomicInteger(eventCount);
@@ -38,7 +33,7 @@ public final class CommandProcessorMetric {
         this.hasCompleted = new AtomicInteger(hasCompleted);
         this.hasErrors = new AtomicInteger(hasErrors);
         this.timeElapsedInMs = new AtomicLong(timeElapsedInMs);
-        this.timeStarted = System.nanoTime();
+        this.timeStartedInMs = timeStartedInMs;
     }
 
     public static CommandProcessorMetric of(Command command) {
@@ -57,7 +52,8 @@ public final class CommandProcessorMetric {
                 commandCount.addAndGet(with.commandCount.get()),
                 hasCompleted.addAndGet(with.hasCompleted.get()),
                 hasErrors.addAndGet(with.hasErrors.get()),
-                timeElapsedInMs.addAndGet(with.timeElapsedInMs.get())
+                timeElapsedInMs.addAndGet(with.timeElapsedInMs.get()),
+                System.currentTimeMillis()
         );
     }
 
@@ -126,7 +122,7 @@ public final class CommandProcessorMetric {
     //private
 
     private void calculateElapsed() {
-        timeElapsedInMs.set( Math.floorDiv( (System.nanoTime() - timeStarted), 100_000_0L));
+        timeElapsedInMs.set( System.currentTimeMillis() - timeStartedInMs);
     }
 
     @Override
@@ -137,7 +133,7 @@ public final class CommandProcessorMetric {
                 ", onNextCount=" + onNextCount +
                 ", completed=" + hasCompleted +
                 ", errors=" + hasErrors +
-                ", timeStarted=" + timeStarted +
+                ", timeStartedInMs=" + timeStartedInMs +
                 ", timeElapsedInMs=" + timeElapsedInMs +
                 ", avgExecutionTimeInMs=" + avgExecutionTimeInMs() +
                 '}';

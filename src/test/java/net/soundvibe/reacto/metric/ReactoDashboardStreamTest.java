@@ -90,7 +90,7 @@ public class ReactoDashboardStreamTest {
                 .onNext().onNext()
                 .onCompleted();
 
-        testSubscriber.awaitTerminalEvent(WAIT_DELAY, TimeUnit.MILLISECONDS);
+        testSubscriber.awaitTerminalEventAndUnsubscribeOnTimeout(WAIT_DELAY, TimeUnit.MILLISECONDS);
         testSubscriber.assertNoErrors();
         testSubscriber.assertNotCompleted();
         testSubscriber.assertValueCount(1);
@@ -103,5 +103,32 @@ public class ReactoDashboardStreamTest {
 
         assertEquals("two", commandProcessorMetrics.getCommand(1).commandName());
         assertEquals(1, commandProcessorMetrics.getCommand(1).eventCount());
+    }
+
+    @Test
+    public void shouldAggregateManyCallsOfSingleCommand() throws Exception {
+        TestSubscriber<CommandProcessorMetrics> testSubscriber = new TestSubscriber<>();
+        ReactoDashboardStream.observeCommandHandlers(OBSERVE_DELAY, TimeUnit.MILLISECONDS)
+                .filter(m -> !m.commands().isEmpty())
+                .subscribe(testSubscriber);
+
+        for (int i = 0; i < 100; i++) {
+            final CommandProcessorMetric metric = CommandProcessorMetric.of(Command.create(CMD_ONE));
+            Thread.sleep(1L);
+            metric.onNext().onNext().onNext().onCompleted();
+        }
+        testSubscriber.awaitTerminalEventAndUnsubscribeOnTimeout(WAIT_DELAY, TimeUnit.MILLISECONDS);
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertNotCompleted();
+        final CommandProcessorMetrics commandProcessorMetrics = testSubscriber.getOnNextEvents().get(0);
+
+        assertEquals("Should be 1 actual",1, commandProcessorMetrics.commands().size());
+        final CommandProcessorMetric actual = commandProcessorMetrics.getCommand(0);
+        assertEquals(CMD_ONE, actual.commandName());
+        assertTrue(actual.toString(), actual.eventCount() > 0);
+
+        assertEquals(0, actual.errors());
+        assertTrue("Was " + actual.avgExecutionTimeInMs(),actual.avgExecutionTimeInMs() > 0L);
+        assertTrue("Was " + actual.totalExecutionTimeInMs(),actual.totalExecutionTimeInMs() > 0L);
     }
 }
