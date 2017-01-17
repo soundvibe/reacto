@@ -8,10 +8,11 @@ import net.soundvibe.reacto.discovery.*;
 import net.soundvibe.reacto.mappers.ServiceRegistryMapper;
 import net.soundvibe.reacto.server.vertx.ServiceRecords;
 import net.soundvibe.reacto.types.*;
-import net.soundvibe.reacto.utils.Factories;
+import net.soundvibe.reacto.utils.*;
 import rx.Observable;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static net.soundvibe.reacto.discovery.vertx.DiscoverableServices.publishRecord;
@@ -65,6 +66,16 @@ public final class VertxServiceRegistry implements ServiceRegistry, ServiceDisco
     public Observable<Record> startDiscovery(Record record) {
         log.info("Starting service discovery...");
         return isClosed() ? publish(record)
+                .doOnNext(this::startHeartBeat)
+                .doOnNext(rec -> Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    log.info("Executing shutdown hook...");
+                    if (isOpen()) {
+                        closeDiscovery(rec).subscribe(
+                                r -> log.debug("Service discovery closed successfully"),
+                                e -> log.debug("Error when closing service discovery: " + e)
+                        );
+                    }
+                })))
                 .subscribeOn(Factories.SINGLE_THREAD)
                 .doOnCompleted(() -> isClosed.set(false)) :
                 Observable.error(new IllegalStateException("Service discovery is already started"));
@@ -103,4 +114,18 @@ public final class VertxServiceRegistry implements ServiceRegistry, ServiceDisco
     public Observable<Record> cleanServices() {
         return DiscoverableServices.removeRecordsWithStatus(Status.DOWN, serviceDiscovery);
     }
+
+    private void startHeartBeat(Record record) {
+        Scheduler.scheduleAtFixedInterval(TimeUnit.MINUTES.toMillis(1L), () -> {
+            if (isOpen()) {
+                publish(record)
+                        .subscribe(rec -> log.info("Heartbeat published record: " + rec),
+                                throwable -> log.error("Error while trying to publish the record on heartbeat: " + throwable),
+                                () -> log.info("Heartbeat completed successfully"));
+            } else {
+                log.info("Skipping heartbeat because service discovery is closed");
+            }
+        }, "service-discovery-heartbeat");
+    }
+
 }

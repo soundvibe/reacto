@@ -10,11 +10,10 @@ import net.soundvibe.reacto.discovery.ServiceDiscoveryLifecycle;
 import net.soundvibe.reacto.server.*;
 import net.soundvibe.reacto.server.vertx.handlers.*;
 import net.soundvibe.reacto.types.*;
-import net.soundvibe.reacto.utils.*;
+import net.soundvibe.reacto.utils.WebUtils;
 import rx.Observable;
 
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static net.soundvibe.reacto.server.vertx.ServiceRecords.COMMANDS;
@@ -76,34 +75,9 @@ public class VertxServer implements Server<HttpServer> {
                 }
             });
         }).flatMap(server -> Observable.just(createRecord(server.actualPort()))
-                .flatMap(rec -> discoveryLifecycle.isClosed() ?
-                    discoveryLifecycle.startDiscovery(rec) :
-                    Observable.just(rec))
-                .doOnNext(this::startHeartBeat)
-                .doOnNext(rec -> Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                    log.info("Executing shutdown hook...");
-                    if (discoveryLifecycle.isOpen()) {
-                        discoveryLifecycle.closeDiscovery(rec).subscribe(
-                                r -> log.debug("Service discovery closed successfully"),
-                                e -> log.debug("Error when closing service discovery: " + e)
-                        );
-                    }
-                })))
+                .flatMap(discoveryLifecycle::startDiscovery)
                 .doOnNext(record::set))
                 .map(r -> httpServer);
-    }
-
-    private void startHeartBeat(Record record) {
-        Scheduler.scheduleAtFixedInterval(TimeUnit.MINUTES.toMillis(1L), () -> {
-            if (discoveryLifecycle.isOpen()) {
-                discoveryLifecycle.publish(record)
-                        .subscribe(rec -> log.info("Heartbeat published record: " + rec),
-                                throwable -> log.error("Error while trying to publish the record on heartbeat: " + throwable),
-                                () -> log.info("Heartbeat completed successfully"));
-            } else {
-                log.info("Skipping heartbeat because service discovery is closed");
-            }
-        }, "service-discovery-heartbeat");
     }
 
     private Record createRecord(int port) {
