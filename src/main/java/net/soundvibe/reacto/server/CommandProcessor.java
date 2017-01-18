@@ -1,6 +1,7 @@
 package net.soundvibe.reacto.server;
 
 import io.vertx.core.logging.*;
+import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.client.errors.CommandNotFound;
 import net.soundvibe.reacto.mappers.Mappers;
 import net.soundvibe.reacto.metric.CommandProcessorMetric;
@@ -13,7 +14,7 @@ import java.util.concurrent.Executors;
 /**
  * @author Linas on 2017.01.12.
  */
-public class CommandProcessor {
+public class CommandProcessor implements CommandExecutor {
 
     private static final Logger log = LoggerFactory.getLogger(CommandProcessor.class);
     private static final Scheduler SINGLE_THREAD = Schedulers.from(Executors.newSingleThreadExecutor());
@@ -32,15 +33,12 @@ public class CommandProcessor {
 
     public Observable<Event> process(Command command) {
         return Observable.just(command)
-                .observeOn(SINGLE_THREAD)
-                .concatMap(cmd -> {
-                    final CommandDescriptor descriptor = CommandDescriptor.fromCommand(cmd);
-                    return commands.findCommand(descriptor)
-                            .map(cmdFunc -> Observable.just(CommandProcessorMetric.of(cmd))
-                                    .concatMap(metric -> cmdFunc.apply(cmd)
-                                            .doOnEach(notification -> publishMetrics(notification, cmd, metric))))
-                            .orElseGet(() -> Observable.error(new CommandNotFound(cmd.name)));
-                }).subscribeOn(SINGLE_THREAD);
+                .concatMap(cmd -> commands.findCommand(CommandDescriptor.fromCommand(cmd))
+                        .map(cmdFunc -> Observable.just(CommandProcessorMetric.of(cmd))
+                                .concatMap(metric -> cmdFunc.apply(cmd)
+                                        .doOnEach(notification -> publishMetrics(notification, cmd, metric))))
+                        .orElseGet(() -> Observable.error(new CommandNotFound(cmd.name))))
+                .subscribeOn(SINGLE_THREAD);
     }
 
     private void publishMetrics(Notification<? super Event> notification, Command command, CommandProcessorMetric metric) {
@@ -56,5 +54,10 @@ public class CommandProcessor {
                 metric.onCompleted();
                 break;
         }
+    }
+
+    @Override
+    public Observable<Event> execute(Command command) {
+        return process(command);
     }
 }
