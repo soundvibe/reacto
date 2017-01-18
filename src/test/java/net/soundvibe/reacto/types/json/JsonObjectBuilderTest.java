@@ -1,9 +1,10 @@
 package net.soundvibe.reacto.types.json;
 
+import io.vertx.core.json.Json;
 import org.junit.Test;
 
 import java.time.Instant;
-import java.util.Optional;
+import java.util.*;
 
 import static java.util.Optional.of;
 import static org.junit.Assert.*;
@@ -88,5 +89,15 @@ public class JsonObjectBuilderTest {
                 .build();
 
         assertEquals(Optional.empty(), actual.valueOf("foo", String.class));
+    }
+
+    @Test
+    public void shouldBuildFromJsonString() throws Exception {
+        final JsonObject actual = JsonObjectBuilder.from("{ \"key1\": \"value1\", \"key2\": \"value2\" }",
+                jsonString -> Json.decodeValue(jsonString, Map.class))
+                .build();
+
+        assertEquals("value1", actual.asString("key1").orElse(""));
+        assertEquals("value2", actual.asString("key2").orElse(""));
     }
 }

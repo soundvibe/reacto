@@ -42,12 +42,12 @@ public final class ServiceRecord {
     }
 
     private static JsonObject uriToLocation(URI uri) {
-        final Map<String, Object> map = new LinkedHashMap<>(10);
-        map.put("host", uri.getHost());
-        map.put("port", uri.getPort());
-        map.put("endpoint", uri.toString());
-        map.put("path", uri.getPath());
-        return new JsonObject(map);
+        final Map<String, Object> decode = new LinkedHashMap<>(10);
+        decode.put("host", uri.getHost());
+        decode.put("port", uri.getPort());
+        decode.put("endpoint", uri.toString());
+        decode.put("path", uri.getPath());
+        return new JsonObject(decode);
     }*/
 
     public static ServiceRecord create(String name,

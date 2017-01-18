@@ -2,7 +2,7 @@ package net.soundvibe.reacto.types.json;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.function.UnaryOperator;
+import java.util.function.*;
 
 import static java.time.format.DateTimeFormatter.ISO_INSTANT;
 
@@ -19,7 +19,7 @@ public final class JsonObjectBuilder {
     }
 
     private JsonObjectBuilder(Map<String, Object> map) {
-        Objects.requireNonNull(map, "map cannot be null");
+        Objects.requireNonNull(map, "decode cannot be null");
         this.values = map;
     }
 
@@ -29,6 +29,10 @@ public final class JsonObjectBuilder {
 
     public static JsonObjectBuilder from(JsonObject jsonObject) {
         return new JsonObjectBuilder(jsonObject);
+    }
+
+    public static JsonObjectBuilder from(String jsonString, JsonStringDecoder decoder) {
+        return new JsonObjectBuilder(decoder.decodeToObject(jsonString));
     }
 
     public JsonObjectBuilder put(String key, CharSequence value) {

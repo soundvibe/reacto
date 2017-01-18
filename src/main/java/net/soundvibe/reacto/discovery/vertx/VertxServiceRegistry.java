@@ -10,7 +10,7 @@ import net.soundvibe.reacto.discovery.types.*;
 import net.soundvibe.reacto.mappers.ServiceRegistryMapper;
 import net.soundvibe.reacto.server.vertx.ServiceRecords;
 import net.soundvibe.reacto.types.*;
-import net.soundvibe.reacto.types.json.JsonObject;
+import net.soundvibe.reacto.types.json.*;
 import net.soundvibe.reacto.utils.*;
 import rx.Observable;
 

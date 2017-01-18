@@ -157,6 +157,10 @@ public final class JsonObject implements Iterable<Map.Entry<String, Object>> {
         return values.toString();
     }
 
+    public String toJsonString(JsonStringEncoder encoder) {
+        return encoder.encode(this);
+    }
+
     private class JsonObjectIterator implements Iterator<Map.Entry<String, Object>> {
 
         private final Iterator<Map.Entry<String, Object>> entryIterator;
