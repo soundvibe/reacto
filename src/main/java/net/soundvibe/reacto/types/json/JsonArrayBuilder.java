@@ -99,6 +99,26 @@ public final class JsonArrayBuilder {
         return addValue(null);
     }
 
+    public JsonArrayBuilder merge(JsonArray jsonArray) {
+        values.addAll(jsonArray.values);
+        return this;
+    }
+
+    public JsonArrayBuilder merge(JsonArrayBuilder builder) {
+        values.addAll(builder.values);
+        return this;
+    }
+
+    public JsonArrayBuilder remove(int index) {
+        values.remove(index);
+        return this;
+    }
+
+    public JsonArrayBuilder clear() {
+        values.clear();
+        return this;
+    }
+
     private <T> JsonArrayBuilder addValue(T value) {
         values.add(value);
         return this;

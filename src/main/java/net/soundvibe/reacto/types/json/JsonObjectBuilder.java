@@ -7,7 +7,7 @@ import java.util.function.UnaryOperator;
 import static java.time.format.DateTimeFormatter.ISO_INSTANT;
 
 /**
- * @author OZY on 2017.01.18.
+ * Helper class for building JsonObject instances.
  */
 public final class JsonObjectBuilder {
 
@@ -39,16 +39,16 @@ public final class JsonObjectBuilder {
         return putValue(key, value);
     }
 
+    public JsonObjectBuilder put(String key, JsonArray value) {
+        return putValue(key, value);
+    }
+
     public JsonObjectBuilder putObject(String key, UnaryOperator<JsonObjectBuilder> operator) {
         return put(key, operator.apply(JsonObjectBuilder.create()).build());
     }
 
     public JsonObjectBuilder putArray(String key, UnaryOperator<JsonArrayBuilder> operator) {
         return put(key, operator.apply(JsonArrayBuilder.create()).build());
-    }
-
-    public JsonObjectBuilder put(String key, JsonArray value) {
-        return putValue(key, value);
     }
 
     public JsonObjectBuilder put(String key, String value) {
@@ -93,6 +93,26 @@ public final class JsonObjectBuilder {
 
     public JsonObjectBuilder putNull(String key) {
         return putValue(key, null);
+    }
+
+    public JsonObjectBuilder merge(JsonObject jsonObject) {
+        values.putAll(jsonObject.values);
+        return this;
+    }
+
+    public JsonObjectBuilder merge(JsonObjectBuilder builder) {
+        values.putAll(builder.values);
+        return this;
+    }
+
+    public JsonObjectBuilder clear() {
+        values.clear();
+        return this;
+    }
+
+    public JsonObjectBuilder remove(String key) {
+        values.remove(key);
+        return this;
     }
 
     public JsonObject build() {

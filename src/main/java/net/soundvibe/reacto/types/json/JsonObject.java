@@ -9,6 +9,8 @@ import static java.time.format.DateTimeFormatter.ISO_INSTANT;
 import static java.util.Optional.*;
 
 /**
+ * Represents immutable JsonObject.
+ * JsonObjects can be built using {@link net.soundvibe.reacto.types.json.JsonObjectBuilder}.
  * @author Linas on 2017.01.18.
  */
 public final class JsonObject implements Iterable<Map.Entry<String, Object>> {
@@ -25,42 +27,69 @@ public final class JsonObject implements Iterable<Map.Entry<String, Object>> {
         return EMPTY;
     }
 
+    public Optional<String> asString(String key) {
+        return valueOf(key, String.class);
+    }
+
+    public Optional<Integer> asInteger(String key) {
+        return valueOf(key, Integer.class);
+    }
+
+    public Optional<Long> asLong(String key) {
+        return valueOf(key, Long.class);
+    }
+
+    public Optional<Double> asDouble(String key) {
+        return valueOf(key, Double.class);
+    }
+
+    public Optional<Boolean> asBoolean(String key) {
+        return valueOf(key, Boolean.class);
+    }
+
+    public Optional<Number> asNumber(String key) {
+        return valueOf(key, Number.class);
+    }
+
+    @SuppressWarnings("unchecked")
     public <T> Optional<T> valueOf(String key, Class<T> valueClass) {
         if (Enum.class.isAssignableFrom(valueClass)) {
-            //noinspection unchecked
-            return valueOfEnum(key, (Class<Enum>) valueClass)
-                    .map(anEnum -> (T) anEnum);
+            return asEnum(key, (Class<Enum>) valueClass).map(anEnum -> (T) anEnum);
+        } else if (Instant.class.isAssignableFrom(valueClass)) {
+            return asInstant(key).map(instant -> (T) instant);
+        } else if (byte[].class.isAssignableFrom(valueClass)) {
+            return asBytes(key).map(bytes -> (T) bytes);
         }
 
         return ofNullable(values.get(key))
                 .flatMap(o -> valueClass.isInstance(o) ? of(valueClass.cast(o)) : Optional.empty());
     }
 
-    public Optional<byte[]> valueOfBytes(String key) {
+    private Optional<byte[]> asBytes(String key) {
         return valueOf(key, String.class)
                 .map(s -> Base64.getDecoder().decode(s));
     }
 
-    public Optional<Instant> valueOfInstant(String key) {
+    private Optional<Instant> asInstant(String key) {
         return valueOf(key, String.class)
                 .map(s -> Instant.from(ISO_INSTANT.parse(s)));
     }
 
     @SuppressWarnings("unchecked")
-    public Optional<JsonArray> valueOfArray(String key) {
+    public Optional<JsonArray> asArray(String key) {
         return Optional.ofNullable(values.get(key))
                 .flatMap(o -> o instanceof List ? Optional.of(new JsonArray((List<Object>) o)) :
                         o instanceof JsonArray ? Optional.of((JsonArray)o) : Optional.empty());
     }
 
     @SuppressWarnings("unchecked")
-    public Optional<JsonObject> valueOfObject(String key) {
+    public Optional<JsonObject> asObject(String key) {
         return Optional.ofNullable(values.get(key))
                 .flatMap(o -> o instanceof Map ? Optional.of(new JsonObject((Map<String, Object>) o)) :
                         o instanceof JsonObject ? Optional.of((JsonObject)o) : Optional.empty());
     }
 
-    public <T extends Enum<T>> Optional<T> valueOfEnum(String key, Class<T> enumClass) {
+    public <T extends Enum<T>> Optional<T> asEnum(String key, Class<T> enumClass) {
         return valueOf(key, String.class)
                 .map(name -> Enum.valueOf(enumClass, name));
     }
@@ -79,6 +108,14 @@ public final class JsonObject implements Iterable<Map.Entry<String, Object>> {
 
     public boolean isEmpty() {
         return values.isEmpty();
+    }
+
+    public boolean hasElements() {
+        return !isEmpty();
+    }
+
+    public Set<String> fieldNames() {
+        return Collections.unmodifiableSet(values.keySet());
     }
 
     public Stream<Map.Entry<String, Object>> stream() {

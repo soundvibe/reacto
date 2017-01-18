@@ -8,6 +8,9 @@ import static java.time.format.DateTimeFormatter.ISO_INSTANT;
 import static java.util.Optional.*;
 
 /**
+ *
+ * Represents immutable JsonArray.
+ * JsonArrays can be built using {@link net.soundvibe.reacto.types.json.JsonArrayBuilder}.
  * @author Linas on 2017.01.18.
  */
 public final class JsonArray implements Iterable<Object> {
@@ -24,41 +27,68 @@ public final class JsonArray implements Iterable<Object> {
         return EMPTY;
     }
 
+    @SuppressWarnings("unchecked")
     public <T> Optional<T> valueOf(int index, Class<T> valueClass) {
         if (Enum.class.isAssignableFrom(valueClass)) {
-            //noinspection unchecked
-            return valueOfEnum(index, (Class<Enum>) valueClass)
-                    .map(anEnum -> (T) anEnum);
+             return asEnum(index, (Class<Enum>) valueClass).map(anEnum -> (T) anEnum);
+        } else if (Instant.class.isAssignableFrom(valueClass)) {
+            return asInstant(index).map(instant -> (T) instant);
+        } else if (byte[].class.isAssignableFrom(valueClass)) {
+            return asBytes(index).map(bytes -> (T) bytes);
         }
         return ofNullable(values.get(index))
                 .flatMap(o -> valueClass.isInstance(o) ? of(valueClass.cast(o)) : Optional.empty());
     }
 
-    public Optional<byte[]> valueOfBytes(int index) {
+    public Optional<String> asString(int index) {
+        return valueOf(index, String.class);
+    }
+
+    public Optional<Integer> asInteger(int index) {
+        return valueOf(index, Integer.class);
+    }
+
+    public Optional<Long> asLong(int index) {
+        return valueOf(index, Long.class);
+    }
+
+    public Optional<Double> asDouble(int index) {
+        return valueOf(index, Double.class);
+    }
+
+    public Optional<Boolean> asBoolean(int index) {
+        return valueOf(index, Boolean.class);
+    }
+
+    public Optional<Number> asNumber(int index) {
+        return valueOf(index, Number.class);
+    }
+
+    public Optional<byte[]> asBytes(int index) {
         return valueOf(index, String.class)
                 .map(s -> Base64.getDecoder().decode(s));
     }
 
-    public Optional<Instant> valueOfInstant(int index) {
+    public Optional<Instant> asInstant(int index) {
         return valueOf(index, String.class)
                 .map(s -> Instant.from(ISO_INSTANT.parse(s)));
     }
 
     @SuppressWarnings("unchecked")
-    public Optional<JsonArray> valueOfArray(int index) {
+    public Optional<JsonArray> asArray(int index) {
         return ofNullable(values.get(index))
                 .flatMap(o -> o instanceof List ? Optional.of(new JsonArray((List<Object>)o)) :
                     o instanceof JsonArray ? Optional.of((JsonArray)o) : Optional.empty());
     }
 
     @SuppressWarnings("unchecked")
-    public Optional<JsonObject> valueOfObject(int index) {
+    public Optional<JsonObject> asObject(int index) {
         return ofNullable(values.get(index))
                 .flatMap(o -> o instanceof Map ? Optional.of(new JsonObject((Map<String, Object>)o)) :
                         o instanceof JsonObject ? Optional.of((JsonObject)o) : Optional.empty());
     }
 
-    public <T extends Enum<T>> Optional<T> valueOfEnum(int index, Class<T> enumClass) {
+    public <T extends Enum<T>> Optional<T> asEnum(int index, Class<T> enumClass) {
         return valueOf(index, String.class)
                 .map(name -> Enum.valueOf(enumClass, name));
     }
@@ -69,6 +99,10 @@ public final class JsonArray implements Iterable<Object> {
 
     public boolean isEmpty() {
         return values.isEmpty();
+    }
+
+    public boolean hasElements() {
+        return !isEmpty();
     }
 
     public Stream<Object> stream() {

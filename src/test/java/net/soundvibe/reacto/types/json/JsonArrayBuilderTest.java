@@ -16,14 +16,14 @@ public class JsonArrayBuilderTest {
                 .addObject(o -> o.put("key3", "value3").put("key4", "value4"))
                 .build();
 
-        assertEquals("value1", actual.valueOfObject(0).orElse(JsonObject.empty())
+        assertEquals("value1", actual.asObject(0).orElse(JsonObject.empty())
                 .valueOf("key1", String.class).orElse(""));
-        assertEquals("value2", actual.valueOfObject(0).orElse(JsonObject.empty())
+        assertEquals("value2", actual.asObject(0).orElse(JsonObject.empty())
                 .valueOf("key2", String.class).orElse(""));
 
-        assertEquals("value3", actual.valueOfObject(1).orElse(JsonObject.empty())
+        assertEquals("value3", actual.asObject(1).orElse(JsonObject.empty())
                 .valueOf("key3", String.class).orElse(""));
-        assertEquals("value4", actual.valueOfObject(1).orElse(JsonObject.empty())
+        assertEquals("value4", actual.asObject(1).orElse(JsonObject.empty())
                 .valueOf("key4", String.class).orElse(""));
     }
 }
