@@ -5,7 +5,7 @@ import io.vertx.core.json.*;
 import io.vertx.servicediscovery.*;
 import io.vertx.servicediscovery.Status;
 import io.vertx.servicediscovery.types.HttpEndpoint;
-import net.soundvibe.reacto.client.errors.CannotDiscoverService;
+import net.soundvibe.reacto.errors.CannotDiscoverService;
 import net.soundvibe.reacto.client.events.EventHandlerRegistry;
 import net.soundvibe.reacto.client.events.vertx.VertxDiscoverableEventHandler;
 import net.soundvibe.reacto.discovery.types.*;

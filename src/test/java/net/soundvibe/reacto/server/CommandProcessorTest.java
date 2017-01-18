@@ -1,6 +1,6 @@
 package net.soundvibe.reacto.server;
 
-import net.soundvibe.reacto.client.errors.CommandNotFound;
+import net.soundvibe.reacto.errors.CommandNotFound;
 import net.soundvibe.reacto.types.*;
 import org.junit.Test;
 import rx.Observable;

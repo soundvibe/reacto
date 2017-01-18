@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.server.errors;
+package net.soundvibe.reacto.errors;
 
 import net.soundvibe.reacto.types.CommandDescriptor;
 

@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.integration;
 
+import com.netflix.hystrix.HystrixCommandProperties;
 import com.netflix.hystrix.exception.HystrixRuntimeException;
 import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.vertx.core.Vertx;
@@ -7,7 +8,8 @@ import io.vertx.core.http.*;
 import io.vertx.core.json.*;
 import io.vertx.ext.web.Router;
 import io.vertx.servicediscovery.ServiceDiscovery;
-import net.soundvibe.reacto.client.errors.*;
+import net.soundvibe.reacto.client.commands.CommandExecutors;
+import net.soundvibe.reacto.errors.*;
 import net.soundvibe.reacto.client.events.EventHandlerRegistry;
 import net.soundvibe.reacto.client.events.vertx.VertxDiscoverableEventHandler;
 import net.soundvibe.reacto.discovery.types.ServiceType;
@@ -226,15 +228,17 @@ public class MainSuite {
         assertEquals(2, metrics.commands().size());
     }
 
-/*    @Test
+    @Test
     public void shouldFailAfterHystrixTimeout() throws Exception {
-        CommandExecutor sut = CommandExecutors.webSocket(Nodes.of(MAIN_NODE), 1000);
-        sut.execute(command1Arg(LONG_TASK, "5000"))
-                .subscribe(testSubscriber);
+        registry.execute(command1Arg(LONG_TASK, "5000"), Event.class, CommandExecutors.hystrix(
+                HystrixCommandProperties.defaultSetter()
+                        .withExecutionTimeoutEnabled(true)
+                        .withExecutionTimeoutInMilliseconds(100)
+        )).subscribe(testSubscriber);
 
         assertActualHystrixError(TimeoutException.class,
                 e -> assertEquals("java.util.concurrent.TimeoutException", e.toString()));
-    }*/
+    }
 
     @Test
     public void shouldFailWhenCommandIsInvokedWithInvalidArgument() throws Exception {
@@ -261,16 +265,6 @@ public class MainSuite {
         assertCompletedSuccessfully();
         testSubscriber.assertValue(event1Arg("ok"));
     }
-
-/*    @Test
-    public void shouldFailWhenCommandExecutorIsInaccessible() throws Exception {
-        CommandExecutor sut = CommandExecutors.webSocket(Nodes.of("http://localhost:45689/foo/"), 5000);
-        registry.execute(command1Arg(TEST_COMMAND, "foo"))
-            .subscribe(testSubscriber);
-
-        assertActualHystrixError(ConnectException.class,
-                e -> assertFalse(e.getMessage().isEmpty()));
-    }*/
 
     @Test
     public void shouldExecuteHugeCommandEntity() throws Exception {
@@ -317,64 +311,6 @@ public class MainSuite {
         testSubscriber.assertError(CannotDiscoverService.class);
     }
 
-
-   /* @Test
-    public void shouldFindServicesAndBalanceTheLoad() throws Exception {
-        final TestSubscriber<CommandProcessorMetrics> metricsTestSubscriber = new TestSubscriber<>();
-        ReactoDashboardStream.observeCommandHandlers()
-                .subscribe(metricsTestSubscriber);
-
-        //start new service
-        final HttpServer server = vertx.createHttpServer(new HttpServerOptions()
-                .setPort(8183)
-                .setSsl(false)
-                .setReuseAddress(true));
-
-        final EventHandlerRegistry eventHandlerRegistry = EventHandlerRegistry.Builder.create()
-                .register(ServiceType.WEBSOCKET, serviceRecord -> VertxDiscoverableEventHandler.create(serviceRecord, serviceDiscovery))
-                .build();
-
-        final VertxServer reactoServer = new VertxServer(new ServiceOptions("dist", "dist/")
-                , Router.router(vertx), server,
-                CommandRegistry.of(TEST_COMMAND, cmd ->
-                        event1Arg("Called command from second server with arg: "
-                                + cmd.get("arg")).observe()),
-                new VertxServiceRegistry(eventHandlerRegistry, serviceDiscovery, new JacksonMapper(Json.mapper)));
-        reactoServer.start().toBlocking().subscribe();
-
-        try {
-            final Service service = Service.of("dist", serviceDiscovery);
-
-
-            CommandExecutors.find(service)
-                    .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "foo")))
-                    .subscribe(testSubscriber);
-
-            assertCompletedSuccessfully();
-
-            testSubscriber.assertValueCount(1);
-            final Event actual = testSubscriber.getOnNextEvents().get(0);
-            assertTrue(actual.equals(event1Arg("Called command from second server with arg: foo")) ||
-                actual.equals(event1Arg("Called command with arg: foo")));
-
-
-            TestSubscriber<Event> eventTestSubscriber = new TestSubscriber<>();
-
-            CommandExecutors.find(service)
-                    .flatMap(commandExecutor -> commandExecutor.execute(command1Arg(TEST_COMMAND, "bar")))
-                    .subscribe(eventTestSubscriber);
-            assertCompletedSuccessfully(eventTestSubscriber);
-            eventTestSubscriber.assertValueCount(1);
-
-            final Event actual2 = eventTestSubscriber.getOnNextEvents().get(0);
-            assertTrue(actual2.equals(event1Arg("Called command with arg: bar")) ||
-                actual2.equals(event1Arg("Called command from second server with arg: bar")));
-        } finally {
-            reactoServer.stop().toBlocking().subscribe();
-            Thread.sleep(100L);
-        }
-    }
-*/
     @Test
     public void shouldFindAndExecuteCommand() throws Exception {
         registry.execute(command1Arg(TEST_COMMAND, "foo"))
@@ -477,95 +413,6 @@ public class MainSuite {
                                 })));
     }
 
-    /*@Test
-    public void shouldEmitOneEventAndThenFail() throws Exception {
-        final Vertx vertx = Vertx.vertx();
-        final ServiceDiscovery serviceDiscovery = ServiceDiscovery.create(vertx);
-        final HttpServer server = vertx.createHttpServer(new HttpServerOptions()
-                .setPort(8183)
-                .setSsl(false)
-                .setReuseAddress(true));
-
-        final EventHandlerRegistry eventHandlerRegistry = EventHandlerRegistry.Builder.create()
-                .register(ServiceType.WEBSOCKET, serviceRecord -> VertxDiscoverableEventHandler.create(serviceRecord, serviceDiscovery))
-                .build();
-
-        final VertxServiceRegistry vertxServiceRegistry = new VertxServiceRegistry(eventHandlerRegistry, serviceDiscovery, new JacksonMapper(Json.mapper));
-
-        final VertxServer reactoServer = new VertxServer(new ServiceOptions("distTest", "distTest/")
-                , Router.router(vertx), server,
-                CommandRegistry.of(COMMAND_EMIT_AND_FAIL,
-                        command -> Observable.create(subscriber -> {
-                            subscriber.onNext(Event.create("ok"));
-                            try {
-                                Thread.sleep(1000L);
-                            } catch (InterruptedException e) {
-                                throw new RuntimeException(e);
-                            }
-                        })),
-                vertxServiceRegistry);
-
-        //final CommandExecutor executor = CommandExecutors.webSocket(Nodes.of("http://localhost:8183/distTest/"), 5000);
-
-        reactoServer.start().toBlocking().subscribe();
-
-        try {
-            vertxServiceRegistry.execute(Command.create(COMMAND_EMIT_AND_FAIL))
-                    .subscribe(testSubscriber);
-
-            testSubscriber.awaitTerminalEvent(500L, TimeUnit.MILLISECONDS);
-
-
-        } finally {
-            reactoServer.stop().toBlocking().subscribe();
-            Thread.sleep(100L);
-        }
-
-        //assertEquals(Event.create("ok"), testSubscriber.getOnNextEvents().get(0));
-        assertError(testSubscriber, ConnectionClosedUnexpectedly.class, connectionClosedUnexpectedly ->
-                assertTrue(connectionClosedUnexpectedly.getMessage()
-                        .startsWith("WebSocket connection closed without completion for command: ")));
-    }
-*/
-   /* @Test
-    public void shouldCloseOpenServiceDiscovery() throws Exception {
-        TestSubscriber<String> testSubscriber = new TestSubscriber<>();
-
-        get(MAIN_SERVER_PORT, "localhost", "/dist/service-discovery/close")
-                .subscribe(testSubscriber);
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNoErrors();
-
-        get(FALLBACK_SERVER_PORT, "localhost", "/dist/service-discovery/close")
-                .toBlocking().subscribe();
-
-        System.out.println("Response: " + testSubscriber.getOnNextEvents());
-        final JsonObject actual = new JsonObject(testSubscriber.getOnNextEvents().get(0));
-        assertEquals("Service discovery was closed successfully", actual.getString("message"));
-
-        TestSubscriber<Event> testSubscriber2 = new TestSubscriber<>();
-        registry.execute(Command.create(TEST_COMMAND))
-                .subscribe(testSubscriber2);
-
-        testSubscriber2.awaitTerminalEvent();
-        testSubscriber2.assertError(CannotDiscoverService.class);
-
-        get(MAIN_SERVER_PORT, "localhost", "/dist/service-discovery/start")
-                .toBlocking().subscribe();
-
-        get(FALLBACK_SERVER_PORT, "localhost", "/dist/service-discovery/start")
-                .toBlocking().subscribe();
-
-
-        TestSubscriber<Event> testSubscriber3 = new TestSubscriber<>();
-        registry.execute(Command.create(TEST_COMMAND))
-                .subscribe(testSubscriber3);
-
-        testSubscriber3.awaitTerminalEvent();
-        testSubscriber3.assertNoErrors();
-        testSubscriber3.assertValueCount(1);
-    }
-*/
     private void assertCompletedSuccessfully() {
         assertCompletedSuccessfully(testSubscriber);
     }

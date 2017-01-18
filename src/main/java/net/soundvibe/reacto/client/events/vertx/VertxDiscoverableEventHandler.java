@@ -4,7 +4,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.*;
 import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
-import net.soundvibe.reacto.client.errors.ConnectionClosedUnexpectedly;
+import net.soundvibe.reacto.errors.ConnectionClosedUnexpectedly;
 import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.discovery.types.ServiceRecord;
 import net.soundvibe.reacto.discovery.vertx.VertxServiceRegistry;

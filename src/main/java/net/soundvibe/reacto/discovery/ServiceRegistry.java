@@ -19,6 +19,10 @@ public interface ServiceRegistry {
         return execute(command, eventClass, LoadBalancers.ROUND_ROBIN, ReactoCommandExecutor.FACTORY);
     }
 
+    default <E,C> Observable<E> execute(C command, Class<? extends E> eventClass, CommandExecutorFactory commandExecutorFactory) {
+        return execute(command, eventClass, LoadBalancers.ROUND_ROBIN, commandExecutorFactory);
+    }
+
     <E,C> Observable<E> execute(
             C command,
             Class<? extends E> eventClass,

@@ -1,7 +1,7 @@
 package net.soundvibe.reacto.server;
 
 import net.soundvibe.reacto.mappers.CommandRegistryMapper;
-import net.soundvibe.reacto.server.errors.CommandAlreadyRegistered;
+import net.soundvibe.reacto.errors.CommandAlreadyRegistered;
 import net.soundvibe.reacto.types.*;
 import rx.Observable;
 

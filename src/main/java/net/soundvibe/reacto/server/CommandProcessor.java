@@ -2,7 +2,7 @@ package net.soundvibe.reacto.server;
 
 import io.vertx.core.logging.*;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
-import net.soundvibe.reacto.client.errors.CommandNotFound;
+import net.soundvibe.reacto.errors.CommandNotFound;
 import net.soundvibe.reacto.mappers.Mappers;
 import net.soundvibe.reacto.metric.CommandProcessorMetric;
 import net.soundvibe.reacto.types.*;

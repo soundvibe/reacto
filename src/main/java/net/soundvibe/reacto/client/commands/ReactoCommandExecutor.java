@@ -1,7 +1,7 @@
 package net.soundvibe.reacto.client.commands;
 
 import io.vertx.core.logging.*;
-import net.soundvibe.reacto.client.errors.CannotFindEventHandlers;
+import net.soundvibe.reacto.errors.CannotFindEventHandlers;
 import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.discovery.*;
 import net.soundvibe.reacto.types.*;

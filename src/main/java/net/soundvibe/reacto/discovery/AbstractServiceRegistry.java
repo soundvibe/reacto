@@ -1,7 +1,7 @@
 package net.soundvibe.reacto.discovery;
 
 import net.soundvibe.reacto.client.commands.*;
-import net.soundvibe.reacto.client.errors.*;
+import net.soundvibe.reacto.errors.*;
 import net.soundvibe.reacto.client.events.*;
 import net.soundvibe.reacto.discovery.types.ServiceRecord;
 import net.soundvibe.reacto.mappers.ServiceRegistryMapper;

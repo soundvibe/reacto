@@ -1,7 +1,6 @@
 package net.soundvibe.reacto.client.commands.hystrix;
 
-import net.soundvibe.reacto.client.commands.CommandExecutors;
-import net.soundvibe.reacto.client.errors.CannotDiscoverService;
+import net.soundvibe.reacto.errors.*;
 import net.soundvibe.reacto.types.*;
 import org.junit.Test;
 import rx.observers.TestSubscriber;
@@ -17,11 +16,11 @@ public class HystrixCommandExecutorTest {
 
     @Test
     public void shouldGetErrorWhenEventHandlersAreEmpty() throws Exception {
-        HystrixCommandExecutor sut = new HystrixCommandExecutor(Collections.emptyList(), CommandExecutors.defaultHystrixSetter());
+        HystrixCommandExecutor sut = new HystrixCommandExecutor(Collections.emptyList(), HystrixCommandExecutor.defaultHystrixSetter);
         sut.execute(Command.create("foo"))
             .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertError(CannotDiscoverService.class);
+        testSubscriber.assertError(CannotFindEventHandlers.class);
     }
 }
