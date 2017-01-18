@@ -157,9 +157,9 @@ public final class VertxServiceRegistry implements ServiceRegistry, ServiceDisco
         Scheduler.scheduleAtFixedInterval(TimeUnit.MINUTES.toMillis(1L), () -> {
             if (isOpen()) {
                 publish(record)
-                        .subscribe(rec -> log.info("Heartbeat published record: " + rec),
+                        .subscribe(rec -> log.debug("Heartbeat published record: " + rec),
                                 throwable -> log.error("Error while trying to publish the record on heartbeat: " + throwable),
-                                () -> log.info("Heartbeat completed successfully"));
+                                () -> log.debug("Heartbeat completed successfully"));
             } else {
                 log.info("Skipping heartbeat because service discovery is closed");
             }
