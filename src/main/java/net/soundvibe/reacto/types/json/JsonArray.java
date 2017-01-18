@@ -12,15 +12,26 @@ import static java.util.Optional.*;
  */
 public final class JsonArray implements Iterable<Object> {
 
-    private final List<Object> values;
+    final List<Object> values;
+
+    private final static JsonArray EMPTY = new JsonArray(Collections.emptyList());
 
     public JsonArray(List<Object> values) {
         this.values = values;
     }
 
+    public static JsonArray empty() {
+        return EMPTY;
+    }
+
     public <T> Optional<T> valueOf(int index, Class<T> valueClass) {
+        if (Enum.class.isAssignableFrom(valueClass)) {
+            //noinspection unchecked
+            return valueOfEnum(index, (Class<Enum>) valueClass)
+                    .map(anEnum -> (T) anEnum);
+        }
         return ofNullable(values.get(index))
-                .flatMap(o -> valueClass.isInstance(o) ? of(valueClass.cast(o)) : empty());
+                .flatMap(o -> valueClass.isInstance(o) ? of(valueClass.cast(o)) : Optional.empty());
     }
 
     public Optional<byte[]> valueOfBytes(int index) {
@@ -33,14 +44,23 @@ public final class JsonArray implements Iterable<Object> {
                 .map(s -> Instant.from(ISO_INSTANT.parse(s)));
     }
 
+    @SuppressWarnings("unchecked")
     public Optional<JsonArray> valueOfArray(int index) {
-        return valueOf(index, List.class)
-                .map(JsonArray::new);
+        return ofNullable(values.get(index))
+                .flatMap(o -> o instanceof List ? Optional.of(new JsonArray((List<Object>)o)) :
+                    o instanceof JsonArray ? Optional.of((JsonArray)o) : Optional.empty());
     }
 
+    @SuppressWarnings("unchecked")
     public Optional<JsonObject> valueOfObject(int index) {
-        return valueOf(index, Map.class)
-                .map(JsonObject::new);
+        return ofNullable(values.get(index))
+                .flatMap(o -> o instanceof Map ? Optional.of(new JsonObject((Map<String, Object>)o)) :
+                        o instanceof JsonObject ? Optional.of((JsonObject)o) : Optional.empty());
+    }
+
+    public <T extends Enum<T>> Optional<T> valueOfEnum(int index, Class<T> enumClass) {
+        return valueOf(index, String.class)
+                .map(name -> Enum.valueOf(enumClass, name));
     }
 
     public int size() {
@@ -59,6 +79,10 @@ public final class JsonArray implements Iterable<Object> {
         return StreamSupport.stream(spliterator(), true);
     }
 
+    public List<Object> toList() {
+        return Collections.unmodifiableList(values);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -75,6 +99,11 @@ public final class JsonArray implements Iterable<Object> {
     @Override
     public Iterator<Object> iterator() {
         return new JsonArrayIterator(values.iterator());
+    }
+
+    @Override
+    public String toString() {
+        return values.toString();
     }
 
     private class JsonArrayIterator implements Iterator<Object> {
