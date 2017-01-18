@@ -1,7 +1,8 @@
 package net.soundvibe.reacto.discovery.types;
 
 import net.soundvibe.reacto.internal.ObjectId;
-import net.soundvibe.reacto.types.json.JsonObject;
+import net.soundvibe.reacto.types.json.*;
+import net.soundvibe.reacto.utils.WebUtils;
 
 import java.util.Objects;
 
@@ -10,6 +11,11 @@ import java.util.Objects;
  */
 public final class ServiceRecord {
 
+    public static final String LOCATION_HOST = "host";
+    public static final String LOCATION_PORT = "port";
+    public static final String LOCATION_ROOT = "root";
+    public static final String METADATA_VERSION = "version";
+    public static final String METADATA_COMMANDS = "commands";
     public final String name;
     public final Status status;
     public final ServiceType type;
@@ -34,21 +40,26 @@ public final class ServiceRecord {
         this.metaData = metaData;
     }
 
-/*    public static ServiceRecord httpEndpoint(String name,
-                                       Status status,
-                                       URI uri, JsonObject metaData) {
-        return new ServiceRecord(name, status, ServiceType.HTTP_ENDPOINT, ObjectId.get().toString(),
-                uriToLocation(uri), metaData);
+    public static JsonObject httpEndpointLocation(String host, int port, String root) {
+        return JsonObjectBuilder.create()
+                .put(LOCATION_HOST, host)
+                .put(LOCATION_PORT, port)
+                .put(LOCATION_ROOT, root)
+                .build();
     }
 
-    private static JsonObject uriToLocation(URI uri) {
-        final Map<String, Object> decode = new LinkedHashMap<>(10);
-        decode.put("host", uri.getHost());
-        decode.put("port", uri.getPort());
-        decode.put("endpoint", uri.toString());
-        decode.put("path", uri.getPath());
-        return new JsonObject(decode);
-    }*/
+    public static ServiceRecord createHttpEndpoint(String name, int port, String root, String version) {
+        return ServiceRecord.create(
+                name,
+                net.soundvibe.reacto.discovery.types.Status.UP,
+                ServiceType.HTTP_ENDPOINT,
+                ObjectId.get().toString(),
+                ServiceRecord.httpEndpointLocation(WebUtils.getLocalAddress(), port, root),
+                JsonObjectBuilder.create()
+                        .put(ServiceRecord.METADATA_VERSION, version)
+                        .build()
+        );
+    }
 
     public static ServiceRecord create(String name,
                                        Status status,

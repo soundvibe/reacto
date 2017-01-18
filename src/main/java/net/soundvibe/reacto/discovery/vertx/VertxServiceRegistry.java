@@ -1,34 +1,35 @@
 package net.soundvibe.reacto.discovery.vertx;
 
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
-import io.vertx.servicediscovery.Status;
+import io.vertx.servicediscovery.types.HttpEndpoint;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.client.events.EventHandler;
 import net.soundvibe.reacto.discovery.*;
-import net.soundvibe.reacto.discovery.types.*;
+import net.soundvibe.reacto.discovery.types.ServiceRecord;
 import net.soundvibe.reacto.mappers.ServiceRegistryMapper;
+import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.server.vertx.ServiceRecords;
 import net.soundvibe.reacto.types.*;
-import net.soundvibe.reacto.types.json.*;
 import net.soundvibe.reacto.utils.*;
 import rx.Observable;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.*;
 
 import static net.soundvibe.reacto.discovery.vertx.DiscoverableServices.publishRecord;
 
 /**
  * @author linas on 17.1.9.
  */
-public final class VertxServiceRegistry implements ServiceRegistry, ServiceDiscoveryLifecycle<Record>, CommandExecutor {
+public final class VertxServiceRegistry implements ServiceRegistry, ServiceDiscoveryLifecycle, CommandExecutor {
 
     private static final Logger log = LoggerFactory.getLogger(VertxServiceRegistry.class);
 
     private final AtomicBoolean isClosed = new AtomicBoolean(true);
-
+    private final AtomicReference<Record> record = new AtomicReference<>();
     private final ServiceDiscovery serviceDiscovery;
     private final ServiceRegistryMapper mapper;
 
@@ -66,81 +67,90 @@ public final class VertxServiceRegistry implements ServiceRegistry, ServiceDisco
     }
 
     @Override
-    public Observable<Record> startDiscovery(Record record) {
+    public Observable<Any> startDiscovery(ServiceRecord serviceRecord, CommandRegistry commandRegistry) {
         log.info("Starting service discovery...");
-        return isClosed() ? publish(record)
-                .doOnNext(this::startHeartBeat)
-                .doOnNext(rec -> Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                    log.info("Executing shutdown hook...");
-                    if (isOpen()) {
-                        closeDiscovery(rec).subscribe(
-                                r -> log.debug("Service discovery closed successfully"),
-                                e -> log.debug("Error when closing service discovery: " + e)
-                        );
-                    }
-                })))
-                .subscribeOn(Factories.SINGLE_THREAD)
-                .doOnCompleted(() -> isClosed.set(false)) :
-                Observable.error(new IllegalStateException("Service discovery is already started"));
+        try {
+            return isClosed() ?
+                    Observable.just(serviceRecord)
+                            .map(rec -> record.updateAndGet(__ -> createVertxRecord(rec, commandRegistry)))
+                            .flatMap(this::publish)
+                            .doOnNext(this::startHeartBeat)
+                            .doOnNext(rec -> Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                                log.info("Executing shutdown hook...");
+                                if (isOpen()) {
+                                    closeDiscovery().subscribe(
+                                            r -> log.debug("Service discovery closed successfully"),
+                                            e -> log.debug("Error when closing service discovery: " + e)
+                                    );
+                                }
+                            })))
+                            .map(rec -> Any.VOID)
+                            .subscribeOn(Factories.SINGLE_THREAD)
+                            .doOnCompleted(() -> isClosed.set(false)) :
+                    Observable.error(new IllegalStateException("Service discovery is already started"));
+        } catch (Throwable e) {
+            return Observable.error(e);
+        }
     }
 
     @Override
-    public Observable<Record> closeDiscovery(Record record) {
+    public Observable<Any> closeDiscovery() {
         log.info("Closing service discovery...");
         return isOpen() ?
-                Observable.just(record)
+                Observable.just(record.get())
                         .subscribeOn(Factories.SINGLE_THREAD)
                         .observeOn(Factories.SINGLE_THREAD)
                         .flatMap(rec -> DiscoverableServices.removeIf(rec, ServiceRecords::areEquals, serviceDiscovery))
-                        .doOnCompleted(() -> serviceDiscovery.release(serviceDiscovery.getReference(record)))
+                        .map(rec -> Any.VOID)
+                        .doOnCompleted(() -> serviceDiscovery.release(serviceDiscovery.getReference(record.get())))
                         .doOnCompleted(serviceDiscovery::close)
                         .doOnCompleted(() -> isClosed.set(true)) :
                 Observable.error(new IllegalStateException("Service discovery is already closed"));
     }
 
-    @Override
+
     public Observable<Record> publish(Record record) {
         return publishRecord(record, serviceDiscovery);
     }
 
-    @Override
+
     public boolean isClosed() {
         return isClosed.get();
     }
 
-    @Override
+
     public boolean isOpen() {
         return !isClosed.get();
     }
 
-    @Override
     public Observable<Record> cleanServices() {
         return DiscoverableServices.removeRecordsWithStatus(Status.DOWN, serviceDiscovery);
     }
 
-    public static ServiceRecord createServiceRecord(Record record) {
-        return ServiceRecord.create(
-                record.getName(),
-                fromStatus(record.getStatus()),
-                ServiceType.HTTP_ENDPOINT,
-                record.getRegistration(),
-                new JsonObject(record.getLocation().getMap()),
-                new JsonObject(record.getMetadata().getMap()));
+    public static Record createVertxRecord(ServiceRecord serviceRecord, CommandRegistry commandRegistry) {
+        final String host = serviceRecord.location.asString(ServiceRecord.LOCATION_HOST).orElseGet(WebUtils::getLocalAddress);
+        final Integer port = serviceRecord.location.asInteger(ServiceRecord.LOCATION_PORT)
+                .orElseThrow(() -> new IllegalArgumentException("port is not found in serviceRecord location"));
+        return HttpEndpoint.createRecord(
+               serviceRecord.name,
+               host,
+               port,
+               serviceRecord.location.asString(ServiceRecord.LOCATION_ROOT).orElse("/"),
+               new io.vertx.core.json.JsonObject()
+                        .put(ServiceRecord.METADATA_VERSION, serviceRecord.metaData.asString(ServiceRecord.METADATA_VERSION)
+                                .orElse("UNKNOWN"))
+                        .put(ServiceRecord.METADATA_COMMANDS, commandsToJsonArray(commandRegistry))
+       );
     }
 
-    private static net.soundvibe.reacto.discovery.types.Status fromStatus(Status status) {
-        switch (status) {
-            case UP:
-                return net.soundvibe.reacto.discovery.types.Status.UP;
-            case DOWN:
-                return net.soundvibe.reacto.discovery.types.Status.DOWN;
-            case OUT_OF_SERVICE:
-                return net.soundvibe.reacto.discovery.types.Status.OUT_OF_SERVICE;
-            case UNKNOWN:
-                return net.soundvibe.reacto.discovery.types.Status.UNKNOWN;
-            default:
-                return net.soundvibe.reacto.discovery.types.Status.UNKNOWN;
-        }
+    static JsonArray commandsToJsonArray(CommandRegistry commands) {
+        return commands.stream()
+                .map(Pair::getKey)
+                .map(commandDescriptor -> new io.vertx.core.json.JsonObject()
+                        .put(CommandDescriptor.COMMAND, commandDescriptor.commandType)
+                        .put(CommandDescriptor.EVENT, commandDescriptor.eventType)
+                )
+                .reduce(new JsonArray(), JsonArray::add, JsonArray::addAll);
     }
 
     private void startHeartBeat(Record record) {

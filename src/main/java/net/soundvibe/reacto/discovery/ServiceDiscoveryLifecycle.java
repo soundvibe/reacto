@@ -1,21 +1,15 @@
 package net.soundvibe.reacto.discovery;
 
+import net.soundvibe.reacto.discovery.types.ServiceRecord;
+import net.soundvibe.reacto.server.CommandRegistry;
+import net.soundvibe.reacto.types.Any;
 import rx.Observable;
 
 /**
  * @author linas on 17.1.9.
  */
-public interface ServiceDiscoveryLifecycle<T> {
+public interface ServiceDiscoveryLifecycle {
 
-    Observable<T> startDiscovery(T record);
-    Observable<T> closeDiscovery(T record);
-    Observable<T> publish(T record);
-    Observable<T> cleanServices();
-
-    boolean isOpen();
-
-    default boolean isClosed() {
-        return !isOpen();
-    }
-
+    Observable<Any> startDiscovery(ServiceRecord serviceRecord, CommandRegistry commandRegistry);
+    Observable<Any> closeDiscovery();
 }

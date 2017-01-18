@@ -6,8 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.*;
 import io.vertx.core.json.*;
 import io.vertx.ext.web.Router;
-import io.vertx.servicediscovery.*;
-import io.vertx.servicediscovery.types.HttpEndpoint;
+import io.vertx.servicediscovery.ServiceDiscovery;
 import net.soundvibe.reacto.client.commands.*;
 import net.soundvibe.reacto.client.errors.*;
 import net.soundvibe.reacto.discovery.vertx.*;
@@ -527,9 +526,8 @@ public class MainSuite {
                 .toBlocking().subscribe();
 
         System.out.println("Response: " + testSubscriber.getOnNextEvents());
-        final Record actual = new Record(new JsonObject(testSubscriber.getOnNextEvents().get(0)));
-        assertEquals("dist", actual.getName());
-        assertEquals(HttpEndpoint.TYPE, actual.getType());
+        final JsonObject actual = new JsonObject(testSubscriber.getOnNextEvents().get(0));
+        assertEquals("Service discovery was closed successfully", actual.getString("message"));
 
         TestSubscriber<CommandExecutor> testSubscriber2 = new TestSubscriber<>();
 

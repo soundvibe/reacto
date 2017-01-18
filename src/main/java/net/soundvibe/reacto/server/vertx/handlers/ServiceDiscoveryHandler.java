@@ -1,10 +1,11 @@
 package net.soundvibe.reacto.server.vertx.handlers;
 
 import io.vertx.core.Handler;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.servicediscovery.Record;
 import net.soundvibe.reacto.discovery.ServiceDiscoveryLifecycle;
-import net.soundvibe.reacto.utils.Factories;
+import net.soundvibe.reacto.discovery.types.ServiceRecord;
+import net.soundvibe.reacto.server.CommandRegistry;
 import rx.Observable;
 
 import java.util.function.Supplier;
@@ -16,12 +17,14 @@ import static net.soundvibe.reacto.server.vertx.VertxServer.INTERNAL_SERVER_ERRO
  */
 public class ServiceDiscoveryHandler implements Handler<RoutingContext> {
 
-    private final ServiceDiscoveryLifecycle<Record> controller;
-    private final Supplier<Record> record;
+    private final ServiceDiscoveryLifecycle controller;
+    private final Supplier<ServiceRecord> record;
+    private final CommandRegistry commandRegistry;
 
-    public ServiceDiscoveryHandler(ServiceDiscoveryLifecycle<Record> controller, Supplier<Record> record) {
+    public ServiceDiscoveryHandler(ServiceDiscoveryLifecycle controller, Supplier<ServiceRecord> record, CommandRegistry commandRegistry) {
         this.controller = controller;
         this.record = record;
+        this.commandRegistry = commandRegistry;
     }
 
     @Override
@@ -36,8 +39,10 @@ public class ServiceDiscoveryHandler implements Handler<RoutingContext> {
             case "start" : {
                 Observable.just(controller)
                         .filter(ctrl -> record.get() != null)
-                        .flatMap(ctrl -> ctrl.startDiscovery(record.get()))
-                        .subscribe(rec -> ctx.response().end(rec.toJson().toString())
+                        .flatMap(ctrl -> ctrl.startDiscovery(record.get(), commandRegistry))
+                        .subscribe(__ -> ctx.response().end(new JsonObject()
+                                .put("message", "Service discovery was started successfully")
+                                .encode())
                                 , throwable -> ctx.response()
                                         .setStatusCode(INTERNAL_SERVER_ERROR)
                                         .setStatusMessage(throwable.getClass().getSimpleName())
@@ -48,24 +53,14 @@ public class ServiceDiscoveryHandler implements Handler<RoutingContext> {
             case "close": {
                 Observable.just(controller)
                         .filter(ctrl -> record.get() != null)
-                        .flatMap(ctrl -> ctrl.closeDiscovery(record.get()))
-                        .subscribe(record -> ctx.response().end(record.toJson().toString())
+                        .flatMap(ServiceDiscoveryLifecycle::closeDiscovery)
+                        .subscribe(__ -> ctx.response().end(new JsonObject()
+                                        .put("message", "Service discovery was closed successfully")
+                                        .encode())
                                 , throwable -> ctx.response()
                                         .setStatusCode(INTERNAL_SERVER_ERROR)
                                         .setStatusMessage(throwable.getClass().getSimpleName())
                                         .end(throwable.toString()));
-                break;
-            }
-            case "clean": {
-                Observable.just(controller)
-                        .subscribeOn(Factories.SINGLE_THREAD)
-                        .flatMap(ServiceDiscoveryLifecycle::cleanServices)
-                        .subscribe(record -> ctx.response().write(record.toJson().toString())
-                                , throwable -> ctx.response()
-                                        .setStatusCode(INTERNAL_SERVER_ERROR)
-                                        .setStatusMessage(throwable.getClass().getSimpleName())
-                                        .end(throwable.toString()),
-                                () -> ctx.response().end());
                 break;
             }
         }
