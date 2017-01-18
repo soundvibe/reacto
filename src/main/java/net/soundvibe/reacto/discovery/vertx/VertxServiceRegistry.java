@@ -9,6 +9,7 @@ import net.soundvibe.reacto.errors.CannotDiscoverService;
 import net.soundvibe.reacto.client.events.EventHandlerRegistry;
 import net.soundvibe.reacto.discovery.*;
 import net.soundvibe.reacto.discovery.types.*;
+import net.soundvibe.reacto.internal.ObjectId;
 import net.soundvibe.reacto.mappers.ServiceRegistryMapper;
 import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.server.vertx.*;
@@ -49,7 +50,8 @@ public final class VertxServiceRegistry extends AbstractServiceRegistry implemen
         try {
             return isClosed() ?
                     Observable.just(serviceRecord)
-                            .map(rec -> record.updateAndGet(__ -> createVertxRecord(rec, commandRegistry)))
+                            .map(rec -> record.updateAndGet(__ -> createVertxRecord(rec, commandRegistry)
+                                    .setRegistration(null)))
                             .flatMap(this::publish)
                             .doOnNext(this::startHeartBeat)
                             .doOnNext(rec -> Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -73,17 +75,18 @@ public final class VertxServiceRegistry extends AbstractServiceRegistry implemen
     @Override
     public Observable<Any> closeDiscovery() {
         log.info("Closing service discovery...");
-        return isOpen() ?
-                Observable.just(record.get())
+        if (isClosed()) return Observable.error(new IllegalStateException("Service discovery is already closed"));
+        return Observable.just(record.get())
                         .subscribeOn(Factories.SINGLE_THREAD)
                         .observeOn(Factories.SINGLE_THREAD)
                         .flatMap(rec -> removeIf(rec, VertxRecords::areEquals))
+                        .map(rec -> record.updateAndGet(r -> r.setRegistration(null)))
                         .takeLast(1)
                         .map(rec -> Any.VOID)
                         .doOnCompleted(() -> serviceDiscovery.release(serviceDiscovery.getReference(record.get())))
                         .doOnCompleted(serviceDiscovery::close)
-                        .doOnCompleted(() -> isClosed.set(true)) :
-                Observable.error(new IllegalStateException("Service discovery is already closed"));
+                        .doOnCompleted(() -> isClosed.set(true))
+                ;
     }
 
     @Override
@@ -138,7 +141,7 @@ public final class VertxServiceRegistry extends AbstractServiceRegistry implemen
                 record.getName(),
                 mapStatus(record.getStatus()),
                 mapServiceType(record),
-                record.getRegistration(),
+                Optional.ofNullable(record.getRegistration()).orElseGet(() -> ObjectId.get().toString()),
                 new JsonObject(Optional.ofNullable(record.getLocation()).map(io.vertx.core.json.JsonObject::getMap)
                         .orElseGet(Collections::emptyMap)),
                 new JsonObject(Optional.ofNullable(record.getMetadata()).map(io.vertx.core.json.JsonObject::getMap)
