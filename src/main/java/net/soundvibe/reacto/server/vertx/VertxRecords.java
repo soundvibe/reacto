@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 /**
  * @author OZY on 2016.08.26.
  */
-public interface ServiceRecords {
+public interface VertxRecords {
 
     String LAST_UPDATED = "updated";
     String COMMANDS = "commands";

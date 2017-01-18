@@ -1,50 +1,70 @@
 package net.soundvibe.reacto.client.events.vertx;
 
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.*;
 import io.vertx.core.logging.*;
 import io.vertx.servicediscovery.*;
+import net.soundvibe.reacto.client.errors.ConnectionClosedUnexpectedly;
 import net.soundvibe.reacto.client.events.EventHandler;
-import net.soundvibe.reacto.discovery.vertx.DiscoverableServices;
-import net.soundvibe.reacto.server.vertx.ServiceRecords;
+import net.soundvibe.reacto.discovery.types.ServiceRecord;
+import net.soundvibe.reacto.discovery.vertx.VertxServiceRegistry;
+import net.soundvibe.reacto.internal.InternalEvent;
+import net.soundvibe.reacto.mappers.Mappers;
+import net.soundvibe.reacto.server.vertx.handlers.WebSocketFrameHandler;
 import net.soundvibe.reacto.types.*;
-import rx.Observable;
-import rx.internal.util.ActionObserver;
+import rx.*;
 
 import java.util.Objects;
-import java.util.function.BiFunction;
+import java.util.function.*;
 
 import static net.soundvibe.reacto.utils.WebUtils.*;
 
 /**
  * @author OZY on 2015.11.23.
  */
-public class VertxDiscoverableEventHandler implements EventHandler {
+public class VertxDiscoverableEventHandler implements EventHandler, Function<ServiceRecord, EventHandler> {
 
     private static final Logger log = LoggerFactory.getLogger(VertxDiscoverableEventHandler.class);
 
+    private final ServiceRecord serviceRecord;
     private final Record record;
     private final BiFunction<WebSocketStream, Command, Observable<Event>> eventHandler;
     private final ServiceDiscovery serviceDiscovery;
 
-    public VertxDiscoverableEventHandler(Record record, ServiceDiscovery serviceDiscovery,
+    public VertxDiscoverableEventHandler(ServiceRecord serviceRecord, ServiceDiscovery serviceDiscovery,
                                          BiFunction<WebSocketStream, Command, Observable<Event>> eventHandler) {
-        Objects.requireNonNull(record, "record cannot be null");
+        Objects.requireNonNull(serviceRecord, "serviceRecord cannot be null");
         Objects.requireNonNull(serviceDiscovery, "serviceDiscovery cannot be null");
         Objects.requireNonNull(eventHandler, "eventHandler cannot be null");
-        this.record = record;
+        this.serviceRecord = serviceRecord;
+        this.record = VertxServiceRegistry.createVertxRecord(serviceRecord);
         this.serviceDiscovery = serviceDiscovery;
         this.eventHandler = eventHandler;
     }
 
     @Override
-    public Observable<Event> toObservable(Command command) {
+    public Observable<Event> observe(Command command) {
         return Observable.just(record)
                 .<HttpClient>map(rec -> serviceDiscovery.getReference(rec).get())
                 .map(httpClient -> httpClient.websocketStream(includeStartDelimiter(includeEndDelimiter(record.getName()))))
                 .concatMap(webSocketStream -> eventHandler.apply(webSocketStream, command)
-                        .onBackpressureBuffer()
-                        .onErrorResumeNext(this::handleError))
-                ;
+                        .onBackpressureBuffer());
+    }
+
+    @Override
+    public ServiceRecord serviceRecord() {
+        return serviceRecord;
+    }
+
+    public static EventHandler create(ServiceRecord serviceRecord, ServiceDiscovery serviceDiscovery) {
+        return new VertxDiscoverableEventHandler(serviceRecord,
+                serviceDiscovery,
+                VertxDiscoverableEventHandler::observe);
+    }
+
+    @Override
+    public EventHandler apply(ServiceRecord serviceRecord) {
+        return create(serviceRecord, serviceDiscovery);
     }
 
     @Override
@@ -60,20 +80,78 @@ public class VertxDiscoverableEventHandler implements EventHandler {
         return Objects.hash(record);
     }
 
-    private Observable<Event> handleError(Throwable error) {
-        return DiscoverableServices.removeIf(record, ServiceRecords::areEquals, serviceDiscovery)
-                .doOnEach(new ActionObserver<>(
-                        r -> log.info("Unpublished record because of IO errors: " + r.toJson()),
-                        throwable -> log.error("Error when trying to unpublish record because of IO errors: " + throwable),
-                        () -> log.info("Unpublished record successfully"))
-                )
-                .onErrorResumeNext(throwable -> Observable.error(error))
-                .flatMap(r -> Observable.error(error))
-                ;
+    private static void checkForEvents(WebSocket webSocket, Subscriber<? super Event> subscriber) {
+        webSocket
+                .frameHandler(new WebSocketFrameHandler(buffer -> {
+                    try {
+                        if (!subscriber.isUnsubscribed()) {
+                            handleEvent(Mappers.fromBytesToInternalEvent(buffer.getBytes()), subscriber);
+                        }
+                    } catch (Throwable e) {
+                        subscriber.onError(e);
+                    }
+                }));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void handleEvent(InternalEvent internalEvent, Subscriber<? super Event> subscriber) {
+        log.debug("InternalEvent has been received and is being handled: " + internalEvent);
+        switch (internalEvent.eventType) {
+            case NEXT: {
+                subscriber.onNext(Mappers.fromInternalEvent(internalEvent));
+                break;
+            }
+            case ERROR: {
+                if (!subscriber.isUnsubscribed()) {
+                    subscriber.onError(internalEvent.error
+                            .orElse(ReactiveException.from(new UnknownError("Unknown error from internalEvent: " + internalEvent))));
+                }
+                break;
+            }
+            case COMPLETED: {
+                if (!subscriber.isUnsubscribed()) {
+                    subscriber.onCompleted();
+                }
+                break;
+            }
+        }
+    }
+
+    public static Observable<Event> observe(WebSocketStream webSocketStream, Command command) {
+        return Observable.create(subscriber -> {
+            try {
+                webSocketStream
+                        .exceptionHandler(subscriber::onError)
+                        .handler(webSocket -> {
+                            try {
+                                webSocket.setWriteQueueMaxSize(Integer.MAX_VALUE).closeHandler(__ -> {
+                                    if (!subscriber.isUnsubscribed()) {
+                                        subscriber.onError(new ConnectionClosedUnexpectedly(
+                                                "WebSocket connection closed without completion for command: " + command));
+                                    }
+                                }).exceptionHandler(subscriber::onError);
+                                checkForEvents(webSocket, subscriber);
+                                sendCommandToExecutor(command, webSocket);
+                            } catch (Throwable e) {
+                                subscriber.onError(e);
+                            }
+                        });
+            } catch (Throwable e) {
+                subscriber.onError(e);
+            }
+        });
+    }
+
+    private static void sendCommandToExecutor(Command command, WebSocket webSocket) {
+        log.info("Sending command to executor: " + command);
+        final byte[] bytes = Mappers.commandToBytes(command);
+        webSocket.writeBinaryMessage(Buffer.buffer(bytes));
     }
 
     @Override
     public String name() {
         return record.getName();
     }
+
+
 }

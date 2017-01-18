@@ -1,16 +1,12 @@
 package net.soundvibe.reacto.mappers;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import net.soundvibe.reacto.client.events.*;
 import net.soundvibe.reacto.internal.*;
 import net.soundvibe.reacto.internal.proto.Messages;
 import net.soundvibe.reacto.types.*;
 
 import java.io.*;
-import java.net.URI;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 /**
  * @author Linas on 2015.10.25.
@@ -63,12 +59,5 @@ public interface Mappers {
         } catch (Throwable e) {
             return Optional.empty();
         }
-    }
-
-    static List<EventHandler> mapToEventHandlers(Nodes nodes,
-                                                 Function<URI, EventHandler> eventHandlerFactory) {
-        return nodes.stream()
-                    .map(eventHandlerFactory)
-                    .collect(Collectors.toList());
     }
 }

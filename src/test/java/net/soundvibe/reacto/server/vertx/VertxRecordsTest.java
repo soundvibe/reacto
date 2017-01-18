@@ -3,7 +3,6 @@ package net.soundvibe.reacto.server.vertx;
 import io.vertx.core.json.*;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.types.HttpEndpoint;
-import net.soundvibe.reacto.server.vertx.ServiceRecords;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.models.*;
 import org.junit.Test;
@@ -16,20 +15,20 @@ import static org.junit.Assert.*;
 /**
  * @author OZY on 2016.08.26.
  */
-public class ServiceRecordsTest {
+public class VertxRecordsTest {
 
     @Test
     public void shouldBeDown() throws Exception {
         final Record oldRecord = HttpEndpoint.createRecord("test", "localhost", 80, "/",
-                new JsonObject().put(ServiceRecords.LAST_UPDATED, Instant.now().minus(5L, ChronoUnit.MINUTES)));
-        assertTrue(ServiceRecords.isDown(oldRecord));
+                new JsonObject().put(VertxRecords.LAST_UPDATED, Instant.now().minus(5L, ChronoUnit.MINUTES)));
+        assertTrue(VertxRecords.isDown(oldRecord));
     }
 
     @Test
     public void shouldBeUp() throws Exception {
         final Record oldRecord = HttpEndpoint.createRecord("test", "localhost", 80, "/",
-                new JsonObject().put(ServiceRecords.LAST_UPDATED, Instant.now().minus(2L, ChronoUnit.MINUTES)));
-        assertFalse(ServiceRecords.isDown(oldRecord));
+                new JsonObject().put(VertxRecords.LAST_UPDATED, Instant.now().minus(2L, ChronoUnit.MINUTES)));
+        assertFalse(VertxRecords.isDown(oldRecord));
     }
 
     @Test
@@ -37,7 +36,7 @@ public class ServiceRecordsTest {
         final Record record = HttpEndpoint.createRecord("test", "localhost", 80, "/",
                 getMetadata()
         );
-        assertTrue(ServiceRecords.isService("test", record));
+        assertTrue(VertxRecords.isService("test", record));
     }
 
     @Test
@@ -45,7 +44,7 @@ public class ServiceRecordsTest {
         final Record record = HttpEndpoint.createRecord("test", "localhost", 80, "/",
                 getMetadata()
         );
-        assertFalse(ServiceRecords.isService("dummy", record));
+        assertFalse(VertxRecords.isService("dummy", record));
     }
 
     @Test
@@ -53,7 +52,7 @@ public class ServiceRecordsTest {
         final Record record = HttpEndpoint.createRecord("test", "localhost", 80, "/",
                 getMetadata()
         );
-        assertTrue(ServiceRecords.hasCommand("bar", record));
+        assertTrue(VertxRecords.hasCommand("bar", record));
     }
 
     @Test
@@ -61,7 +60,7 @@ public class ServiceRecordsTest {
         final Record record = HttpEndpoint.createRecord("test", "localhost", 80, "/",
                 getMetadata()
         );
-        assertTrue(ServiceRecords.hasCommand(Foo.class.getName(), FooBar.class.getName(), record));
+        assertTrue(VertxRecords.hasCommand(Foo.class.getName(), FooBar.class.getName(), record));
     }
 
     @Test
@@ -69,7 +68,7 @@ public class ServiceRecordsTest {
         final Record record = HttpEndpoint.createRecord("test", "localhost", 80, "/",
                 getMetadata()
         );
-        assertFalse(ServiceRecords.hasCommand("dummy", record));
+        assertFalse(VertxRecords.hasCommand("dummy", record));
     }
 
     @Test
@@ -77,13 +76,13 @@ public class ServiceRecordsTest {
         final Record record = HttpEndpoint.createRecord("test", "localhost", 80, "/",
                 new JsonObject()
         );
-        assertFalse(ServiceRecords.hasCommand("dummy", record));
+        assertFalse(VertxRecords.hasCommand("dummy", record));
     }
 
     private JsonObject getMetadata() {
         return new JsonObject()
-                .put(ServiceRecords.LAST_UPDATED, Instant.now().minus(2L, ChronoUnit.MINUTES))
-                .put(ServiceRecords.COMMANDS, new JsonArray()
+                .put(VertxRecords.LAST_UPDATED, Instant.now().minus(2L, ChronoUnit.MINUTES))
+                .put(VertxRecords.COMMANDS, new JsonArray()
                         .add(new JsonObject().put(CommandDescriptor.COMMAND, "foo").put(CommandDescriptor.EVENT, ""))
                         .add(new JsonObject().put(CommandDescriptor.COMMAND, "bar").put(CommandDescriptor.EVENT, ""))
                         .add(new JsonObject().put(CommandDescriptor.COMMAND, Foo.class.getName()).put(CommandDescriptor.EVENT, FooBar.class.getName()))

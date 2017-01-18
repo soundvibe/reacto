@@ -31,12 +31,12 @@ public class HystrixCommandExecutor implements CommandExecutor {
         return Observable.just(eventHandlers)
                 .flatMap(handlers -> handlers.size() < 1 ?
                         new HystrixObservableCommandWrapper(
-                                cmd -> eventHandlers.get(0).toObservable(cmd),
+                                cmd -> eventHandlers.get(0).observe(cmd),
                                 command,
                                 hystrixConfig).toObservable() :
                         new HystrixObservableCommandWrapper(
-                                cmd -> eventHandlers.get(0).toObservable(cmd),
-                                cmd -> eventHandlers.get(1).toObservable(cmd),
+                                cmd -> eventHandlers.get(0).observe(cmd),
+                                cmd -> eventHandlers.get(1).observe(cmd),
                                 command,
                                 hystrixConfig).toObservable()
                 );

@@ -1,6 +1,9 @@
 package net.soundvibe.reacto.discovery;
 
+import net.soundvibe.reacto.client.commands.*;
 import net.soundvibe.reacto.client.events.EventHandler;
+import net.soundvibe.reacto.discovery.types.ServiceRecord;
+import net.soundvibe.reacto.types.*;
 import rx.Observable;
 
 /**
@@ -8,10 +11,20 @@ import rx.Observable;
  */
 public interface ServiceRegistry {
 
-    default <E,C> Observable<? extends E> execute(C command, Class<? extends E> eventClass) {
-        return execute(command, eventClass, LoadBalancers.ROUND_ROBIN);
+    default Observable<Event> execute(Command command) {
+        return execute(command, Event.class);
     }
 
-    <E,C> Observable<? extends E> execute(C command, Class<? extends E> eventClass, LoadBalancer<EventHandler> loadBalancer);
+    default <E,C> Observable<E> execute(C command, Class<? extends E> eventClass) {
+        return execute(command, eventClass, LoadBalancers.ROUND_ROBIN, ReactoCommandExecutor.FACTORY);
+    }
+
+    <E,C> Observable<E> execute(
+            C command,
+            Class<? extends E> eventClass,
+            LoadBalancer<EventHandler> loadBalancer,
+            CommandExecutorFactory commandExecutorFactory);
+
+    Observable<Any> unpublish(ServiceRecord serviceRecord);
 
 }

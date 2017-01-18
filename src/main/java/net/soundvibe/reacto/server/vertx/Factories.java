@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.utils;
+package net.soundvibe.reacto.server.vertx;
 
 import io.vertx.core.Vertx;
 import io.vertx.servicediscovery.Record;

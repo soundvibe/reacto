@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.client.events;
 
+import net.soundvibe.reacto.discovery.types.ServiceRecord;
 import net.soundvibe.reacto.types.*;
 import rx.Observable;
 
@@ -8,6 +9,8 @@ import rx.Observable;
  */
 public interface EventHandler extends Named {
 
-    Observable<Event> toObservable(Command command);
+    Observable<Event> observe(Command command);
+
+    ServiceRecord serviceRecord();
 
 }

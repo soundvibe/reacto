@@ -3,13 +3,14 @@ package net.soundvibe.reacto.discovery.vertx;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.*;
 import io.vertx.servicediscovery.*;
+import io.vertx.servicediscovery.Status;
 import io.vertx.servicediscovery.types.HttpEndpoint;
-import net.soundvibe.reacto.client.commands.*;
 import net.soundvibe.reacto.client.errors.CannotDiscoverService;
-import net.soundvibe.reacto.discovery.types.ServiceRecord;
+import net.soundvibe.reacto.client.events.EventHandlerRegistry;
+import net.soundvibe.reacto.client.events.vertx.VertxDiscoverableEventHandler;
+import net.soundvibe.reacto.discovery.types.*;
 import net.soundvibe.reacto.mappers.jackson.JacksonMapper;
 import net.soundvibe.reacto.server.CommandRegistry;
-import net.soundvibe.reacto.server.vertx.Service;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.*;
 import org.junit.Test;
@@ -17,6 +18,7 @@ import rx.observers.TestSubscriber;
 
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
 
@@ -31,7 +33,14 @@ public class VertxServiceRegistryTest {
     private final Vertx vertx = Vertx.vertx();
     private final ServiceDiscovery serviceDiscovery = ServiceDiscovery.create(vertx);
 
-    private final VertxServiceRegistry sut = new VertxServiceRegistry(serviceDiscovery, new DemoServiceRegistryMapper());
+    private final EventHandlerRegistry eventHandlerRegistry = EventHandlerRegistry.Builder.create()
+            .register(ServiceType.WEBSOCKET, serviceRecord -> VertxDiscoverableEventHandler.create(serviceRecord, serviceDiscovery))
+            .build();
+
+    private final VertxServiceRegistry sut = new VertxServiceRegistry(
+            eventHandlerRegistry,
+            serviceDiscovery,
+            new DemoServiceRegistryMapper());
 
     @Test
     public void shouldStartDiscovery() throws Exception {
@@ -121,25 +130,25 @@ public class VertxServiceRegistryTest {
 
     @Test
     public void shouldEmitErrorWhenFindIsUnableToGetServices() throws Exception {
-        TestSubscriber<CommandExecutor> subscriber = new TestSubscriber<>();
+        TestSubscriber<Event> subscriber = new TestSubscriber<>();
         TestSubscriber<Any> recordTestSubscriber = new TestSubscriber<>();
         TestSubscriber<Any> closeSubscriber = new TestSubscriber<>();
         final ServiceDiscovery serviceDiscovery = ServiceDiscovery.create(Vertx.vertx());
-        final VertxServiceRegistry lifecycle = new VertxServiceRegistry(serviceDiscovery,
+        final VertxServiceRegistry serviceRegistry = new VertxServiceRegistry(eventHandlerRegistry, serviceDiscovery,
                 new JacksonMapper(Json.mapper));
 
         final ServiceRecord record = ServiceRecord.createHttpEndpoint("testService", 8123, "test/", "0.1");
-        lifecycle.startDiscovery(record, CommandRegistry.empty())
+        serviceRegistry.startDiscovery(record, CommandRegistry.empty())
                 .subscribe(recordTestSubscriber);
 
         recordTestSubscriber.awaitTerminalEvent();
         recordTestSubscriber.assertNoErrors();
 
-        lifecycle.closeDiscovery().subscribe(closeSubscriber);
+        serviceRegistry.closeDiscovery().subscribe(closeSubscriber);
         closeSubscriber.awaitTerminalEvent();
         closeSubscriber.assertNoErrors();
 
-        CommandExecutors.find(Service.of("sdsd", serviceDiscovery))
+        serviceRegistry.execute(Command.create("sdsd"))
                 .subscribe(subscriber);
 
         subscriber.awaitTerminalEvent();
@@ -159,20 +168,21 @@ public class VertxServiceRegistryTest {
         return recordList;
     }
 
-    private void assertDiscoveredServices(int count) {
-        TestSubscriber<CommandExecutor> testSubscriber = new TestSubscriber<>();
+    private void assertDiscoveredServices(int count) throws InterruptedException {
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        AtomicInteger counter = new AtomicInteger(0);
 
-        DiscoverableServices.find(TEST_SERVICE, serviceDiscovery)
-                .subscribe(testSubscriber);
+        serviceDiscovery.getRecords(record -> record.getName().equals(TEST_SERVICE), true,
+                event -> {
+                    if (event.succeeded()) {
+                        counter.set(event.result().size());
+                    }
+                    countDownLatch.countDown();
+                });
 
-        testSubscriber.awaitTerminalEvent();
+        countDownLatch.await();
 
-        if (count > 0) {
-            testSubscriber.assertNoErrors();
-            testSubscriber.assertValueCount(count);
-        } else {
-            testSubscriber.assertError(CannotDiscoverService.class);
-        }
+        assertEquals(count, counter.get());
     }
 
 }

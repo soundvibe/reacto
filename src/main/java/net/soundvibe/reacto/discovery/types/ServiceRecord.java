@@ -52,7 +52,7 @@ public final class ServiceRecord {
         return ServiceRecord.create(
                 name,
                 net.soundvibe.reacto.discovery.types.Status.UP,
-                ServiceType.HTTP_ENDPOINT,
+                ServiceType.HTTP2_ENDPOINT,
                 ObjectId.get().toString(),
                 ServiceRecord.httpEndpointLocation(WebUtils.getLocalAddress(), port, root),
                 JsonObjectBuilder.create()
