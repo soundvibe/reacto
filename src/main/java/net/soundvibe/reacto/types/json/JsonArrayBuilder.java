@@ -67,10 +67,6 @@ public final class JsonArrayBuilder {
         return addValue(value);
     }
 
-    public JsonArrayBuilder add(Float value) {
-        return addValue(value);
-    }
-
     public JsonArrayBuilder add(Number value) {
         return addValue(value);
     }

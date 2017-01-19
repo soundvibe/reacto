@@ -154,6 +154,7 @@
                 <configuration>
                     <excludes>
                         <exclude>**/proto/*</exclude>
+                        <exclude>**/errors/*</exclude>
                     </excludes>
                 </configuration>
                 <executions>

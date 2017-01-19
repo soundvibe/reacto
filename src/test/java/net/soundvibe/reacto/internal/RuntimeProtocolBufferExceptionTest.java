@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.internal;
 
+import net.soundvibe.reacto.errors.RuntimeProtocolBufferException;
 import org.junit.Test;
 
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.internal;
+package net.soundvibe.reacto.errors;
 
 /**
  * @author OZY on 2016.02.05.

@@ -67,10 +67,6 @@ public final class JsonObjectBuilder {
         return putValue(key, value);
     }
 
-    public JsonObjectBuilder put(String key, Float value) {
-        return putValue(key, value);
-    }
-
     public JsonObjectBuilder put(String key, Number value) {
         return putValue(key, value);
     }

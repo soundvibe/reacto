@@ -65,12 +65,12 @@ public final class JsonObject implements Iterable<Map.Entry<String, Object>> {
                 .flatMap(o -> valueClass.isInstance(o) ? of(valueClass.cast(o)) : Optional.empty());
     }
 
-    private Optional<byte[]> asBytes(String key) {
+    public Optional<byte[]> asBytes(String key) {
         return valueOf(key, String.class)
                 .map(s -> Base64.getDecoder().decode(s));
     }
 
-    private Optional<Instant> asInstant(String key) {
+    public Optional<Instant> asInstant(String key) {
         return valueOf(key, String.class)
                 .map(s -> Instant.from(ISO_INSTANT.parse(s)));
     }
@@ -95,7 +95,7 @@ public final class JsonObject implements Iterable<Map.Entry<String, Object>> {
     }
 
     public Map<String, Object> toMap() {
-        return Collections.unmodifiableMap(values);
+        return new LinkedHashMap<>(values);
     }
 
     public boolean containsKey(String key) {
@@ -115,7 +115,7 @@ public final class JsonObject implements Iterable<Map.Entry<String, Object>> {
     }
 
     public Set<String> fieldNames() {
-        return Collections.unmodifiableSet(values.keySet());
+        return new LinkedHashSet<>(values.keySet());
     }
 
     public Stream<Map.Entry<String, Object>> stream() {
@@ -157,7 +157,7 @@ public final class JsonObject implements Iterable<Map.Entry<String, Object>> {
         return values.toString();
     }
 
-    public String toJsonString(JsonStringEncoder encoder) {
+    public String encode(JsonStringEncoder encoder) {
         return encoder.encode(this);
     }
 
@@ -188,7 +188,7 @@ public final class JsonObject implements Iterable<Map.Entry<String, Object>> {
 
         @Override
         public void remove() {
-            entryIterator.remove();
+            throw new UnsupportedOperationException();
         }
     }
 

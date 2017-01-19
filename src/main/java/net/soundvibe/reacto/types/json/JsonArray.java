@@ -114,7 +114,7 @@ public final class JsonArray implements Iterable<Object> {
     }
 
     public List<Object> toList() {
-        return Collections.unmodifiableList(values);
+        return new ArrayList<>(values);
     }
 
     @Override
@@ -167,7 +167,7 @@ public final class JsonArray implements Iterable<Object> {
 
         @Override
         public void remove() {
-            listIterator.remove();
+            throw new UnsupportedOperationException();
         }
     }
 }
