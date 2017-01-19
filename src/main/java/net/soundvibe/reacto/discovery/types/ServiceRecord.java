@@ -1,6 +1,6 @@
 package net.soundvibe.reacto.discovery.types;
 
-import net.soundvibe.reacto.internal.ObjectId;
+import net.soundvibe.reacto.internal.*;
 import net.soundvibe.reacto.types.json.*;
 import net.soundvibe.reacto.utils.WebUtils;
 
@@ -91,9 +91,14 @@ public final class ServiceRecord {
                 Objects.equals(metaData, that.metaData);
     }
 
+    private int hash = 0;
+
     @Override
     public int hashCode() {
-        return Objects.hash(name, status, type, registrationId, location, metaData);
+        if (hash == 0) {
+            hash = Objects.hash(name, status, type, registrationId, location, metaData);
+        }
+        return hash;
     }
 
     @Override

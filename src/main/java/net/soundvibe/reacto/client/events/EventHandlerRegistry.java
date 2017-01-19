@@ -3,6 +3,7 @@ package net.soundvibe.reacto.client.events;
 import net.soundvibe.reacto.discovery.types.*;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -13,6 +14,8 @@ public final class EventHandlerRegistry {
 
     private final Map<ServiceType, Function<ServiceRecord, EventHandler>> handlers;
 
+    private final Map<ServiceRecord, EventHandler> cache;
+
     private final static EventHandlerRegistry EMPTY = new EventHandlerRegistry(Collections.emptyMap());
 
     public static EventHandlerRegistry empty() {
@@ -21,6 +24,7 @@ public final class EventHandlerRegistry {
 
     private EventHandlerRegistry(Map<ServiceType, Function<ServiceRecord, EventHandler>> handlers) {
         this.handlers = handlers;
+        this.cache = new ConcurrentHashMap<>(handlers.size());
     }
 
     public Optional<Function<ServiceRecord, EventHandler>> findFactory(ServiceType serviceType) {
@@ -29,7 +33,7 @@ public final class EventHandlerRegistry {
 
     public Stream<EventHandler> find(ServiceRecord serviceRecord) {
         return findFactory(serviceRecord.type)
-                .map(factory -> Stream.of(factory.apply(serviceRecord))) //todo investigate the need for caching factory functions
+                .map(factory -> Stream.of(cache.computeIfAbsent(serviceRecord, factory)))
                 .orElseGet(Stream::empty);
     }
 

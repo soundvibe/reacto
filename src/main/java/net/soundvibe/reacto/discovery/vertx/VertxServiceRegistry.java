@@ -86,6 +86,7 @@ public final class VertxServiceRegistry extends AbstractServiceRegistry implemen
                         .doOnCompleted(() -> serviceDiscovery.release(serviceDiscovery.getReference(record.get())))
                         .doOnCompleted(serviceDiscovery::close)
                         .doOnCompleted(() -> isClosed.set(true))
+                        .doOnCompleted(() -> log.info("Service discovery closed successfully"))
                 ;
     }
 
@@ -120,6 +121,7 @@ public final class VertxServiceRegistry extends AbstractServiceRegistry implemen
                 .map(rec -> createVertxRecord(serviceRecord))
                 .flatMap(rec -> removeIf(rec, VertxRecords::areEquals))
                 .takeLast(1)
+                .doOnNext(any -> log.info("Unpublished record " + serviceRecord))
                 .map(rec -> Any.VOID);
     }
 

@@ -28,18 +28,14 @@ public class VertxDiscoverableEventHandler implements EventHandler, Function<Ser
 
     private final ServiceRecord serviceRecord;
     private final Record record;
-    private final BiFunction<WebSocketStream, Command, Observable<Event>> eventHandler;
     private final ServiceDiscovery serviceDiscovery;
 
-    public VertxDiscoverableEventHandler(ServiceRecord serviceRecord, ServiceDiscovery serviceDiscovery,
-                                         BiFunction<WebSocketStream, Command, Observable<Event>> eventHandler) {
+    public VertxDiscoverableEventHandler(ServiceRecord serviceRecord, ServiceDiscovery serviceDiscovery) {
         Objects.requireNonNull(serviceRecord, "serviceRecord cannot be null");
         Objects.requireNonNull(serviceDiscovery, "serviceDiscovery cannot be null");
-        Objects.requireNonNull(eventHandler, "eventHandler cannot be null");
         this.serviceRecord = serviceRecord;
         this.record = VertxServiceRegistry.createVertxRecord(serviceRecord);
         this.serviceDiscovery = serviceDiscovery;
-        this.eventHandler = eventHandler;
     }
 
     @Override
@@ -47,7 +43,7 @@ public class VertxDiscoverableEventHandler implements EventHandler, Function<Ser
         return Observable.just(record)
                 .<HttpClient>map(rec -> serviceDiscovery.getReference(rec).get())
                 .map(httpClient -> httpClient.websocketStream(includeStartDelimiter(includeEndDelimiter(record.getName()))))
-                .concatMap(webSocketStream -> eventHandler.apply(webSocketStream, command)
+                .concatMap(webSocketStream -> observe(webSocketStream, command)
                         .onBackpressureBuffer());
     }
 
@@ -57,9 +53,7 @@ public class VertxDiscoverableEventHandler implements EventHandler, Function<Ser
     }
 
     public static EventHandler create(ServiceRecord serviceRecord, ServiceDiscovery serviceDiscovery) {
-        return new VertxDiscoverableEventHandler(serviceRecord,
-                serviceDiscovery,
-                VertxDiscoverableEventHandler::observe);
+        return new VertxDiscoverableEventHandler(serviceRecord, serviceDiscovery);
     }
 
     @Override
@@ -143,7 +137,7 @@ public class VertxDiscoverableEventHandler implements EventHandler, Function<Ser
     }
 
     private static void sendCommandToExecutor(Command command, WebSocket webSocket) {
-        log.info("Sending command to executor: " + command);
+        log.debug("Sending command to executor: " + command);
         final byte[] bytes = Mappers.commandToBytes(command);
         webSocket.writeBinaryMessage(Buffer.buffer(bytes));
     }

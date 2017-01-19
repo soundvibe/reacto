@@ -1,6 +1,5 @@
 package net.soundvibe.reacto.server;
 
-import io.vertx.core.logging.*;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.errors.CommandNotFound;
 import net.soundvibe.reacto.mappers.Mappers;
@@ -16,7 +15,6 @@ import java.util.concurrent.Executors;
  */
 public class CommandProcessor implements CommandExecutor {
 
-    private static final Logger log = LoggerFactory.getLogger(CommandProcessor.class);
     private static final Scheduler SINGLE_THREAD = Schedulers.from(Executors.newSingleThreadExecutor());
 
     private final CommandRegistry commands;
@@ -42,7 +40,6 @@ public class CommandProcessor implements CommandExecutor {
     }
 
     private void publishMetrics(Notification<? super Event> notification, Command command, CommandProcessorMetric metric) {
-        log.debug("Command "+ command + " executed and received notification: " + notification);
         switch (notification.getKind()) {
             case OnNext:
                 metric.onNext();
