@@ -13,6 +13,10 @@ import java.util.stream.Collectors;
  */
 public final class ReactoDashboardStream {
 
+    private ReactoDashboardStream() {
+        //no-instance
+    }
+
     public static final long DELAY_IN_MS = 500L;
 
     private static final Subject<CommandProcessorMetric, CommandProcessorMetric> commandProcessorSubject =

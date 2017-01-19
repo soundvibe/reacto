@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.types;
 
+import net.soundvibe.reacto.errors.ReactiveException;
 import net.soundvibe.reacto.internal.*;
 import net.soundvibe.reacto.internal.proto.Messages;
 import org.junit.*;

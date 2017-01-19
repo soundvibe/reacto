@@ -48,7 +48,7 @@ public class VertxServiceRegistryTest {
 
         TestSubscriber<Any> recordTestSubscriber = new TestSubscriber<>();
 
-        final ServiceRecord httpEndpoint = ServiceRecord.createHttpEndpoint(TEST_SERVICE, 8181, ROOT, "0.1");
+        final ServiceRecord httpEndpoint = ServiceRecord.createWebSocketEndpoint(TEST_SERVICE, 8181, ROOT, "0.1");
 
         sut.startDiscovery(httpEndpoint, CommandRegistry.empty())
                 .subscribe(recordTestSubscriber);
@@ -137,7 +137,7 @@ public class VertxServiceRegistryTest {
         final VertxServiceRegistry serviceRegistry = new VertxServiceRegistry(eventHandlerRegistry, serviceDiscovery,
                 new JacksonMapper(Json.mapper));
 
-        final ServiceRecord record = ServiceRecord.createHttpEndpoint("testService", 8123, "test/", "0.1");
+        final ServiceRecord record = ServiceRecord.createWebSocketEndpoint("testService", 8123, "test/", "0.1");
         serviceRegistry.startDiscovery(record, CommandRegistry.empty())
                 .subscribe(recordTestSubscriber);
 
@@ -153,6 +153,21 @@ public class VertxServiceRegistryTest {
 
         subscriber.awaitTerminalEvent();
         subscriber.assertError(CannotDiscoverService.class);
+    }
+
+    @Test
+    public void shouldMapStatus() throws Exception {
+        assertEquals(net.soundvibe.reacto.discovery.types.Status.UP, VertxServiceRegistry.mapStatus(Status.UP));
+        assertEquals(net.soundvibe.reacto.discovery.types.Status.DOWN, VertxServiceRegistry.mapStatus(Status.DOWN));
+        assertEquals(net.soundvibe.reacto.discovery.types.Status.OUT_OF_SERVICE, VertxServiceRegistry.mapStatus(Status.OUT_OF_SERVICE));
+        assertEquals(net.soundvibe.reacto.discovery.types.Status.UNKNOWN, VertxServiceRegistry.mapStatus(Status.UNKNOWN));
+    }
+
+    @Test
+    public void shouldMapDefaultServiceType() throws Exception {
+        final ServiceType actual = VertxServiceRegistry.mapServiceType(new Record()
+            .setType("UNKNOWN"));
+        assertEquals(ServiceType.WEBSOCKET, actual);
     }
 
     private List<Record> getRecords(Status status) throws InterruptedException {

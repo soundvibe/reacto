@@ -42,6 +42,13 @@ public class CommandProcessorTest {
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNotCompleted();
         testSubscriber.assertError(CommandNotFound.class);
+
+        final TestSubscriber<Event> testSubscriber2 = new TestSubscriber<>();
+        sut.execute(Command.create("foo")).subscribe(testSubscriber2);
+
+        testSubscriber2.awaitTerminalEvent();
+        testSubscriber2.assertNotCompleted();
+        testSubscriber2.assertError(CommandNotFound.class);
     }
 
     private void assertThreadName(String expected, CommandProcessor sut) {

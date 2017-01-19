@@ -47,7 +47,7 @@ public final class HystrixCommandExecutor implements CommandExecutor {
     public Observable<Event> execute(Command command) {
         if (eventHandlers.isEmpty()) return Observable.error(new CannotFindEventHandlers("No event handlers found for command: " + command));
         return Observable.just(eventHandlers)
-                .concatMap(handlers -> handlers.size() < 1 ?
+                .concatMap(handlers -> handlers.size() < 2 ?
                         new HystrixObservableCommandWrapper(
                                 cmd -> eventHandlers.get(0).observe(cmd),
                                 command,

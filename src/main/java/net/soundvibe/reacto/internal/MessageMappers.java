@@ -1,6 +1,7 @@
 package net.soundvibe.reacto.internal;
 
 import com.google.protobuf.ByteString;
+import net.soundvibe.reacto.errors.ReactiveException;
 import net.soundvibe.reacto.internal.proto.Messages;
 import net.soundvibe.reacto.mappers.Mappers;
 import net.soundvibe.reacto.types.*;

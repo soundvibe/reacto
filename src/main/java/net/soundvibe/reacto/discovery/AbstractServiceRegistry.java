@@ -42,7 +42,7 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
      */
     protected abstract Observable<List<ServiceRecord>> findRecordsOf(Command command);
 
-    private Observable<CommandExecutor> findExecutor(Observable<List<ServiceRecord>> records,
+    Observable<CommandExecutor> findExecutor(Observable<List<ServiceRecord>> records,
                                                      String name,
                                                      LoadBalancer<EventHandler> loadBalancer,
                                                      CommandExecutorFactory commandExecutorFactory) {

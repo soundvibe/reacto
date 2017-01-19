@@ -28,4 +28,24 @@ public class EventTest {
         assertFalse("Should not find because ID's should be different", events.contains(Event.create("test2")));
     }
 
+    @Test
+    public void shouldPrintToString() throws Exception {
+        final String actual = Event.create("foo").toString();
+        assertTrue(actual.startsWith("Event{"));
+    }
+
+    @Test
+    public void shouldBeCreated() throws Exception {
+        final Event one = Event.create("foo", "".getBytes());
+        assertNotNull(one);
+
+        final Event two = Event.create("foo", MetaData.empty(), "".getBytes());
+        assertNotNull(two);
+
+        final Event three = Event.create("foo", Pair.of("foo", "bar"));
+        assertNotNull(three);
+
+        final Optional<String> actual = three.valueOf("foo");
+        assertEquals(Optional.of("bar"), actual);
+    }
 }

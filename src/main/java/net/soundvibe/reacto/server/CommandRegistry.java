@@ -78,10 +78,6 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, F
         return StreamSupport.stream(spliterator(), false);
     }
 
-    public Stream<Pair<CommandDescriptor, Function<Command, Observable<Event>>>> parallelStream() {
-        return StreamSupport.stream(spliterator(), true);
-    }
-
     @Override
     public String toString() {
         return "CommandRegistry{" +

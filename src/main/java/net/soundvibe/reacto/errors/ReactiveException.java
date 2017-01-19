@@ -1,4 +1,4 @@
-package net.soundvibe.reacto.types;
+package net.soundvibe.reacto.errors;
 
 import net.soundvibe.reacto.utils.Exceptions;
 

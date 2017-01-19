@@ -48,25 +48,17 @@ public final class ServiceRecord {
                 .build();
     }
 
-    public static ServiceRecord createHttpEndpoint(String name, int port, String root, String version) {
+    public static ServiceRecord createWebSocketEndpoint(String name, int port, String root, String version) {
         return ServiceRecord.create(
                 name,
-                net.soundvibe.reacto.discovery.types.Status.UP,
-                ServiceType.HTTP2_ENDPOINT,
+                Status.UP,
+                ServiceType.WEBSOCKET,
                 ObjectId.get().toString(),
                 ServiceRecord.httpEndpointLocation(WebUtils.getLocalAddress(), port, root),
                 JsonObjectBuilder.create()
                         .put(ServiceRecord.METADATA_VERSION, version)
                         .build()
         );
-    }
-
-    public static ServiceRecord create(String name,
-                                       Status status,
-                                       ServiceType type,
-                                       JsonObject location,
-                                       JsonObject metaData) {
-        return new ServiceRecord(name, status, type, ObjectId.get().toString(), location, metaData);
     }
 
     public static ServiceRecord create(String name,

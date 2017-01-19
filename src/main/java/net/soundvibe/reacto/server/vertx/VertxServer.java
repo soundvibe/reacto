@@ -72,7 +72,7 @@ public class VertxServer implements Server<HttpServer> {
     }
 
     private ServiceRecord getHttpEndpoint(HttpServer server) {
-        return ServiceRecord.createHttpEndpoint(
+        return ServiceRecord.createWebSocketEndpoint(
                 serviceName(),
                 server.actualPort(),
                 root(),

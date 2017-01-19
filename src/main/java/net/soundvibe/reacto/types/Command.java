@@ -2,7 +2,6 @@ package net.soundvibe.reacto.types;
 
 import net.soundvibe.reacto.internal.ObjectId;
 import net.soundvibe.reacto.utils.Bytes;
-import rx.Observable;
 
 import java.util.*;
 
@@ -29,10 +28,6 @@ public class Command {
 
     public Optional<String> valueOf(String key) {
         return metaData.flatMap(pairs -> pairs.valueOf(key));
-    }
-
-    public Observable<Command> toObservable() {
-        return Observable.just(this);
     }
 
     public String eventType() {

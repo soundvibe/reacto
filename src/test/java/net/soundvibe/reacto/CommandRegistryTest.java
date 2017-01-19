@@ -86,4 +86,10 @@ public class CommandRegistryTest {
 
         assertEquals(2L, sut.stream().count());
     }
+
+    @Test
+    public void shouldPrintToString() throws Exception {
+        final CommandRegistry actual = CommandRegistry.empty();
+        assertTrue(actual.toString().startsWith("CommandRegistry{"));
+    }
 }
