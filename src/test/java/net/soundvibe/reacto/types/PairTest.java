@@ -17,6 +17,8 @@ public class PairTest {
 
         final Pair<String, String> actual = Pair.of("foo", "bar");
         assertEquals("bar", actual.getValue());
+        assertEquals(Pair.of("foo", "bar").hashCode(), Pair.of("foo", "bar").hashCode());
+        assertNotEquals(Pair.of("foo", "bar").hashCode(), Pair.of("foo2", "bar2").hashCode());
     }
 
     @Test(expected = UnsupportedOperationException.class)

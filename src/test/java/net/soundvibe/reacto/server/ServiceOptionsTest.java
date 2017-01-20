@@ -15,7 +15,12 @@ public class ServiceOptionsTest {
         assertNotNull(sut);
 
         final ServiceOptions sut2 = new ServiceOptions("test", "/", "1", true);
+        final ServiceOptions sut3 = new ServiceOptions("test2", "/", "1", true);
         assertEquals(sut, sut2);
+        assertEquals(sut.hashCode(), sut2.hashCode());
+
+        assertNotEquals(sut, sut3);
+        assertNotEquals(sut.hashCode(), sut3.hashCode());
 
         assertTrue(sut.toString().startsWith("ServiceOptions{"));
     }

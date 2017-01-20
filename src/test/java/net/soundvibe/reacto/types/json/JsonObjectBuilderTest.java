@@ -164,6 +164,18 @@ public class JsonObjectBuilderTest {
         assertEquals(2, count);
     }
 
+    @Test(expected = UnsupportedOperationException.class)
+    public void shouldThrowWhenTryingToMutateItemWhileIterating() throws Exception {
+        final Map<String, Object> map = new HashMap<>();
+        map.put("foo", Collections.singletonList("bar"));
+        final JsonObject actual = JsonObjectBuilder.from(new JsonObject(map))
+                .build();
+
+        for (Map.Entry<String, Object> next : actual) {
+            next.setValue("value");
+        }
+    }
+
     @Test
     public void shouldMerge() throws Exception {
         final JsonObject jsonObject1 = JsonObjectBuilder.create()

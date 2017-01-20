@@ -144,34 +144,6 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
     }
 
     /**
-     * Creates an ObjectId
-     *
-     * @param timestamp                   time in seconds
-     * @param machineAndProcessIdentifier machine and process identifier
-     * @param counter                     incremental value
-     */
-    private ObjectId(final int timestamp, final int machineAndProcessIdentifier, final int counter) {
-        this(legacyToBytes(timestamp, machineAndProcessIdentifier, counter));
-    }
-
-    private static byte[] legacyToBytes(final int timestamp, final int machineAndProcessIdentifier, final int counter) {
-        byte[] bytes = new byte[12];
-        bytes[0] = int3(timestamp);
-        bytes[1] = int2(timestamp);
-        bytes[2] = int1(timestamp);
-        bytes[3] = int0(timestamp);
-        bytes[4] = int3(machineAndProcessIdentifier);
-        bytes[5] = int2(machineAndProcessIdentifier);
-        bytes[6] = int1(machineAndProcessIdentifier);
-        bytes[7] = int0(machineAndProcessIdentifier);
-        bytes[8] = int3(counter);
-        bytes[9] = int2(counter);
-        bytes[10] = int1(counter);
-        bytes[11] = int0(counter);
-        return bytes;
-    }
-
-    /**
      * Convert to a byte array.  Note that the numbers are stored in big-endian order.
      *
      * @return the byte array
@@ -294,8 +266,6 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
         return machinePiece;
     }
 
-    // Creates the process identifier.  This does not have to be unique per class loader because
-    // NEXT_COUNTER will provide the uniqueness.
     private static short createProcessIdentifier() {
         short processId;
         try {

@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.mappers;
 
+import net.soundvibe.reacto.errors.RuntimeProtocolBufferException;
 import net.soundvibe.reacto.utils.models.CustomError;
 import org.junit.Test;
 
@@ -11,6 +12,8 @@ import static org.junit.Assert.*;
  * @author Cipolinas on 2015.11.23.
  */
 public class MappersTest {
+
+    private final byte[] dummyBytes = "dummy".getBytes();
 
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Test
@@ -26,4 +29,21 @@ public class MappersTest {
 
         assertEquals(exception.getMessage(), message);
     }
+
+    @Test(expected = RuntimeProtocolBufferException.class)
+    public void shouldThrowWhenFromBytesToInternalEvent() throws Exception {
+        Mappers.fromBytesToInternalEvent(dummyBytes);
+    }
+
+    @Test(expected = RuntimeProtocolBufferException.class)
+    public void shouldThrowWhenFromBytesToCommand() throws Exception {
+        Mappers.fromBytesToCommand(dummyBytes);
+    }
+
+    @Test
+    public void shouldGetEmptyWhenMappingFromExceptionBytes() throws Exception {
+        final Optional<Throwable> actual = Mappers.fromBytesToException(dummyBytes);
+        assertEquals(Optional.empty(), actual);
+    }
+
 }

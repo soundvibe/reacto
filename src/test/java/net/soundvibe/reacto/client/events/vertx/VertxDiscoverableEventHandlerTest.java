@@ -39,5 +39,7 @@ public class VertxDiscoverableEventHandlerTest {
         VertxDiscoverableEventHandler left = new VertxDiscoverableEventHandler(serviceRecord, serviceDiscovery);
         VertxDiscoverableEventHandler right = new VertxDiscoverableEventHandler(serviceRecord, serviceDiscovery);
         assertEquals(left, right);
+
+        assertEquals(left.hashCode(), right.hashCode());
     }
 }

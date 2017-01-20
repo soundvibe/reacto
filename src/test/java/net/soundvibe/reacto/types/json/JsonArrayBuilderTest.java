@@ -182,4 +182,16 @@ public class JsonArrayBuilderTest {
         }
         assertEquals(2, count);
     }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void shouldThrowWhenTryingToRemoveItemWhileIterating() throws Exception {
+        final JsonArray actual = JsonArrayBuilder.create()
+                .add("value")
+                .build();
+
+        final Iterator<Object> iterator = actual.iterator();
+        while (iterator.hasNext()) {
+            iterator.remove();
+        }
+    }
 }

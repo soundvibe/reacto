@@ -16,4 +16,14 @@ public class TypedCommandTest {
         assertEquals(MakeDemo.class.getName(), actual.commandType());
         assertEquals("value", actual.get("key"));
     }
+
+    @Test
+    public void shouldCreateWithMetadataAndCommand() throws Exception {
+        final TypedCommand actual = TypedCommand.create(MakeDemo.class, DemoMade.class, MetaData.of("key", "value"),
+                "command".getBytes());
+        assertEquals(DemoMade.class.getName(), actual.eventType());
+        assertEquals(MakeDemo.class.getName(), actual.commandType());
+        assertEquals("value", actual.get("key"));
+    }
+
 }
