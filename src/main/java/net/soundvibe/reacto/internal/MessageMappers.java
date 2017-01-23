@@ -15,9 +15,9 @@ import static java.util.Optional.ofNullable;
 /**
  * @author OZY on 2016.02.05.
  */
-public final class MessageMappers {
+public interface MessageMappers {
 
-    public static Command toCommand(Messages.Command protoBufCommand) {
+    static Command toCommand(Messages.Command protoBufCommand) {
         final Stream<Pair<String, String>> pairStream = protoBufCommand.getMetadataList().stream()
                 .map(o -> Pair.of(o.getKey(), o.getValue()));
 
@@ -28,7 +28,7 @@ public final class MessageMappers {
                 protoBufCommand.getPayload().isEmpty() ? Optional.empty() : Optional.ofNullable(protoBufCommand.getPayload().toByteArray()));
     }
 
-    public static InternalEvent toInternalEvent(Messages.Event protoBufEvent) {
+    static InternalEvent toInternalEvent(Messages.Event protoBufEvent) {
         final Stream<Pair<String, String>> pairStream = protoBufEvent.getMetadataList().stream()
                 .map(o -> Pair.of(o.getKey(), o.getValue()));
 
@@ -46,7 +46,7 @@ public final class MessageMappers {
                 eventType);
     }
 
-    private static Optional<Throwable> parseException(Messages.Event protoBufEvent) {
+    static Optional<Throwable> parseException(Messages.Event protoBufEvent) {
         final Optional<Throwable> e = !protoBufEvent.getPayload().isEmpty() ?
                 Mappers.fromBytesToException(protoBufEvent.getPayload().toByteArray()) :
                 Optional.empty();
@@ -58,7 +58,7 @@ public final class MessageMappers {
         return e;
     }
 
-    public static Messages.Command toProtoBufCommand(Command command) {
+    static Messages.Command toProtoBufCommand(Command command) {
         final Messages.Command.Builder commandBuilder = Messages.Command.newBuilder();
 
         command.metaData.ifPresent(metaData -> {
@@ -74,7 +74,7 @@ public final class MessageMappers {
                 .build();
     }
 
-    public static Messages.Event toProtoBufEvent(InternalEvent internalEvent) {
+    static Messages.Event toProtoBufEvent(InternalEvent internalEvent) {
         final Messages.Event.Builder eventBuilder = Messages.Event.newBuilder();
         eventBuilder.setName(internalEvent.name);
         eventBuilder.setEventType(Messages.EventType.valueOf(internalEvent.eventType.name()));

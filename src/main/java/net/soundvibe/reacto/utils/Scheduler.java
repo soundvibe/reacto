@@ -11,8 +11,9 @@ public interface Scheduler {
 
     Logger log = LoggerFactory.getLogger(Scheduler.class);
 
-    static void scheduleAtFixedInterval(long intervalInMs, Runnable runnable, String nameOfTheTask) {
-        new Timer(nameOfTheTask, true).scheduleAtFixedRate(new TimerTask() {
+    static Timer scheduleAtFixedInterval(long intervalInMs, Runnable runnable, String nameOfTheTask) {
+        final Timer timer = new Timer(nameOfTheTask, true);
+        timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 try {
@@ -22,6 +23,7 @@ public interface Scheduler {
                 }
             }
         }, intervalInMs, intervalInMs);
+        return timer;
     }
 
 }

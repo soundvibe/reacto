@@ -130,13 +130,6 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
      * @throws IllegalArgumentException if array is null or not of length 12
      */
     private ObjectId(final byte[] bytes) {
-        if (bytes == null) {
-            throw new IllegalArgumentException();
-        }
-        if (bytes.length != 12) {
-            throw new IllegalArgumentException("need 12 bytes");
-        }
-
         timestamp = makeInt(bytes[0], bytes[1], bytes[2], bytes[3]);
         machineIdentifier = makeInt((byte) 0, bytes[4], bytes[5], bytes[6]);
         processIdentifier = (short) makeInt((byte) 0, (byte) 0, bytes[7], bytes[8]);
