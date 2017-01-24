@@ -5,7 +5,7 @@ import org.junit.Test;
 import java.util.Timer;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author OZY on 2017.01.23.
@@ -19,7 +19,7 @@ public class SchedulerTest {
         Thread.sleep(22L);
         actual.cancel();
 
-        assertEquals(2, counter.get());
+        assertTrue(counter.get() > 0);
     }
 
     @Test
@@ -33,6 +33,6 @@ public class SchedulerTest {
         }, "test");
         Thread.sleep(225L);
         actual.cancel();
-        assertEquals(2, counter.get());
+        assertTrue(counter.get() > 1);
     }
 }
