@@ -38,4 +38,10 @@ public class CommandTest {
         final Command actual = Command.create("foo", MetaData.empty(), "".getBytes());
         assertNotNull(actual);
     }
+
+    @Test
+    public void shouldBeCreatedFromPairs() throws Exception {
+        final Command actual = Command.create("foo", Pair.of("foo", "bar"));
+        assertNotNull(actual);
+    }
 }

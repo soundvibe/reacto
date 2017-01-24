@@ -1,6 +1,8 @@
 package net.soundvibe.reacto.mappers;
 
 import net.soundvibe.reacto.errors.RuntimeProtocolBufferException;
+import net.soundvibe.reacto.internal.InternalEvent;
+import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.models.CustomError;
 import org.junit.Test;
 
@@ -46,4 +48,28 @@ public class MappersTest {
         assertEquals(Optional.empty(), actual);
     }
 
+    @Test
+    public void shouldMapInternalEvent() throws Exception {
+        final InternalEvent expected = InternalEvent.onNext(Event.create("foo"));
+        final byte[] bytes = Mappers.internalEventToBytes(expected);
+
+        final InternalEvent actual = Mappers.fromBytesToInternalEvent(bytes);
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void shouldMapFromInternalEvent() throws Exception {
+        final InternalEvent internalEvent = InternalEvent.onNext(Event.create("foo"));
+        final Event event = Mappers.fromInternalEvent(internalEvent);
+        assertEquals("foo", event.name);
+    }
+
+    @Test
+    public void shouldMapCommand() throws Exception {
+        final Command expected = Command.create("foo");
+        final byte[] bytes = Mappers.commandToBytes(expected);
+
+        final Command actual = Mappers.fromBytesToCommand(bytes);
+        assertEquals(expected, actual);
+    }
 }

@@ -1,6 +1,7 @@
 package net.soundvibe.reacto.server;
 
 import net.soundvibe.reacto.errors.CommandNotFound;
+import net.soundvibe.reacto.mappers.Mappers;
 import net.soundvibe.reacto.types.*;
 import org.junit.Test;
 import rx.Observable;
@@ -31,6 +32,20 @@ public class CommandProcessorTest {
                 command -> Observable.just(Event.create("bar"), Event.create("bar2")));
         CommandProcessor sut = new CommandProcessor(registry);
         assertThreadName("pool-", sut);
+    }
+
+    @Test
+    public void shouldProcessCommandInBytesUsingDefaultScheduler() throws Exception {
+        final CommandRegistry registry = CommandRegistry.of("foo",
+                command -> Observable.just(Event.create("bar"), Event.create("bar2")));
+        CommandProcessor sut = new CommandProcessor(registry);
+        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        sut.process(Mappers.commandToBytes(Command.create("foo"))).subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertCompleted();
+        testSubscriber.assertValueCount(2);
     }
 
     @Test

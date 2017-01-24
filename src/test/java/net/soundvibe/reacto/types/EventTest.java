@@ -1,6 +1,7 @@
 package net.soundvibe.reacto.types;
 
 import org.junit.Test;
+import rx.observers.TestSubscriber;
 
 import java.util.*;
 
@@ -35,7 +36,7 @@ public class EventTest {
     }
 
     @Test
-    public void shouldBeCreated() throws Exception {
+    public void shouldBeCreatedAndEqual() throws Exception {
         final Event one = Event.create("foo", "".getBytes());
         assertNotNull(one);
 
@@ -47,5 +48,22 @@ public class EventTest {
 
         final Optional<String> actual = three.valueOf("foo");
         assertEquals(Optional.of("bar"), actual);
+
+        final Event sameOne = Event.create("foo", "".getBytes());
+        assertEquals(one, one);
+        assertEquals(one, sameOne);
+        assertNotEquals(one, two);
+        assertNotEquals(one, null);
+    }
+
+    @Test
+    public void shouldEmitObservable() throws Exception {
+        final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        Event.create("foo").toObservable()
+                .subscribe(testSubscriber);
+
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertCompleted();
+        testSubscriber.assertValue(Event.create("foo"));
     }
 }

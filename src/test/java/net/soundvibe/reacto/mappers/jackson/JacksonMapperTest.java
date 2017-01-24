@@ -1,6 +1,6 @@
 package net.soundvibe.reacto.mappers.jackson;
 
-import io.vertx.core.json.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.models.NotDeserializable;
 import org.junit.Test;
@@ -15,7 +15,7 @@ import static org.junit.Assert.assertEquals;
  */
 public class JacksonMapperTest {
 
-    private final JacksonMapper sut = new JacksonMapper(Json.mapper);
+    private final JacksonMapper sut = new JacksonMapper(new ObjectMapper());
 
     @Test
     public void shouldMapCommands() throws Exception {
@@ -24,13 +24,6 @@ public class JacksonMapperTest {
         final TypedCommand typedCommand = sut.toCommand(expected, JacksonEvent.class);
         final JacksonCommand actual = sut.toGenericCommand(typedCommand, JacksonCommand.class);
         assertEquals(expected, actual);
-    }
-
-    @Test(expected = UncheckedIOException.class)
-    public void shouldThrowWhenToCommand() throws Exception {
-        Map<String, Object> map = new HashMap<>();
-        map.put(null, "foo");
-        sut.toCommand(new JsonObject(map), JacksonEvent.class);
     }
 
     @Test(expected = IllegalStateException.class)
@@ -51,13 +44,6 @@ public class JacksonMapperTest {
     @Test(expected = UncheckedIOException.class)
     public void shouldThrowWhenToGenericCommand() throws Exception {
         sut.toGenericCommand(Command.create("fpp", MetaData.of("foo", "bar"), "foo".getBytes()), JacksonCommand.class);
-    }
-
-    @Test(expected = UncheckedIOException.class)
-    public void shouldThrowWhenToEvent() throws Exception {
-        Map<String, Object> map = new HashMap<>();
-        map.put(null, "foo");
-        sut.toEvent(new JsonObject(map));
     }
 
     @Test

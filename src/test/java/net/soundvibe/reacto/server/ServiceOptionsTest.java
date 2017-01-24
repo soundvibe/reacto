@@ -10,6 +10,24 @@ import static org.junit.Assert.*;
 public class ServiceOptionsTest {
 
     @Test
+    public void shouldCreate2Params() throws Exception {
+        final ServiceOptions sut = new ServiceOptions("test", "/");
+        assertEquals("test", sut.serviceName);
+        assertEquals("/", sut.root);
+        assertFalse(sut.isSsl);
+        assertEquals("UNKNOWN", sut.version);
+    }
+
+    @Test
+    public void shouldCreate3Params() throws Exception {
+        final ServiceOptions sut = new ServiceOptions("test", "/", "1.0");
+        assertEquals("test", sut.serviceName);
+        assertEquals("/", sut.root);
+        assertFalse(sut.isSsl);
+        assertEquals("1.0", sut.version);
+    }
+
+    @Test
     public void shouldCreateIfSsl() throws Exception {
         final ServiceOptions sut = new ServiceOptions("test", "/", "1", true);
         assertNotNull(sut);
