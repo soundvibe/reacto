@@ -10,6 +10,11 @@ import java.io.IOException;
 public class CannotDiscoverServiceTest {
 
     @Test(expected = CannotDiscoverService.class)
+    public void shouldCreate() throws Exception {
+        throw new CannotDiscoverService("error");
+    }
+
+    @Test(expected = CannotDiscoverService.class)
     public void shouldCreateWithException() throws Exception {
         throw new CannotDiscoverService("error", new IOException("IO error"));
     }

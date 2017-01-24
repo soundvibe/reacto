@@ -13,17 +13,11 @@ public final class ServiceOptions {
     public final boolean isSsl;
 
     public ServiceOptions(String serviceName, String root) {
-        this.serviceName = serviceName;
-        this.root = root;
-        this.version = "UNKNOWN";
-        this.isSsl = false;
+        this(serviceName, root, "UNKNOWN", false);
     }
 
     public ServiceOptions(String serviceName, String root, String version) {
-        this.serviceName = serviceName;
-        this.root = root;
-        this.version = version;
-        this.isSsl = false;
+        this(serviceName, root, version, false);
     }
 
     public ServiceOptions(String serviceName, String root, String version, boolean isSsl) {
@@ -32,7 +26,6 @@ public final class ServiceOptions {
         this.version = version;
         this.isSsl = isSsl;
     }
-
 
     @Override
     public boolean equals(Object o) {

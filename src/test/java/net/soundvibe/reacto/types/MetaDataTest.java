@@ -49,4 +49,14 @@ public class MetaDataTest {
         assertEquals(0L, MetaData.from(iterable).stream().count());
         assertEquals(0L, MetaData.from(iterable).parallelStream().count());
     }
+
+    @Test
+    public void shouldBeEqual() throws Exception {
+        final MetaData one = MetaData.of("foo", "bar");
+        assertEquals(one, one);
+        assertNotEquals(one, null);
+
+        final MetaData two = MetaData.of("foo", "two");
+        assertNotEquals(one, two);
+    }
 }

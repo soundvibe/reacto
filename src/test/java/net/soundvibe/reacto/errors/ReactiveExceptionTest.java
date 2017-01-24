@@ -13,6 +13,14 @@ import static org.junit.Assert.*;
 public class ReactiveExceptionTest {
 
     @Test
+    public void shouldCreateFromException() throws Exception {
+        final ReactiveException sut = ReactiveException.from(new RuntimeException("foo"));
+        assertEquals(RuntimeException.class.getName(), sut.className);
+        assertEquals("foo", sut.message);
+        assertTrue(sut.stackTrace.startsWith("java.lang.RuntimeException: foo"));
+    }
+
+    @Test
     public void shouldBeEqual() throws Exception {
         final ReactiveException sut = new ReactiveException(IllegalAccessException.class.getName(), "test", "stackTrace");
         final ReactiveException sut2 = new ReactiveException(IllegalAccessException.class.getName(), "test", "stackTrace");

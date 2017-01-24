@@ -4,7 +4,7 @@
 
 # reacto
 
-Functional reactive library for the JVM (Java 8 and above). Building simple scalable micro services has never been so easy.
+Functional reactive abstractions for the JVM (Java 8 and above). Building simple scalable micro services has never been so easy.
 You are working with ordinary Observables but they can be executing on any discovered server in the network.
 
 Learn more about reacto on the [Wiki home](https://github.com/soundvibe/reacto/wiki).
@@ -12,8 +12,10 @@ Learn more about reacto on the [Wiki home](https://github.com/soundvibe/reacto/w
 Makes use of: 
 * [RxJava](https://github.com/ReactiveX/RxJava) Observables for reactive async commands and events
 * [Hystrix](https://github.com/Netflix/Hystrix) for latency and fault tolerance.
-* [Vert.x](http://vertx.io/) for http client and server, service discovery
 * [Protocol Buffers](https://developers.google.com/protocol-buffers/) for efficient internal messaging
+
+## Available implementations
+* [reacto-vertx](https://github.com/soundvibe/reacto-vertx) - implements service discovery, communication through WebSockets, handlers for metrics, etc.
 
 ## Binaries
 
