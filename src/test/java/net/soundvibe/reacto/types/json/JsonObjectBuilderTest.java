@@ -1,6 +1,6 @@
 package net.soundvibe.reacto.types.json;
 
-import io.vertx.core.json.Json;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -281,10 +281,12 @@ public class JsonObjectBuilderTest {
         assertEquals(Optional.empty(), actual.valueOf("foo", String.class));
     }
 
+    private final static ObjectMapper json = new ObjectMapper();
+
     @Test
     public void shouldBuildFromJsonString() throws Exception {
         final JsonObject actual = JsonObjectBuilder.from("{ \"key1\": \"value1\", \"key2\": \"value2\" }",
-                jsonString -> Json.decodeValue(jsonString, Map.class))
+                jsonString -> json.readValue(jsonString, Map.class))
                 .build();
 
         assertEquals("value1", actual.asString("key1").orElse(""));
