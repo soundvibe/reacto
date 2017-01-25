@@ -7,10 +7,10 @@ import java.util.Objects;
  */
 public final class DemoMade {
 
-    public final String name;
+    public final String text;
 
-    public DemoMade(String name) {
-        this.name = name;
+    public DemoMade(String text) {
+        this.text = text;
     }
 
     @Override
@@ -18,18 +18,18 @@ public final class DemoMade {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final DemoMade demoMade = (DemoMade) o;
-        return Objects.equals(name, demoMade.name);
+        return Objects.equals(text, demoMade.text);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name);
+        return Objects.hash(text);
     }
 
     @Override
     public String toString() {
         return "DemoMade{" +
-                "name='" + name + '\'' +
+                "text='" + text + '\'' +
                 '}';
     }
 }

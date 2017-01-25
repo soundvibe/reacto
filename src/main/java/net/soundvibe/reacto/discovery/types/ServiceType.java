@@ -5,6 +5,6 @@ package net.soundvibe.reacto.discovery.types;
  */
 public enum ServiceType {
 
-    HTTP2_ENDPOINT, WEBSOCKET
+    LOCAL, WEBSOCKET
 
 }

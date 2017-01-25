@@ -32,8 +32,8 @@ public class CommandProcessor implements CommandExecutor {
     public Observable<Event> process(Command command) {
         return Observable.just(command)
                 .concatMap(cmd -> commands.findCommand(CommandDescriptor.fromCommand(cmd))
-                        .map(cmdFunc -> Observable.just(CommandProcessorMetric.of(cmd))
-                                .concatMap(metric -> cmdFunc.apply(cmd)
+                        .map(commandExecutor -> Observable.just(CommandProcessorMetric.of(cmd))
+                                .concatMap(metric -> commandExecutor.execute(cmd)
                                         .doOnEach(notification -> publishMetrics(notification, cmd, metric))))
                         .orElseGet(() -> Observable.error(new CommandNotFound(cmd.name))))
                 .subscribeOn(SINGLE_THREAD);

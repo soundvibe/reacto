@@ -22,6 +22,6 @@ public class DemoCommandRegistryMapper implements CommandRegistryMapper {
             throw new IllegalArgumentException("Expected DemoMade event class but got: " + genericEvent.getClass());
         }
         final DemoMade demoMade = (DemoMade) genericEvent;
-        return TypedEvent.create(demoMade.getClass(), MetaData.of("name", demoMade.name));
+        return TypedEvent.create(demoMade.getClass(), MetaData.of("name", demoMade.text));
     }
 }

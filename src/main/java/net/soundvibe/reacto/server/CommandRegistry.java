@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.server;
 
+import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.mappers.CommandRegistryMapper;
 import net.soundvibe.reacto.errors.CommandAlreadyRegistered;
 import net.soundvibe.reacto.types.*;
@@ -13,9 +14,9 @@ import java.util.stream.*;
 /**
  * @author Linas on 2015.11.12.
  */
-public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, Function<Command, Observable<Event>>>> {
+public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, CommandExecutor>> {
 
-    private final Map<CommandDescriptor, Function<Command, Observable<Event>>> commands = new ConcurrentHashMap<>();
+    private final Map<CommandDescriptor, CommandExecutor> commands = new ConcurrentHashMap<>();
     private final CommandRegistryMapper mapper;
 
     private CommandRegistry() {
@@ -26,7 +27,7 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, F
         this.mapper = mapper;
     }
 
-    public CommandRegistry and(String commandName, Function<Command, Observable<Event>> onInvoke) {
+    public CommandRegistry and(String commandName, CommandExecutor onInvoke) {
         Objects.requireNonNull(commandName, "Command name cannot be null");
         Objects.requireNonNull(onInvoke, "onInvoke cannot be null");
         add(CommandDescriptor.of(commandName), onInvoke);
@@ -44,18 +45,18 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, F
                 .compose(c -> mapper.toGenericCommand(c, commandType));
         final Function<Command, Observable<Event>> after = before
                 .andThen(observable -> observable.map(mapper::toEvent));
-        add(CommandDescriptor.ofTypes(commandType, eventType), after);
+        add(CommandDescriptor.ofTypes(commandType, eventType), after::apply);
         return this;
     }
 
-    private void add(CommandDescriptor descriptor, Function<Command, Observable<Event>> onInvoke) {
+    private void add(CommandDescriptor descriptor, CommandExecutor onInvoke) {
         if (commands.containsKey(descriptor)) {
             throw new CommandAlreadyRegistered(descriptor);
         }
         commands.put(descriptor, onInvoke);
     }
 
-    public static CommandRegistry of(String commandName, Function<Command, Observable<Event>> onInvoke) {
+    public static CommandRegistry of(String commandName, CommandExecutor onInvoke) {
         return new CommandRegistry().and(commandName, onInvoke);
     }
 
@@ -70,11 +71,11 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, F
         return new CommandRegistry();
     }
 
-    public Optional<Function<Command, Observable<Event>>> findCommand(CommandDescriptor descriptor) {
+    public Optional<CommandExecutor> findCommand(CommandDescriptor descriptor) {
         return Optional.ofNullable(commands.get(descriptor));
     }
 
-    public Stream<Pair<CommandDescriptor, Function<Command, Observable<Event>>>> stream() {
+    public Stream<Pair<CommandDescriptor, CommandExecutor>> stream() {
         return StreamSupport.stream(spliterator(), false);
     }
 
@@ -87,17 +88,17 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, F
     }
 
     @Override
-    public Iterator<Pair<CommandDescriptor, Function<Command, Observable<Event>>>> iterator() {
-        final Iterator<Map.Entry<CommandDescriptor, Function<Command, Observable<Event>>>> entryIterator = commands.entrySet().iterator();
-        return new Iterator<Pair<CommandDescriptor, Function<Command, Observable<Event>>>>() {
+    public Iterator<Pair<CommandDescriptor, CommandExecutor>> iterator() {
+        final Iterator<Map.Entry<CommandDescriptor, CommandExecutor>> entryIterator = commands.entrySet().iterator();
+        return new Iterator<Pair<CommandDescriptor, CommandExecutor>>() {
             @Override
             public boolean hasNext() {
                 return entryIterator.hasNext();
             }
 
             @Override
-            public Pair<CommandDescriptor, Function<Command, Observable<Event>>> next() {
-                final Map.Entry<CommandDescriptor, Function<Command, Observable<Event>>> entry = entryIterator.next();
+            public Pair<CommandDescriptor, CommandExecutor> next() {
+                final Map.Entry<CommandDescriptor, CommandExecutor> entry = entryIterator.next();
                 return Pair.of(entry.getKey(), entry.getValue());
             }
         };

@@ -16,10 +16,10 @@ public class BuilderTest {
     @Test
     public void shouldBuildEventHandlerRegistry() throws Exception {
         final EventHandlerRegistry sut = EventHandlerRegistry.Builder.create()
-                .register(ServiceType.HTTP2_ENDPOINT, serviceRecord -> eventHandler())
+                .register(ServiceType.LOCAL, serviceRecord -> eventHandler())
                 .build();
 
-        assertTrue(sut.findFactory(ServiceType.HTTP2_ENDPOINT).isPresent());
+        assertTrue(sut.findFactory(ServiceType.LOCAL).isPresent());
         assertFalse(sut.findFactory(ServiceType.WEBSOCKET).isPresent());
     }
 

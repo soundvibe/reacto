@@ -1,7 +1,5 @@
 package net.soundvibe.reacto.discovery;
 
-import net.soundvibe.reacto.discovery.types.ServiceRecord;
-import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.types.Any;
 import rx.Observable;
 
@@ -10,6 +8,15 @@ import rx.Observable;
  */
 public interface ServiceDiscoveryLifecycle {
 
-    Observable<Any> startDiscovery(ServiceRecord serviceRecord, CommandRegistry commandRegistry);
-    Observable<Any> closeDiscovery();
+    /**
+     * Registers itself in Service Discovery
+     * @return Any if registration was successful
+     */
+    Observable<Any> register();
+
+    /**
+     * Unregisters itself from Service Discovery
+     * @return Any if unregistration was successful
+     */
+    Observable<Any> unregister();
 }

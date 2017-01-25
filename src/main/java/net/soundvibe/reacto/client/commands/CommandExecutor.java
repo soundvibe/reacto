@@ -14,6 +14,6 @@ public interface CommandExecutor {
      * @param command argument
      * @return event observable
      */
-    Observable<Event> execute(final Command command);
+    Observable<Event> execute(Command command);
 
 }

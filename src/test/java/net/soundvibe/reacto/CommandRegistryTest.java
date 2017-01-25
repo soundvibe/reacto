@@ -1,14 +1,13 @@
 package net.soundvibe.reacto;
 
-import net.soundvibe.reacto.server.CommandRegistry;
+import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.errors.CommandAlreadyRegistered;
+import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.DemoCommandRegistryMapper;
-import net.soundvibe.reacto.utils.models.*;
+import net.soundvibe.reacto.utils.models.FooBar;
 import org.junit.Test;
 import rx.Observable;
-
-import java.util.function.Function;
 
 import static org.junit.Assert.*;
 
@@ -59,7 +58,7 @@ public class CommandRegistryTest {
     @Test
     public void shouldLoopOverCommands() throws Exception {
         final CommandRegistry sut = CommandRegistry.of("foo", o -> Observable.just(Event.create("foo")));
-        for (Pair<CommandDescriptor, Function<Command, Observable<Event>>> pair : sut) {
+        for (Pair<CommandDescriptor, CommandExecutor> pair : sut) {
             assertEquals(CommandDescriptor.of("foo"), pair.getKey());
         }
     }
