@@ -29,11 +29,11 @@ public class ServiceOptionsTest {
 
     @Test
     public void shouldCreateIfSsl() throws Exception {
-        final ServiceOptions sut = new ServiceOptions("test", "/", "1", true);
+        final ServiceOptions sut = new ServiceOptions("test", "/", "1", true, 8080);
         assertNotNull(sut);
 
-        final ServiceOptions sut2 = new ServiceOptions("test", "/", "1", true);
-        final ServiceOptions sut3 = new ServiceOptions("test2", "/", "1", true);
+        final ServiceOptions sut2 = new ServiceOptions("test", "/", "1", true, 8080);
+        final ServiceOptions sut3 = new ServiceOptions("test2", "/", "1", true, 8181);
         assertEquals(sut, sut2);
         assertEquals(sut.hashCode(), sut2.hashCode());
 
