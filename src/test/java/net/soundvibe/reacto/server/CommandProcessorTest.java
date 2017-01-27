@@ -66,6 +66,18 @@ public class CommandProcessorTest {
         testSubscriber2.assertError(CommandNotFound.class);
     }
 
+    @Test
+    public void shouldExecutorEmitError() throws Exception {
+        final CommandRegistry registry = CommandRegistry.of("foo",
+                command -> Observable.error(new RuntimeException("error")));
+        CommandProcessor sut = new CommandProcessor(registry);
+        TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
+        sut.process(Command.create("foo")).subscribe(testSubscriber);
+        testSubscriber.awaitTerminalEvent();
+        testSubscriber.assertNotCompleted();
+        testSubscriber.assertError(RuntimeException.class);
+    }
+
     private void assertThreadName(String expected, CommandProcessor sut) {
         final TestSubscriber<String> testSubscriber = new TestSubscriber<>();
         sut.process(Command.create("foo"))

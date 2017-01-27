@@ -37,5 +37,9 @@ public class CommandProcessorMetricTest {
         final long actual = sut.eventsPerSecond(1000L);
         assertEquals(4, actual);
         assertEquals(6, sut.eventsPerSecond(600L));
+        assertEquals(0, sut.completed());
+
+        sut.onCompleted();
+        assertEquals(1, sut.completed());
     }
 }
