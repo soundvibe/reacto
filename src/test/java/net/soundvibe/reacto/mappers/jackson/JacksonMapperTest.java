@@ -2,8 +2,9 @@ package net.soundvibe.reacto.mappers.jackson;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.soundvibe.reacto.types.*;
+import net.soundvibe.reacto.types.json.*;
 import net.soundvibe.reacto.utils.models.NotDeserializable;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.UncheckedIOException;
 import java.util.*;
@@ -15,7 +16,35 @@ import static org.junit.Assert.assertEquals;
  */
 public class JacksonMapperTest {
 
-    private final JacksonMapper sut = new JacksonMapper(new ObjectMapper());
+    private final static ObjectMapper json = new ObjectMapper();
+    private final JacksonMapper sut = new JacksonMapper(json);
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        json.registerModule(JacksonMapper.jsonTypesModule());
+    }
+
+    @Test
+    public void shouldEncodeToJson() throws Exception {
+        JsonObject jsonObject = JsonObjectBuilder.create()
+                .put("foo", "bar")
+                .put("version", 1)
+                .build();
+
+        String actual = json.writeValueAsString(jsonObject);
+        assertEquals("{\"foo\":\"bar\",\"version\":1}", actual);
+    }
+
+    @Test
+    public void shouldDecodeFromJson() throws Exception {
+        String jsonString = "{\"foo\":\"bar\",\"version\":1}";
+        JsonObject expected = JsonObjectBuilder.create()
+                .put("foo", "bar")
+                .put("version", 1)
+                .build();
+        JsonObject actual = json.readValue(jsonString, JsonObject.class);
+        assertEquals(expected, actual);
+    }
 
     @Test
     public void shouldMapCommands() throws Exception {

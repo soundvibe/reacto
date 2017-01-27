@@ -79,6 +79,10 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, C
         return StreamSupport.stream(spliterator(), false);
     }
 
+    public Stream<CommandDescriptor> streamOfKeys() {
+        return stream().map(Pair::getKey);
+    }
+
     @Override
     public String toString() {
         return "CommandRegistry{" +

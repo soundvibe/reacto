@@ -5,6 +5,7 @@ import net.soundvibe.reacto.client.events.EventHandlerRegistry;
 import net.soundvibe.reacto.discovery.types.ServiceRecord;
 import net.soundvibe.reacto.errors.CannotFindEventHandlers;
 import net.soundvibe.reacto.mappers.ServiceRegistryMapper;
+import net.soundvibe.reacto.server.ServiceOptions;
 import net.soundvibe.reacto.types.*;
 import org.junit.Test;
 import rx.Observable;
@@ -34,8 +35,12 @@ public class AbstractServiceRegistryTest {
         TestServiceRegistry sut = new TestServiceRegistry(registry, mapper);
 
         TestSubscriber<CommandExecutor> testSubscriber = new TestSubscriber<>();
+        ServiceOptions serviceOptions = new ServiceOptions(
+                "test", "/", "1", false, 8080
+        );
         sut.findExecutor(Observable.just(Collections.singletonList(
-                ServiceRecord.createWebSocketEndpoint("test", 8080, "/", "1"))), "foo", LoadBalancers.ROUND_ROBIN,
+                ServiceRecord.createWebSocketEndpoint(serviceOptions, Collections.emptyList()))),
+                "foo", LoadBalancers.ROUND_ROBIN,
                 ReactoCommandExecutor.FACTORY)
                 .subscribe(testSubscriber);
 

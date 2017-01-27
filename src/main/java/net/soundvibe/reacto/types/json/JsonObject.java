@@ -1,5 +1,10 @@
 package net.soundvibe.reacto.types.json;
 
+import com.fasterxml.jackson.core.*;
+import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.type.TypeFactory;
+
+import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.Optional;
@@ -214,6 +219,24 @@ public final class JsonObject implements Iterable<Map.Entry<String, Object>> {
         @Override
         public Object setValue(Object value) {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    public static class JsonObjectSerializer extends JsonSerializer<JsonObject> {
+        @Override
+        public void serialize(JsonObject value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+            jgen.writeObject(value.values);
+        }
+    }
+
+    public static class JsonObjectDeserializer extends JsonDeserializer<JsonObject> {
+
+        private static final JavaType mapType = TypeFactory.defaultInstance().constructMapType(
+                LinkedHashMap.class, String.class, Object.class);
+
+        @Override
+        public JsonObject deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
+            return new JsonObject(deserializationContext.readValue(jsonParser, mapType));
         }
     }
 }

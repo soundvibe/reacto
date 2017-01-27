@@ -9,6 +9,10 @@ import net.soundvibe.reacto.utils.models.FooBar;
 import org.junit.Test;
 import rx.Observable;
 
+import java.util.*;
+
+import static java.util.Comparator.comparing;
+import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
 
 /**
@@ -90,5 +94,15 @@ public class CommandRegistryTest {
     public void shouldPrintToString() throws Exception {
         final CommandRegistry actual = CommandRegistry.empty();
         assertTrue(actual.toString().startsWith("CommandRegistry{"));
+    }
+
+    @Test
+    public void shouldGetKeyStream() throws Exception {
+        CommandExecutor commandExecutor = command -> Observable.empty();
+        CommandRegistry commandRegistry = CommandRegistry.of("one", commandExecutor).and("two", commandExecutor);
+        List<CommandDescriptor> actual = commandRegistry.streamOfKeys()
+                .sorted(comparing(commandDescriptor -> commandDescriptor.commandType))
+                .collect(toList());
+        assertEquals(Arrays.asList(CommandDescriptor.of("one"), CommandDescriptor.of("two")), actual);
     }
 }

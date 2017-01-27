@@ -1,10 +1,16 @@
 package net.soundvibe.reacto.discovery.types;
 
-import net.soundvibe.reacto.internal.*;
+import net.soundvibe.reacto.internal.ObjectId;
+import net.soundvibe.reacto.server.*;
+import net.soundvibe.reacto.types.CommandDescriptor;
 import net.soundvibe.reacto.types.json.*;
 import net.soundvibe.reacto.utils.WebUtils;
 
-import java.util.Objects;
+import java.util.*;
+
+import static java.util.stream.Collectors.toList;
+import static net.soundvibe.reacto.types.CommandDescriptor.*;
+import static net.soundvibe.reacto.utils.WebUtils.*;
 
 /**
  * @author Linas on 2017.01.17.
@@ -14,6 +20,7 @@ public final class ServiceRecord {
     public static final String LOCATION_HOST = "host";
     public static final String LOCATION_PORT = "port";
     public static final String LOCATION_ROOT = "root";
+    public static final String LOCATION_SSL = "ssl";
     public static final String METADATA_VERSION = "version";
     public static final String METADATA_COMMANDS = "commands";
     public final String name;
@@ -40,23 +47,48 @@ public final class ServiceRecord {
         this.metaData = metaData;
     }
 
-    public static JsonObject httpEndpointLocation(String host, int port, String root) {
+    private static JsonObject httpEndpointLocation(String host, int port, String root, boolean isSsl) {
         return JsonObjectBuilder.create()
                 .put(LOCATION_HOST, host)
                 .put(LOCATION_PORT, port)
                 .put(LOCATION_ROOT, root)
+                .put(LOCATION_SSL, isSsl)
                 .build();
     }
 
-    public static ServiceRecord createWebSocketEndpoint(String name, int port, String root, String version) {
+    public static ServiceRecord createWebSocketEndpoint(
+            ServiceOptions serviceOptions,
+            CommandRegistry commandsToRegister) {
+        return createWebSocketEndpoint(
+                serviceOptions,
+                commandsToRegister.streamOfKeys().collect(toList()));
+    }
+
+    public static ServiceRecord createWebSocketEndpoint(
+            ServiceOptions serviceOptions,
+            Collection<CommandDescriptor> commandsToRegister) {
         return ServiceRecord.create(
-                name,
+                excludeEndDelimiter(excludeStartDelimiter(serviceOptions.serviceName)),
                 Status.UP,
                 ServiceType.WEBSOCKET,
                 ObjectId.get().toString(),
-                ServiceRecord.httpEndpointLocation(WebUtils.getLocalAddress(), port, root),
+                ServiceRecord.httpEndpointLocation(
+                        WebUtils.getLocalAddress(),
+                        serviceOptions.port,
+                        includeEndDelimiter(includeStartDelimiter(serviceOptions.root)),
+                        serviceOptions.isSsl),
                 JsonObjectBuilder.create()
-                        .put(ServiceRecord.METADATA_VERSION, version)
+                        .put(ServiceRecord.METADATA_VERSION, serviceOptions.version)
+                        .putArray(ServiceRecord.METADATA_COMMANDS,
+                                arrayBuilder -> {
+                                    commandsToRegister.stream()
+                                            .map(commandDescriptor -> JsonObjectBuilder.create()
+                                                    .put(COMMAND, commandDescriptor.commandType)
+                                                    .put(EVENT, commandDescriptor.eventType)
+                                                    .build())
+                                            .forEach(arrayBuilder::add);
+                                    return arrayBuilder;
+                                })
                         .build()
         );
     }

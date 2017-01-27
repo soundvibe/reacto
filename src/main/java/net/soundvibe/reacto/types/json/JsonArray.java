@@ -1,5 +1,10 @@
 package net.soundvibe.reacto.types.json;
 
+import com.fasterxml.jackson.core.*;
+import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.type.TypeFactory;
+
+import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.*;
@@ -168,6 +173,25 @@ public final class JsonArray implements Iterable<Object> {
         @Override
         public void remove() {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    public static class JsonArraySerializer extends JsonSerializer<JsonArray> {
+        @Override
+        public void serialize(JsonArray value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+            jgen.writeObject(value.values);
+        }
+    }
+
+    public static class JsonArrayDeserializer extends JsonDeserializer<JsonArray> {
+
+        private static final JavaType listType = TypeFactory.defaultInstance().constructCollectionType(
+                ArrayList.class, Object.class
+        );
+
+        @Override
+        public JsonArray deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+            return new JsonArray(ctxt.readValue(p, listType));
         }
     }
 }

@@ -1,11 +1,12 @@
 package net.soundvibe.reacto.client.events;
 
 import net.soundvibe.reacto.discovery.types.*;
+import net.soundvibe.reacto.server.ServiceOptions;
 import net.soundvibe.reacto.types.*;
 import org.junit.Test;
 import rx.Observable;
 
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -20,7 +21,8 @@ public class EventHandlerRegistryTest {
     @Test
     public void shouldBeEmpty() throws Exception {
         final EventHandlerRegistry sut = EventHandlerRegistry.empty();
-        assertEquals(0L, sut.find(ServiceRecord.createWebSocketEndpoint("foo", 80, "/", "1"))
+        ServiceOptions serviceOptions = new ServiceOptions("foo", "/", "1", false, 80);
+        assertEquals(0L, sut.find(ServiceRecord.createWebSocketEndpoint(serviceOptions, Collections.emptyList()))
                 .count());
     }
 
@@ -35,7 +37,9 @@ public class EventHandlerRegistryTest {
                 .register(ServiceType.WEBSOCKET, f)
                 .build();
 
-        ServiceRecord record = ServiceRecord.createWebSocketEndpoint("service", 8080, "/", "1");
+        ServiceRecord record = ServiceRecord.createWebSocketEndpoint(
+                new ServiceOptions("service", "/", "1", false, 8080),
+                Collections.emptyList());
         final List<EventHandler> handlers = sut.find(record)
                 .collect(Collectors.toList());
 
@@ -43,7 +47,9 @@ public class EventHandlerRegistryTest {
         final EventHandler actual = handlers.get(0);
         assertEquals(1, actual.hashCode());
 
-        ServiceRecord newRecord = ServiceRecord.createWebSocketEndpoint("service", 8080, "/root", "1");
+        ServiceRecord newRecord = ServiceRecord.createWebSocketEndpoint(
+                new ServiceOptions("service", "/root", "1", false, 8080),
+                Collections.emptyList());
         final List<EventHandler> newHandlers = sut.find(newRecord)
                 .filter(eventHandler -> eventHandler.hashCode() > 1)
                 .collect(Collectors.toList());
@@ -64,7 +70,9 @@ public class EventHandlerRegistryTest {
                 .register(ServiceType.WEBSOCKET, f)
                 .build();
 
-        ServiceRecord record = ServiceRecord.createWebSocketEndpoint("service", 8080, "/", "1");
+        ServiceRecord record = ServiceRecord.createWebSocketEndpoint(
+                new ServiceOptions("service", "/", "1", false, 8080),
+                Collections.emptyList());
         final List<EventHandler> handlers = sut.find(record)
                 .collect(Collectors.toList());
 

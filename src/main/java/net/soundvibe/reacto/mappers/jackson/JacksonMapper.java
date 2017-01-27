@@ -2,8 +2,10 @@ package net.soundvibe.reacto.mappers.jackson;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import net.soundvibe.reacto.mappers.*;
 import net.soundvibe.reacto.types.*;
+import net.soundvibe.reacto.types.json.*;
 
 import java.io.*;
 
@@ -16,6 +18,15 @@ public final class JacksonMapper implements ServiceRegistryMapper, CommandRegist
 
     public JacksonMapper(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+    }
+
+    public static SimpleModule jsonTypesModule() {
+        final SimpleModule simpleModule = new SimpleModule();
+        simpleModule.addSerializer(JsonObject.class, new JsonObject.JsonObjectSerializer());
+        simpleModule.addSerializer(JsonArray.class, new JsonArray.JsonArraySerializer());
+        simpleModule.addDeserializer(JsonObject.class, new JsonObject.JsonObjectDeserializer());
+        simpleModule.addDeserializer(JsonArray.class, new JsonArray.JsonArrayDeserializer());
+        return simpleModule;
     }
 
     @Override
@@ -64,4 +75,5 @@ public final class JacksonMapper implements ServiceRegistryMapper, CommandRegist
             throw new UncheckedIOException(e);
         }
     }
+
 }
