@@ -1,12 +1,10 @@
 package net.soundvibe.reacto.discovery;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import net.soundvibe.reacto.discovery.types.*;
 import net.soundvibe.reacto.errors.CannotDiscoverService;
 import net.soundvibe.reacto.mappers.jackson.*;
 import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.types.*;
-import net.soundvibe.reacto.types.json.JsonObject;
 import org.junit.Test;
 import rx.Observable;
 import rx.observers.TestSubscriber;
@@ -146,20 +144,5 @@ public class LocalServiceRegistryTest {
         testSubscriber.assertNoErrors();
         testSubscriber.assertCompleted();
         testSubscriber.assertNoValues();
-    }
-
-    @Test
-    public void shouldUnpublish() throws Exception {
-        LocalServiceRegistry sut = new LocalServiceRegistry(
-                jacksonMapper, CommandRegistry.empty());
-
-        TestSubscriber<Any> testSubscriber = new TestSubscriber<>();
-        sut.unpublish(ServiceRecord.create("foo", Status.UP, ServiceType.LOCAL, "", JsonObject.empty(), JsonObject.empty()))
-                .subscribe(testSubscriber);
-
-        testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNoErrors();
-        testSubscriber.assertCompleted();
-        testSubscriber.assertValue(Any.VOID);
     }
 }

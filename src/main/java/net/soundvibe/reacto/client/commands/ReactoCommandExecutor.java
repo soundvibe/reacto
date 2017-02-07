@@ -15,19 +15,15 @@ public final class ReactoCommandExecutor implements CommandExecutor {
 
     private final List<EventHandler> eventHandlers;
     private final LoadBalancer<EventHandler> loadBalancer;
-    private final ServiceRegistry serviceRegistry;
 
     public static final CommandExecutorFactory FACTORY = ReactoCommandExecutor::new;
 
     public ReactoCommandExecutor(List<EventHandler> eventHandlers,
-                                 LoadBalancer<EventHandler> loadBalancer,
-                                 ServiceRegistry serviceRegistry) {
+                                 LoadBalancer<EventHandler> loadBalancer) {
         Objects.requireNonNull(eventHandlers, "eventHandlers cannot be null");
         Objects.requireNonNull(loadBalancer, "loadBalancer cannot be null");
-        Objects.requireNonNull(serviceRegistry, "serviceRegistry cannot be null");
         this.eventHandlers = eventHandlers;
         this.loadBalancer = loadBalancer;
-        this.serviceRegistry = serviceRegistry;
     }
 
     @Override
@@ -42,8 +38,8 @@ public final class ReactoCommandExecutor implements CommandExecutor {
     }
 
     private Observable<Event> handleError(Throwable error, Command command, EventHandler eventHandler) {
-        return serviceRegistry.unpublish(eventHandler.serviceRecord())
-                .doOnNext(any -> removeHandler(eventHandler))
+        return Observable.just(eventHandler)
+                .doOnNext(this::removeHandler)
                 .flatMap(any -> eventHandlers.isEmpty() ?  Observable.error(error) : Observable.just(command))
                 .flatMap(this::execute);
     }

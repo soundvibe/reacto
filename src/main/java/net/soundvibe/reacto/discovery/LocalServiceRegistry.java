@@ -51,11 +51,6 @@ public final class LocalServiceRegistry extends AbstractServiceRegistry implemen
     }
 
     @Override
-    public Observable<Any> unpublish(ServiceRecord serviceRecord) {
-        return Observable.just(Any.VOID);
-    }
-
-    @Override
     protected Observable<List<ServiceRecord>> findRecordsOf(Command command) {
         return commandRegistry.findCommand(CommandDescriptor.fromCommand(command)).isPresent() ?
                 Observable.just(singletonList(createRecord())) :

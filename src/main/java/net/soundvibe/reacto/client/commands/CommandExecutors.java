@@ -17,6 +17,6 @@ public interface CommandExecutors {
     }
 
     static CommandExecutorFactory hystrix(HystrixCommandProperties.Setter setter) {
-        return (eventHandlers, loadBalancer, serviceRegistry) -> new HystrixCommandExecutor(eventHandlers, setter);
+        return (eventHandlers, loadBalancer) -> new HystrixCommandExecutor(eventHandlers, setter);
     }
 }

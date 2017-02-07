@@ -12,7 +12,6 @@ import java.util.List;
 public interface CommandExecutorFactory {
 
     CommandExecutor create(List<EventHandler> eventHandlers,
-                           LoadBalancer<EventHandler> loadBalancer,
-                           ServiceRegistry serviceRegistry);
+                           LoadBalancer<EventHandler> loadBalancer);
 
 }

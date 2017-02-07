@@ -23,8 +23,8 @@ public class ReactoCommandExecutorTest {
 
     @Test
     public void shouldNotFindEventHandlers() throws Exception {
-        final ReactoCommandExecutor sut = new ReactoCommandExecutor(Collections.emptyList(), LoadBalancers.ROUND_ROBIN,
-                new TestRegistry<>(Observable.empty()));
+        final ReactoCommandExecutor sut = new ReactoCommandExecutor(
+                Collections.emptyList(), LoadBalancers.ROUND_ROBIN);
 
         final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
         sut.execute(Command.create("new"))
@@ -38,8 +38,7 @@ public class ReactoCommandExecutorTest {
     @Test
     public void shouldExecuteAndEmitEvent() throws Exception {
         final ReactoCommandExecutor sut = new ReactoCommandExecutor(singletonList(testHandler(Observable.just(Event.create("foo")))),
-                LoadBalancers.ROUND_ROBIN,
-                new TestRegistry<>(Observable.just(Event.create("foo"))));
+                LoadBalancers.ROUND_ROBIN);
 
         final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
         sut.execute(Command.create("new"))
@@ -60,8 +59,7 @@ public class ReactoCommandExecutorTest {
 
         final ReactoCommandExecutor sut = new ReactoCommandExecutor(
                 eventHandlers,
-                LoadBalancers.ROUND_ROBIN,
-                new TestRegistry<>(Observable.empty()));
+                LoadBalancers.ROUND_ROBIN);
 
         final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
         sut.execute(Command.create("new"))
@@ -87,27 +85,5 @@ public class ReactoCommandExecutorTest {
                 return ServiceRecord.create("test", Status.UP, ServiceType.WEBSOCKET, "1", JsonObject.empty(), JsonObject.empty());
             }
         };
-    }
-
-    private class TestRegistry<E extends Event> implements ServiceRegistry {
-
-        private Observable<? extends E> events;
-
-        private TestRegistry(Observable<? extends E> events) {
-            this.events = events;
-        }
-
-        @Override
-        public <E, C> Observable<E> execute(C command,
-                                            Class<? extends E> eventClass,
-                                            LoadBalancer<EventHandler> loadBalancer,
-                                            CommandExecutorFactory commandExecutorFactory) {
-            return (Observable<E>) events;
-        }
-
-        @Override
-        public Observable<Any> unpublish(ServiceRecord serviceRecord) {
-            return Observable.just(Any.VOID);
-        }
     }
 }

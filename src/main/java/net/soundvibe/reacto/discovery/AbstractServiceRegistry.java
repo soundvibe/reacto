@@ -56,7 +56,7 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
                                 Observable.error(new CannotFindEventHandlers("Unable to find at least one compatible event handler for " + recs)) :
                                 Observable.just(eventHandlers))
                 )
-                .map(eventHandlers -> commandExecutorFactory.create(eventHandlers, loadBalancer, this));
+                .map(eventHandlers -> commandExecutorFactory.create(eventHandlers, loadBalancer));
     }
 
     @Override

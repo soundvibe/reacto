@@ -2,7 +2,6 @@ package net.soundvibe.reacto.discovery;
 
 import net.soundvibe.reacto.client.commands.*;
 import net.soundvibe.reacto.client.events.EventHandler;
-import net.soundvibe.reacto.discovery.types.ServiceRecord;
 import net.soundvibe.reacto.types.*;
 import org.junit.Test;
 import rx.Observable;
@@ -41,11 +40,6 @@ public class ServiceRegistryTest {
             @Override
             public <E, C> Observable<E> execute(C command, Class<? extends E> eventClass, LoadBalancer<EventHandler> loadBalancer, CommandExecutorFactory commandExecutorFactory) {
                 return Observable.just(eventClass.cast(Event.create("bar")));
-            }
-
-            @Override
-            public Observable<Any> unpublish(ServiceRecord serviceRecord) {
-                return Observable.just(Any.VOID);
             }
         };
     }

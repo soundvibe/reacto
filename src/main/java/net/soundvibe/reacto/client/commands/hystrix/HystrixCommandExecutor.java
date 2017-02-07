@@ -40,7 +40,7 @@ public final class HystrixCommandExecutor implements CommandExecutor {
                 .withRequestCacheEnabled(false)
                 .withRequestLogEnabled(true);
 
-    public static final CommandExecutorFactory FACTORY = (eventHandlers, loadBalancer, serviceRegistry) ->
+    public static final CommandExecutorFactory FACTORY = (eventHandlers, loadBalancer) ->
             new HystrixCommandExecutor(eventHandlers, defaultHystrixSetter);
 
     @Override

@@ -57,11 +57,6 @@ public class AbstractServiceRegistryTest {
         }
 
         @Override
-        public Observable<Any> unpublish(ServiceRecord serviceRecord) {
-            return Observable.just(Any.VOID);
-        }
-
-        @Override
         protected Observable<List<ServiceRecord>> findRecordsOf(Command command) {
             return null;
         }

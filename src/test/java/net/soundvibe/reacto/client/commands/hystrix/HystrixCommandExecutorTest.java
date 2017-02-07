@@ -77,8 +77,7 @@ public class HystrixCommandExecutorTest {
     public void shouldCreateUsingFactory() throws Exception {
         final CommandExecutor actual = HystrixCommandExecutor.FACTORY.create(
                 Collections.emptyList(),
-                LoadBalancers.ROUND_ROBIN,
-                null);
+                LoadBalancers.ROUND_ROBIN);
         assertNotNull(actual);
     }
 
