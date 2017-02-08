@@ -125,7 +125,12 @@ public final class JsonArray implements Iterable<Object> {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (o == null) return false;
+        if (o instanceof List) {
+            List list = (List) o;
+            return Objects.equals(values, list);
+        }
+        if (getClass() != o.getClass()) return false;
         JsonArray objects = (JsonArray) o;
         return Objects.equals(values, objects.values);
     }

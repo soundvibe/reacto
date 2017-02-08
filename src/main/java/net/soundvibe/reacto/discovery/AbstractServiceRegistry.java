@@ -1,14 +1,16 @@
 package net.soundvibe.reacto.discovery;
 
 import net.soundvibe.reacto.client.commands.*;
-import net.soundvibe.reacto.errors.*;
 import net.soundvibe.reacto.client.events.*;
 import net.soundvibe.reacto.discovery.types.ServiceRecord;
+import net.soundvibe.reacto.errors.*;
+import net.soundvibe.reacto.internal.*;
 import net.soundvibe.reacto.mappers.ServiceRegistryMapper;
 import net.soundvibe.reacto.types.*;
 import rx.Observable;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.stream.Collectors.toList;
 
@@ -19,6 +21,7 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
 
     private final ServiceRegistryMapper mapper;
     private final EventHandlerRegistry eventHandlerRegistry;
+    private final Cache<String, Observable<List<ServiceRecord>>> commandCache = ExpiringCache.periodically(10L, TimeUnit.SECONDS);
 
     protected AbstractServiceRegistry(EventHandlerRegistry eventHandlerRegistry, ServiceRegistryMapper mapper) {
         Objects.requireNonNull(mapper, "mapper cannot be null");
@@ -29,7 +32,7 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
 
     protected Observable<Event> execute(Command command, LoadBalancer<EventHandler> loadBalancer,
                                         CommandExecutorFactory commandExecutorFactory) {
-        return findRecordsOf(command)
+        return commandCache.computeIfAbsent(commandKey(command), key -> findRecordsOf(command).cache())
                 .compose(records -> findExecutor(records, command.name, loadBalancer, commandExecutorFactory))
                 .concatMap(commandExecutor -> commandExecutor.execute(command));
     }
@@ -41,6 +44,10 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
      * If no available services are found, CannotDiscoverService exception should be emitted.
      */
     protected abstract Observable<List<ServiceRecord>> findRecordsOf(Command command);
+
+    private String commandKey(Command command) {
+        return command.name + ":" + command.eventType();
+    }
 
     Observable<CommandExecutor> findExecutor(Observable<List<ServiceRecord>> records,
                                                      String name,

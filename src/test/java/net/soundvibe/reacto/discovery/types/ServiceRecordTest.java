@@ -1,6 +1,6 @@
 package net.soundvibe.reacto.discovery.types;
 
-import net.soundvibe.reacto.server.ServiceOptions;
+import net.soundvibe.reacto.server.*;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.types.json.*;
 import org.junit.Test;
@@ -29,6 +29,26 @@ public class ServiceRecordTest {
     @Test
     public void shouldBeEqual() throws Exception {
         assertEquals(getServiceRecord(), getServiceRecord());
+
+        final ServiceRecord expected = ServiceRecord.create("foo", Status.UP, ServiceType.WEBSOCKET, "id",
+                JsonObjectBuilder.create()
+                        .putArray("key1", a -> a.add("val1"))
+                        .build(),
+                JsonObjectBuilder.create()
+                        .put("foo", "bar")
+                        .build());
+
+        final ServiceRecord serviceRecord = ServiceRecord.create("foo", Status.UP, ServiceType.WEBSOCKET, "id",
+                new JsonObject(createMap("key1", Collections.singletonList("val1"))),
+                new JsonObject(createMap("foo", "bar")));
+
+        assertEquals(expected, serviceRecord);
+    }
+
+    private Map<String, Object> createMap(String key, Object value) {
+        final Map<String, Object> map = new HashMap<>(1);
+        map.put(key, value);
+        return map;
     }
 
     private ServiceRecord getServiceRecord() {

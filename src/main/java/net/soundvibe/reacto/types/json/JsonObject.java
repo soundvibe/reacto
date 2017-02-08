@@ -142,7 +142,13 @@ public final class JsonObject implements Iterable<Map.Entry<String, Object>> {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (o == null) return false;
+        if (o instanceof Map) {
+            Map map = (Map) o;
+            return Objects.equals(values, map);
+        }
+        if (getClass() != o.getClass()) return false;
+
         JsonObject entries = (JsonObject) o;
         return Objects.equals(values, entries.values);
     }
