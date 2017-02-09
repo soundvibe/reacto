@@ -194,4 +194,23 @@ public class JsonArrayBuilderTest {
             iterator.remove();
         }
     }
+
+    @Test
+    public void shouldConvertToJson() throws Exception {
+        final JsonArray actual = JsonArrayBuilder.create()
+                .add("value")
+                .build();
+
+        final String json = actual.toJson();
+        assertEquals("[\"value\"]", json);
+    }
+
+    @Test
+    public void shouldCreateFromJson() throws Exception {
+        final JsonArray expected = JsonArrayBuilder.create()
+                .add("value")
+                .build();
+        final JsonArray actual = JsonArray.fromJson("[\"value\"]");
+        assertEquals(expected, actual);
+    }
 }

@@ -3,6 +3,7 @@ package net.soundvibe.reacto.types.json;
 import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import net.soundvibe.reacto.mappers.jackson.JacksonMapper;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -30,6 +31,10 @@ public final class JsonArray implements Iterable<Object> {
 
     public static JsonArray empty() {
         return EMPTY;
+    }
+
+    public static JsonArray fromJson(String jsonString) {
+        return JacksonMapper.fromJson(jsonString, JsonArray.class);
     }
 
     @SuppressWarnings("unchecked")
@@ -148,6 +153,10 @@ public final class JsonArray implements Iterable<Object> {
     @Override
     public String toString() {
         return values.toString();
+    }
+
+    public String toJson() {
+        return JacksonMapper.toJson(this);
     }
 
     private class JsonArrayIterator implements Iterator<Object> {

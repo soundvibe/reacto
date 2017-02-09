@@ -1,8 +1,9 @@
 package net.soundvibe.reacto.discovery.types;
 
 import net.soundvibe.reacto.internal.ObjectId;
+import net.soundvibe.reacto.mappers.jackson.JacksonMapper;
 import net.soundvibe.reacto.server.*;
-import net.soundvibe.reacto.types.CommandDescriptor;
+import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.types.json.*;
 import net.soundvibe.reacto.utils.WebUtils;
 
@@ -28,32 +29,28 @@ public final class ServiceRecord {
     public final ServiceType type;
     public final String registrationId;
     public final JsonObject location;
-    public final JsonObject metaData;
+    public final JsonObject metadata;
+    public final String objectType = "reacto-service-registry";
 
     private ServiceRecord(String name, Status status, ServiceType type, String registrationId,
                           JsonObject location,
-                          JsonObject metaData) {
+                          JsonObject metadata) {
         Objects.requireNonNull(name, "name cannot be null");
         Objects.requireNonNull(status, "status cannot be null");
         Objects.requireNonNull(type, "type cannot be null");
         Objects.requireNonNull(registrationId, "registrationId cannot be null");
         Objects.requireNonNull(location, "location cannot be null");
-        Objects.requireNonNull(metaData, "metaData cannot be null");
+        Objects.requireNonNull(metadata, "metadata cannot be null");
         this.name = name;
         this.status = status;
         this.type = type;
         this.registrationId = registrationId;
         this.location = location;
-        this.metaData = metaData;
+        this.metadata = metadata;
     }
 
-    private static JsonObject httpEndpointLocation(String host, int port, String root, boolean isSsl) {
-        return JsonObjectBuilder.create()
-                .put(LOCATION_HOST, host)
-                .put(LOCATION_PORT, port)
-                .put(LOCATION_ROOT, root)
-                .put(LOCATION_SSL, isSsl)
-                .build();
+    public static ServiceRecord fromJson(String json) {
+        return JacksonMapper.fromJson(json, ServiceRecord.class);
     }
 
     public static ServiceRecord createWebSocketEndpoint(
@@ -102,6 +99,15 @@ public final class ServiceRecord {
         return new ServiceRecord(name, status, type, registrationId, location, metaData);
     }
 
+    private static JsonObject httpEndpointLocation(String host, int port, String root, boolean isSsl) {
+        return JsonObjectBuilder.create()
+                .put(LOCATION_HOST, host)
+                .put(LOCATION_PORT, port)
+                .put(LOCATION_ROOT, root)
+                .put(LOCATION_SSL, isSsl)
+                .build();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -112,7 +118,7 @@ public final class ServiceRecord {
                 type == that.type &&
                 Objects.equals(registrationId, that.registrationId) &&
                 Objects.equals(location, that.location) &&
-                Objects.equals(metaData, that.metaData);
+                Objects.equals(metadata, that.metadata);
     }
 
     private int hash = 0;
@@ -120,7 +126,7 @@ public final class ServiceRecord {
     @Override
     public int hashCode() {
         if (hash == 0) {
-            hash = Objects.hash(name, status, type, registrationId, location, metaData);
+            hash = Objects.hash(name, status, type, registrationId, location, metadata);
         }
         return hash;
     }
@@ -133,7 +139,23 @@ public final class ServiceRecord {
                 ", type=" + type +
                 ", registrationId='" + registrationId + '\'' +
                 ", location=" + location +
-                ", metaData=" + metaData +
+                ", metadata=" + metadata +
                 '}';
     }
+
+    public boolean isCompatibleWith(Command command) {
+        return status == Status.UP &&
+                metadata.asArray(ServiceRecord.METADATA_COMMANDS)
+                        .map(commands -> commands.stream()
+                                .filter(o -> o instanceof JsonObject)
+                                .map(o -> (JsonObject)o)
+                                .anyMatch(jsonObject -> command.name.equals(jsonObject.asString(COMMAND).orElse(null))
+                                        && command.eventType().equals(jsonObject.asString(EVENT).orElse(null))))
+                        .orElse(false);
+    }
+
+    public String toJson() {
+        return JacksonMapper.toJson(this);
+    }
+
 }

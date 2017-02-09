@@ -245,6 +245,17 @@ public class JsonObjectBuilderTest {
     }
 
     @Test
+    public void shouldConvertToJson() throws Exception {
+        final JsonObject sut = JsonObjectBuilder.create()
+                .put("key", "value1")
+                .put("key2", "value2")
+                .build();
+
+        final String actual = sut.toJson();
+        assertEquals("{\"key\":\"value1\",\"key2\":\"value2\"}", actual);
+    }
+
+    @Test
     public void shouldGetBytesValue() throws Exception {
         final JsonObject actual = JsonObjectBuilder.create()
                 .put("payload", "someData".getBytes())
@@ -285,11 +296,16 @@ public class JsonObjectBuilderTest {
 
     @Test
     public void shouldBuildFromJsonString() throws Exception {
-        final JsonObject actual = JsonObjectBuilder.from("{ \"key1\": \"value1\", \"key2\": \"value2\" }",
-                jsonString -> json.readValue(jsonString, Map.class))
+        final String jsonString = "{ \"key1\": \"value1\", \"key2\": \"value2\" }";
+        final JsonObject actual = JsonObjectBuilder.from(jsonString,
+                s -> json.readValue(s, Map.class))
                 .build();
 
         assertEquals("value1", actual.asString("key1").orElse(""));
         assertEquals("value2", actual.asString("key2").orElse(""));
+
+        final JsonObject actual2 = JsonObject.fromJson(jsonString);
+        assertEquals("value1", actual2.asString("key1").orElse(""));
+        assertEquals("value2", actual2.asString("key2").orElse(""));
     }
 }
