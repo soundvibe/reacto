@@ -16,6 +16,7 @@ Makes use of:
 
 ## Available implementations
 * [reacto-vertx](https://github.com/soundvibe/reacto-vertx) - implements service discovery, communication through WebSockets, handlers for metrics, etc.
+* [reacto-couchbase-service-registry](https://github.com/soundvibe/reacto-couchbase-service-registry) - implements service discovery backed by Couchbase
 
 ## Binaries
 
@@ -25,7 +26,7 @@ Binaries and dependency information for Maven, Ivy, Gradle and others can be fou
 Example for Gradle:
 
 ```groovy
-compile 'net.soundvibe:reacto:x.y.z'
+compile 'net.soundvibe:reacto:1.0.0'
 ```
 
 and for Maven:
@@ -34,7 +35,7 @@ and for Maven:
 <dependency>
     <groupId>net.soundvibe</groupId>
     <artifactId>reacto</artifactId>
-    <version>x.y.z</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
