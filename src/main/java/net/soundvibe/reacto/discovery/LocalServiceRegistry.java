@@ -17,7 +17,7 @@ import static java.util.Collections.singletonList;
 /**
  * @author OZY on 2017.01.25.
  */
-public final class LocalServiceRegistry extends AbstractServiceRegistry implements ServiceDiscoveryLifecycle {
+public final class LocalServiceRegistry extends AbstractServiceRegistry {
 
     private final CommandRegistry commandRegistry;
 
