@@ -10,11 +10,11 @@ import rx.observers.TestSubscriber;
 /**
  * @author OZY on 2017.01.24.
  */
-public class ServiceRegistryTest {
+public class ServiceExecutorTest {
 
     @Test
     public void shouldExecute() throws Exception {
-        ServiceRegistry sut = getRegistry();
+        ServiceExecutor sut = getRegistry();
 
         final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
         sut.execute(Command.create("foo"))
@@ -35,8 +35,8 @@ public class ServiceRegistryTest {
         testSubscriber2.assertValue(Event.create("bar"));
     }
 
-    private ServiceRegistry getRegistry() {
-        return new ServiceRegistry() {
+    private ServiceExecutor getRegistry() {
+        return new ServiceExecutor() {
             @Override
             public <E, C> Observable<E> execute(C command, Class<? extends E> eventClass, LoadBalancer<EventHandler> loadBalancer, CommandExecutorFactory commandExecutorFactory) {
                 return Observable.just(eventClass.cast(Event.create("bar")));

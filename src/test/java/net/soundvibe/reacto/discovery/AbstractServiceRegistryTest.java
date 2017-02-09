@@ -60,5 +60,15 @@ public class AbstractServiceRegistryTest {
         protected Observable<List<ServiceRecord>> findRecordsOf(Command command) {
             return null;
         }
+
+        @Override
+        public Observable<Any> register() {
+            return null;
+        }
+
+        @Override
+        public Observable<Any> unregister() {
+            return null;
+        }
     }
 }
