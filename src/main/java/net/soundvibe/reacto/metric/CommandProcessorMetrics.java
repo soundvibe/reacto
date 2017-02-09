@@ -29,11 +29,11 @@ public final class CommandProcessorMetrics {
         throw new NoSuchElementException("No such element at " + index);
     }
 
-    public MemoryUsage memoryUsage() {
+    static public MemoryUsage memoryUsage() {
         return ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
     }
 
-    public ThreadData threadUsage() {
+    static public ThreadData threadUsage() {
         final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
         return new ThreadData(
                 threadMXBean.getThreadCount(),
