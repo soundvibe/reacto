@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.types;
 
+import net.soundvibe.reacto.errors.ReactiveException;
 import net.soundvibe.reacto.internal.*;
 import net.soundvibe.reacto.internal.proto.Messages;
 import org.junit.*;
@@ -44,7 +45,7 @@ public class MessageMappersTest {
 
         final InternalEvent actual = MessageMappers.toInternalEvent(expected);
         assertEquals("foo", actual.name);
-        assertEquals(ReactiveException.class, actual.error.get().getClass());
+        assertEquals(ReactiveException.class, actual.error.orElseGet(NullPointerException::new).getClass());
         assertEquals(Optional.empty(), actual.metaData);
     }
 }

@@ -1,6 +1,6 @@
 package net.soundvibe.reacto.discovery;
 
-import io.vertx.servicediscovery.Record;
+import net.soundvibe.reacto.types.Named;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,13 +8,14 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author OZY on 2016.08.26.
  */
-public final class RoundRobinLoadBalancer implements LoadBalancer {
+public final class RoundRobinLoadBalancer<T extends Named> implements LoadBalancer<T> {
 
     private final ConcurrentHashMap<String, Integer> cachedRecords = new ConcurrentHashMap<>();
 
     @Override
-    public Record balance(List<Record> records) {
-        return records.get(cachedRecords.compute(records.get(0).getName(), (name, lastIndex) -> {
+    public T balance(List<T> records) {
+        if (records.isEmpty()) throw new IllegalArgumentException("No elements to balance");
+        return records.get(cachedRecords.compute(records.get(0).name(), (name, lastIndex) -> {
             if (lastIndex == null) {
                 return 0;
             }

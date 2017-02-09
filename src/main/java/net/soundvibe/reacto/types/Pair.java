@@ -10,7 +10,7 @@ public final class Pair<K,V> implements Map.Entry<K, V> {
     public final K key;
     public final V value;
 
-    public Pair(K key, V value) {
+    private Pair(K key, V value) {
         this.key = key;
         this.value = value;
     }

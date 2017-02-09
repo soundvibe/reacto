@@ -25,4 +25,11 @@ public class InternalEventTest {
         assertTrue("onNext not found", internalEvents.contains(InternalEvent.onNext(Event.create("test"))));
         assertTrue("onError not found", internalEvents.contains(InternalEvent.onError(error)));
     }
+
+    @Test
+    public void shouldPrintToString() throws Exception {
+        final InternalEvent internalEvent = InternalEvent.onNext(Event.create("test"));
+        final String actual = internalEvent.toString();
+        assertTrue(actual.startsWith("InternalEvent{"));
+    }
 }

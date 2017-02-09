@@ -15,9 +15,15 @@ public final class MetaData implements Iterable<Pair<String, String>> {
     private final Iterable<Pair<String, String>> entries;
     private final Supplier<Map<String, String>> mapCache;
 
+    private final static MetaData EMPTY = new MetaData(Collections.emptyList());
+
     private MetaData(Iterable<Pair<String, String>> entries) {
         this.entries = entries;
         this.mapCache = mapSupplier(entries);
+    }
+
+    public static MetaData empty() {
+        return EMPTY;
     }
 
     public static MetaData of(String key, String value) {
@@ -99,6 +105,12 @@ public final class MetaData implements Iterable<Pair<String, String>> {
         return Observable.from(this.entries);
     }
 
+    public MetaData concat(MetaData other) {
+        return fromStream(Stream.concat(
+                StreamSupport.stream(this.spliterator(), false),
+                StreamSupport.stream(other.spliterator(), false)));
+    }
+
     private Supplier<Map<String, String>> mapSupplier(Iterable<Pair<String, String>> entries) {
         return Lazy.of(() -> {
             Map<String, String> map = new HashMap<>();
@@ -132,4 +144,6 @@ public final class MetaData implements Iterable<Pair<String, String>> {
                 ", mapCache=" + mapCache +
                 '}';
     }
+
+
 }

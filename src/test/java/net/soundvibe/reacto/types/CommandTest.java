@@ -26,6 +26,22 @@ public class CommandTest {
         assertTrue("Command with name 'test' and metadata not found", commands.contains(metaCmd));
         assertTrue("Command with payload not found", commands.contains(payloadCmd));
         assertFalse("Should not find because ID's should be different", commands.contains(Command.create("test")));
+
+        assertNotEquals("Should not be equals", testCmd, metaCmd);
+
+        final Command testCmd2 = new Command(testCmd.id, testCmd.name, testCmd.metaData, testCmd.payload);
+        assertEquals(testCmd, testCmd2);
     }
 
+    @Test
+    public void shouldBeCreated() throws Exception {
+        final Command actual = Command.create("foo", MetaData.empty(), "".getBytes());
+        assertNotNull(actual);
+    }
+
+    @Test
+    public void shouldBeCreatedFromPairs() throws Exception {
+        final Command actual = Command.create("foo", Pair.of("foo", "bar"));
+        assertNotNull(actual);
+    }
 }

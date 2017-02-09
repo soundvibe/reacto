@@ -130,45 +130,10 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
      * @throws IllegalArgumentException if array is null or not of length 12
      */
     private ObjectId(final byte[] bytes) {
-        if (bytes == null) {
-            throw new IllegalArgumentException();
-        }
-        if (bytes.length != 12) {
-            throw new IllegalArgumentException("need 12 bytes");
-        }
-
         timestamp = makeInt(bytes[0], bytes[1], bytes[2], bytes[3]);
         machineIdentifier = makeInt((byte) 0, bytes[4], bytes[5], bytes[6]);
         processIdentifier = (short) makeInt((byte) 0, (byte) 0, bytes[7], bytes[8]);
         counter = makeInt((byte) 0, bytes[9], bytes[10], bytes[11]);
-    }
-
-    /**
-     * Creates an ObjectId
-     *
-     * @param timestamp                   time in seconds
-     * @param machineAndProcessIdentifier machine and process identifier
-     * @param counter                     incremental value
-     */
-    private ObjectId(final int timestamp, final int machineAndProcessIdentifier, final int counter) {
-        this(legacyToBytes(timestamp, machineAndProcessIdentifier, counter));
-    }
-
-    private static byte[] legacyToBytes(final int timestamp, final int machineAndProcessIdentifier, final int counter) {
-        byte[] bytes = new byte[12];
-        bytes[0] = int3(timestamp);
-        bytes[1] = int2(timestamp);
-        bytes[2] = int1(timestamp);
-        bytes[3] = int0(timestamp);
-        bytes[4] = int3(machineAndProcessIdentifier);
-        bytes[5] = int2(machineAndProcessIdentifier);
-        bytes[6] = int1(machineAndProcessIdentifier);
-        bytes[7] = int0(machineAndProcessIdentifier);
-        bytes[8] = int3(counter);
-        bytes[9] = int2(counter);
-        bytes[10] = int1(counter);
-        bytes[11] = int0(counter);
-        return bytes;
     }
 
     /**
@@ -294,8 +259,6 @@ public final class ObjectId implements Comparable<ObjectId>, Serializable {
         return machinePiece;
     }
 
-    // Creates the process identifier.  This does not have to be unique per class loader because
-    // NEXT_COUNTER will provide the uniqueness.
     private static short createProcessIdentifier() {
         short processId;
         try {

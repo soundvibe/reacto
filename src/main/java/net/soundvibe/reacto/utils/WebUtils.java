@@ -8,19 +8,23 @@ import java.net.*;
 public interface WebUtils {
 
     static String includeEndDelimiter(String url) {
+        if (url == null) return null;
         return url.endsWith("/") ? url : url + "/";
     }
 
     static String excludeEndDelimiter(String url) {
+        if (url == null) return null;
         return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
     }
 
     static String excludeStartDelimiter(String url) {
+        if (url == null) return null;
         return url.startsWith("/") ? url.substring(1, url.length()) : url;
     }
 
-    static String includeStartDelimiter(String address) {
-        return address.startsWith("/") ? address : "/" + address;
+    static String includeStartDelimiter(String url) {
+        if (url == null) return null;
+        return url.startsWith("/") ? url : "/" + url;
     }
 
     static URI resolveWsURI(String url) {

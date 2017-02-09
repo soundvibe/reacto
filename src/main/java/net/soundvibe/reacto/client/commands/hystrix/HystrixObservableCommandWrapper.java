@@ -1,7 +1,6 @@
 package net.soundvibe.reacto.client.commands.hystrix;
 
 import com.netflix.hystrix.*;
-import io.vertx.core.logging.*;
 import net.soundvibe.reacto.types.*;
 import rx.Observable;
 
@@ -12,8 +11,6 @@ import java.util.function.Function;
  * @author Cipolinas on 2015.12.01.
  */
 public class HystrixObservableCommandWrapper extends HystrixObservableCommand<Event> {
-
-    private static final Logger log = LoggerFactory.getLogger(HystrixObservableCommandWrapper.class);
 
     private final Function<Command, Observable<Event>> main;
     private final Optional<Function<Command, Observable<Event>>> fallback;
@@ -47,13 +44,11 @@ public class HystrixObservableCommandWrapper extends HystrixObservableCommand<Ev
 
     @Override
     protected Observable<Event> construct() {
-        log.debug("Command executed: " + command);
         return main.apply(command);
     }
 
     @Override
     protected Observable<Event> resumeWithFallback() {
-        log.debug("Resuming with fallback: " + command);
         return fallback.map(f -> f.apply(command)).orElseGet(() -> super.resumeWithFallback());
     }
 }

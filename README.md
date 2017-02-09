@@ -1,18 +1,22 @@
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.soundvibe/reacto/badge.svg)](https://maven-badges.herokuapp.com/maven-central/net.soundvibe/reacto)
 [![Build Status](https://travis-ci.org/soundvibe/reacto.png)](https://travis-ci.org/soundvibe/reacto)
+[![Coverage Status](https://codecov.io/github/soundvibe/reacto/coverage.svg?branch=develop)](https://codecov.io/github/soundvibe/reacto?branch=develop)
 
 # reacto
 
-Functional reactive library for the JVM (Java 8 and above). Building simple scalable micro services has never been so easy.
-You are working with ordinary Observables but they can be executing on any discovered server in the network.
+Functional reactive abstractions for the JVM (Java 8 and above). Building simple scalable micro services has never been so easy.
+You are working with ordinary Observables but they can be executing on any discovered service in the network.
 
 Learn more about reacto on the [Wiki home](https://github.com/soundvibe/reacto/wiki).
 
 Makes use of: 
 * [RxJava](https://github.com/ReactiveX/RxJava) Observables for reactive async commands and events
 * [Hystrix](https://github.com/Netflix/Hystrix) for latency and fault tolerance.
-* [Vert.x](http://vertx.io/) for http client and server, service discovery
 * [Protocol Buffers](https://developers.google.com/protocol-buffers/) for efficient internal messaging
+
+## Available implementations
+* [reacto-vertx](https://github.com/soundvibe/reacto-vertx) - implements service discovery, communication through WebSockets, handlers for metrics, etc.
+* [reacto-couchbase-service-registry](https://github.com/soundvibe/reacto-couchbase-service-registry) - implements service discovery backed by Couchbase
 
 ## Binaries
 
@@ -22,7 +26,7 @@ Binaries and dependency information for Maven, Ivy, Gradle and others can be fou
 Example for Gradle:
 
 ```groovy
-compile 'net.soundvibe:reacto:x.y.z'
+compile 'net.soundvibe:reacto:1.0.0'
 ```
 
 and for Maven:
@@ -31,7 +35,7 @@ and for Maven:
 <dependency>
     <groupId>net.soundvibe</groupId>
     <artifactId>reacto</artifactId>
-    <version>x.y.z</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 

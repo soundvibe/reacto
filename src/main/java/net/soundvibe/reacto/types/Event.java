@@ -8,7 +8,7 @@ import java.util.*;
 /**
  * @author OZY on 2016.02.08.
  */
-public final class Event {
+public class Event {
 
     public final String name;
     public final Optional<MetaData> metaData;
