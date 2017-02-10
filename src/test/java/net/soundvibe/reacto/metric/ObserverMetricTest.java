@@ -1,7 +1,7 @@
 package net.soundvibe.reacto.metric;
 
 import com.codahale.metrics.*;
-import net.soundvibe.reacto.types.CommandDescriptor;
+import net.soundvibe.reacto.types.*;
 import org.junit.Test;
 import rx.Observable;
 import rx.observers.TestSubscriber;
@@ -32,7 +32,7 @@ public class ObserverMetricTest {
                 .doOnNext(integer -> sleep(1L))
                 .flatMap(i -> i > 98 ? Observable.error(new RuntimeException("error"))
                         : Observable.just(i))
-                .doOnEach(ObserverMetric.findObserver(descriptor))
+                .doOnEach(ObserverMetric.findObserver(Command.create("test-metrics")))
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();

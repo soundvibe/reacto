@@ -6,7 +6,6 @@ import rx.Observer;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author linas on 17.2.9.
@@ -14,26 +13,24 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class ObserverMetric<T> implements Observer<T> {
 
     private final static Map<CommandDescriptor, ObserverMetric> observers = new ConcurrentHashMap<>();
-    public static final String NAME_METER_ON_NEXT = "Meter:OnNext";
-    public static final String NAME_METER_ON_ERROR = "Meter:onError";
-    public static final String NAME_HISTOGRAM_ON_NEXT = "Histogram:OnNext";
-    private final Histogram histogram;
+    public static final String NAME_METER_ON_NEXT = "Meter:Events";
+    public static final String NAME_METER_ON_ERROR = "Meter:Errors";
+    public static final String NAME_TIMER_COMMAND = "Timer:Commands";
     private final Meter onNextMeter;
     private final Meter errorMeter;
-    private final AtomicInteger onNextCount = new AtomicInteger(0);
+    private final Timer timer;
 
     @SuppressWarnings("unchecked")
-    public static <T> ObserverMetric<T> findObserver(CommandDescriptor commandDescriptor) {
-        return observers.computeIfAbsent(commandDescriptor, ObserverMetric::new);
+    public static <T> ObserverMetric<T> findObserver(Command command) {
+        return observers.computeIfAbsent(CommandDescriptor.fromCommand(command), ObserverMetric::new);
     }
 
     private ObserverMetric(CommandDescriptor commandDescriptor) {
-        this.histogram = Metrics.REGISTRY.histogram(
-                getName(commandDescriptor, NAME_HISTOGRAM_ON_NEXT));
         this.onNextMeter = Metrics.REGISTRY.meter(
                 getName(commandDescriptor, NAME_METER_ON_NEXT));
         this.errorMeter = Metrics.REGISTRY.meter(
                 getName(commandDescriptor, NAME_METER_ON_ERROR));
+        this.timer = Metrics.REGISTRY.timer(getName(commandDescriptor, NAME_TIMER_COMMAND));
     }
 
     public static String getName(CommandDescriptor descriptor, String name) {
@@ -42,22 +39,22 @@ public final class ObserverMetric<T> implements Observer<T> {
                 descriptor.commandType + ":" + descriptor.eventType + ":" + name;
     }
 
+    public Pair<ObserverMetric<T>, Timer.Context> startTimer() {
+        return Pair.of(this, timer.time());
+    }
+
     @Override
     public void onCompleted() {
-        histogram.update(onNextCount.get());
-        onNextCount.set(0);
+        //do nothing
     }
 
     @Override
     public void onError(Throwable throwable) {
         errorMeter.mark();
-        histogram.update(onNextCount.get());
-        onNextCount.set(0);
     }
 
     @Override
     public void onNext(T o) {
-        onNextCount.incrementAndGet();
         onNextMeter.mark();
     }
 }

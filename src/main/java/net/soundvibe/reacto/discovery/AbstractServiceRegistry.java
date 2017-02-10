@@ -33,10 +33,14 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
 
     protected Observable<Event> execute(Command command, LoadBalancer<EventHandler> loadBalancer,
                                         CommandExecutorFactory commandExecutorFactory) {
-        return commandCache.computeIfAbsent(commandKey(command), key -> findRecordsOf(command).cache())
-                .compose(records -> findExecutor(records, command.name, loadBalancer, commandExecutorFactory))
-                .concatMap(commandExecutor -> commandExecutor.execute(command)
-                        .doOnEach(ObserverMetric.findObserver(CommandDescriptor.fromCommand(command))));
+        return Observable.fromCallable(() -> ObserverMetric.findObserver(command))
+                .map(ObserverMetric::startTimer)
+                .flatMap(pair -> commandCache.computeIfAbsent(commandKey(command), key -> findRecordsOf(command).cache())
+                        .compose(records -> findExecutor(records, command.name, loadBalancer, commandExecutorFactory))
+                        .concatMap(commandExecutor -> commandExecutor.execute(command))
+                        .doOnTerminate(pair.value::stop)
+                        .doOnEach(pair.key)
+                );
     }
 
     /**
