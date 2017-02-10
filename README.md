@@ -8,6 +8,7 @@ Functional reactive abstractions for the JVM (Java 8 and above). Building simple
 You are working with ordinary Observables but they can be executing on any discovered service in the network.
 
 Start by reading an [introduction here](https://github.com/soundvibe/reacto/wiki/Introduction)
+
 Learn more about reacto on the [Wiki home](https://github.com/soundvibe/reacto/wiki).
 
 Makes use of: 
