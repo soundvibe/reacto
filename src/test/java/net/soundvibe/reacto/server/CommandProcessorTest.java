@@ -21,9 +21,9 @@ public class CommandProcessorTest {
     public void shouldProcessCommandUsingDifferentScheduler() throws Exception {
         final CommandRegistry registry = CommandRegistry.of("foo",
                 command -> Observable.just(Event.create("bar"), Event.create("bar2"))
-                        .subscribeOn(Schedulers.computation()));
+                        .subscribeOn(Schedulers.io()));
         CommandProcessor sut = new CommandProcessor(registry);
-        assertThreadName("computation", sut);
+        assertThreadName("RxIoScheduler", sut);
     }
 
     @Test
