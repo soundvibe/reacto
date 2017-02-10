@@ -6,7 +6,7 @@
 
     <groupId>net.soundvibe</groupId>
     <artifactId>reacto</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
     <name>reacto</name>
     <description>Reacto is a functional reactive library built for Java 8 and above.</description>
@@ -89,6 +89,13 @@
             <artifactId>protobuf-java</artifactId>
             <version>3.1.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <version>3.1.2</version>
+        </dependency>
+
 
         <dependency>
             <groupId>junit</groupId>

@@ -6,6 +6,7 @@ import net.soundvibe.reacto.discovery.types.ServiceRecord;
 import net.soundvibe.reacto.errors.*;
 import net.soundvibe.reacto.internal.*;
 import net.soundvibe.reacto.mappers.ServiceRegistryMapper;
+import net.soundvibe.reacto.metric.ObserverMetric;
 import net.soundvibe.reacto.types.*;
 import rx.Observable;
 
@@ -32,9 +33,14 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
 
     protected Observable<Event> execute(Command command, LoadBalancer<EventHandler> loadBalancer,
                                         CommandExecutorFactory commandExecutorFactory) {
-        return commandCache.computeIfAbsent(commandKey(command), key -> findRecordsOf(command).cache())
-                .compose(records -> findExecutor(records, command.name, loadBalancer, commandExecutorFactory))
-                .concatMap(commandExecutor -> commandExecutor.execute(command));
+        return Observable.fromCallable(() -> ObserverMetric.findObserver(command))
+                .map(ObserverMetric::startTimer)
+                .flatMap(pair -> commandCache.computeIfAbsent(commandKey(command), key -> findRecordsOf(command).cache())
+                        .compose(records -> findExecutor(records, command.name, loadBalancer, commandExecutorFactory))
+                        .concatMap(commandExecutor -> commandExecutor.execute(command))
+                        .doOnTerminate(pair.value::stop)
+                        .doOnEach(pair.key)
+                );
     }
 
     /**

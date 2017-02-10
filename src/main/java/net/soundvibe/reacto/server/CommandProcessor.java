@@ -3,7 +3,6 @@ package net.soundvibe.reacto.server;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.errors.CommandNotFound;
 import net.soundvibe.reacto.mappers.Mappers;
-import net.soundvibe.reacto.metric.CommandProcessorMetric;
 import net.soundvibe.reacto.types.*;
 import rx.*;
 import rx.schedulers.Schedulers;
@@ -32,25 +31,9 @@ public class CommandProcessor implements CommandExecutor {
     public Observable<Event> process(Command command) {
         return Observable.just(command)
                 .concatMap(cmd -> commands.findCommand(CommandDescriptor.fromCommand(cmd))
-                        .map(commandExecutor -> Observable.just(CommandProcessorMetric.of(cmd))
-                                .concatMap(metric -> commandExecutor.execute(cmd)
-                                        .doOnEach(notification -> publishMetrics(notification, cmd, metric))))
+                        .map(commandExecutor -> commandExecutor.execute(cmd))
                         .orElseGet(() -> Observable.error(new CommandNotFound(cmd.name))))
                 .subscribeOn(SINGLE_THREAD);
-    }
-
-    private void publishMetrics(Notification<? super Event> notification, Command command, CommandProcessorMetric metric) {
-        switch (notification.getKind()) {
-            case OnNext:
-                metric.onNext();
-                break;
-            case OnError:
-                metric.onError(notification.getThrowable());
-                break;
-            case OnCompleted:
-                metric.onCompleted();
-                break;
-        }
     }
 
     @Override
