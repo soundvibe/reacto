@@ -4,17 +4,13 @@ import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.errors.CommandNotFound;
 import net.soundvibe.reacto.mappers.Mappers;
 import net.soundvibe.reacto.types.*;
-import rx.*;
+import rx.Observable;
 import rx.schedulers.Schedulers;
-
-import java.util.concurrent.Executors;
 
 /**
  * @author Linas on 2017.01.12.
  */
 public class CommandProcessor implements CommandExecutor {
-
-    private static final Scheduler SINGLE_THREAD = Schedulers.from(Executors.newSingleThreadExecutor());
 
     private final CommandRegistry commands;
 
@@ -33,7 +29,7 @@ public class CommandProcessor implements CommandExecutor {
                 .concatMap(cmd -> commands.findCommand(CommandDescriptor.fromCommand(cmd))
                         .map(commandExecutor -> commandExecutor.execute(cmd))
                         .orElseGet(() -> Observable.error(new CommandNotFound(cmd.name))))
-                .subscribeOn(SINGLE_THREAD);
+                .subscribeOn(Schedulers.computation());
     }
 
     @Override

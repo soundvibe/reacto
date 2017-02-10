@@ -31,7 +31,7 @@ public class CommandProcessorTest {
         final CommandRegistry registry = CommandRegistry.of("foo",
                 command -> Observable.just(Event.create("bar"), Event.create("bar2")));
         CommandProcessor sut = new CommandProcessor(registry);
-        assertThreadName("pool-", sut);
+        assertThreadName("RxComputationScheduler-", sut);
     }
 
     @Test
@@ -90,7 +90,7 @@ public class CommandProcessorTest {
         final List<String> values = testSubscriber.getOnNextEvents();
         assertTrue("Should emit at least one value",values.size() > 0);
         assertTrue("Should use " + expected +" scheduler, but was using: " + values,
-                values.stream().allMatch(name -> name.toLowerCase().contains(expected)));
+                values.stream().allMatch(name -> name.contains(expected)));
     }
 
 }
