@@ -59,7 +59,7 @@ public class CommandProcessorTest {
         testSubscriber.assertError(CommandNotFound.class);
 
         final TestSubscriber<Event> testSubscriber2 = new TestSubscriber<>();
-        sut.execute(Command.create("foo")).subscribe(testSubscriber2);
+        sut.process(Command.create("foo")).subscribe(testSubscriber2);
 
         testSubscriber2.awaitTerminalEvent();
         testSubscriber2.assertNotCompleted();

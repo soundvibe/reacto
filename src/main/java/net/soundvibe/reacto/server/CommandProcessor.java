@@ -1,6 +1,5 @@
 package net.soundvibe.reacto.server;
 
-import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.errors.CommandNotFound;
 import net.soundvibe.reacto.mappers.Mappers;
 import net.soundvibe.reacto.types.*;
@@ -10,7 +9,7 @@ import rx.schedulers.Schedulers;
 /**
  * @author Linas on 2017.01.12.
  */
-public class CommandProcessor implements CommandExecutor {
+public class CommandProcessor {
 
     private final CommandRegistry commands;
 
@@ -30,10 +29,5 @@ public class CommandProcessor implements CommandExecutor {
                         .map(commandExecutor -> commandExecutor.execute(cmd))
                         .orElseGet(() -> Observable.error(new CommandNotFound(cmd.name))))
                 .subscribeOn(Schedulers.computation());
-    }
-
-    @Override
-    public Observable<Event> execute(Command command) {
-        return process(command);
     }
 }
