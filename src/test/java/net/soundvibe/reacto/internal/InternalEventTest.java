@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.util.*;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -31,5 +32,29 @@ public class InternalEventTest {
         final InternalEvent internalEvent = InternalEvent.onNext(Event.create("test"));
         final String actual = internalEvent.toString();
         assertTrue(actual.startsWith("InternalEvent{"));
+    }
+
+    @Test
+    public void shouldHaveCmdIdOnNext() throws Exception {
+        final InternalEvent actual = InternalEvent.onNext(Event.create("test"), "id");
+        assertEquals(Optional.of("id"), actual.commandId());
+    }
+
+    @Test
+    public void shouldHaveCmdIdOnError() throws Exception {
+        final InternalEvent actual = InternalEvent.onError(new RuntimeException("error"), "id");
+        assertEquals(Optional.of("id"), actual.commandId());
+    }
+
+    @Test
+    public void shouldHaveCmdIdOnCompleted() throws Exception {
+        final InternalEvent actual = InternalEvent.onCompleted("id");
+        assertEquals(Optional.of("id"), actual.commandId());
+    }
+
+    @Test
+    public void shouldNotHaveCommandId() throws Exception {
+        final InternalEvent actual = InternalEvent.onCompleted();
+        assertEquals(Optional.empty(), actual.commandId());
     }
 }
