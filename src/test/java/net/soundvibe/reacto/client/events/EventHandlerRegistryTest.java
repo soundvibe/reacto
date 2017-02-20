@@ -8,7 +8,6 @@ import rx.Observable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
@@ -30,7 +29,7 @@ public class EventHandlerRegistryTest {
     public void shouldNotCacheTheFunctionWhenDifferentRecords() throws Exception {
         AtomicInteger counter = new AtomicInteger(0);
 
-        Function<ServiceRecord, EventHandler> f = serviceRecord -> getEventHandler(serviceRecord,
+        EventHandlerFactory f = serviceRecord -> getEventHandler(serviceRecord,
                 Observable.just(Event.create("one")), counter.incrementAndGet());
 
         final EventHandlerRegistry sut = EventHandlerRegistry.Builder.create()
@@ -63,7 +62,7 @@ public class EventHandlerRegistryTest {
     public void shouldCacheTheFunction() throws Exception {
         AtomicInteger counter = new AtomicInteger(0);
 
-        Function<ServiceRecord, EventHandler> f = serviceRecord -> getEventHandler(serviceRecord,
+        EventHandlerFactory f = serviceRecord -> getEventHandler(serviceRecord,
                 Observable.just(Event.create("one")), counter.incrementAndGet());
 
         final EventHandlerRegistry sut = EventHandlerRegistry.Builder.create()
