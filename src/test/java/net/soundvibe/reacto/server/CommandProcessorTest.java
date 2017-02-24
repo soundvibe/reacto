@@ -21,9 +21,9 @@ public class CommandProcessorTest {
     public void shouldProcessCommandUsingDifferentScheduler() throws Exception {
         final CommandRegistry registry = CommandRegistry.of("foo",
                 command -> Observable.just(Event.create("bar"), Event.create("bar2"))
-                        .subscribeOn(Schedulers.computation()));
+                        .subscribeOn(Schedulers.io()));
         CommandProcessor sut = new CommandProcessor(registry);
-        assertThreadName("computation", sut);
+        assertThreadName("RxIoScheduler", sut);
     }
 
     @Test
@@ -31,7 +31,7 @@ public class CommandProcessorTest {
         final CommandRegistry registry = CommandRegistry.of("foo",
                 command -> Observable.just(Event.create("bar"), Event.create("bar2")));
         CommandProcessor sut = new CommandProcessor(registry);
-        assertThreadName("pool-", sut);
+        assertThreadName("RxComputationScheduler-", sut);
     }
 
     @Test
@@ -59,7 +59,7 @@ public class CommandProcessorTest {
         testSubscriber.assertError(CommandNotFound.class);
 
         final TestSubscriber<Event> testSubscriber2 = new TestSubscriber<>();
-        sut.execute(Command.create("foo")).subscribe(testSubscriber2);
+        sut.process(Command.create("foo")).subscribe(testSubscriber2);
 
         testSubscriber2.awaitTerminalEvent();
         testSubscriber2.assertNotCompleted();
@@ -90,7 +90,7 @@ public class CommandProcessorTest {
         final List<String> values = testSubscriber.getOnNextEvents();
         assertTrue("Should emit at least one value",values.size() > 0);
         assertTrue("Should use " + expected +" scheduler, but was using: " + values,
-                values.stream().allMatch(name -> name.toLowerCase().contains(expected)));
+                values.stream().allMatch(name -> name.contains(expected)));
     }
 
 }

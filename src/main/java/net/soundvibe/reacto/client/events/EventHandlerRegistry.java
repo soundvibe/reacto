@@ -4,7 +4,6 @@ import net.soundvibe.reacto.discovery.types.*;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
@@ -12,7 +11,7 @@ import java.util.stream.Stream;
  */
 public final class EventHandlerRegistry {
 
-    private final Map<ServiceType, Function<ServiceRecord, EventHandler>> handlers;
+    private final Map<ServiceType, EventHandlerFactory> handlers;
 
     private final Map<ServiceRecord, EventHandler> cache;
 
@@ -22,30 +21,30 @@ public final class EventHandlerRegistry {
         return EMPTY;
     }
 
-    private EventHandlerRegistry(Map<ServiceType, Function<ServiceRecord, EventHandler>> handlers) {
+    private EventHandlerRegistry(Map<ServiceType, EventHandlerFactory> handlers) {
         this.handlers = handlers;
         this.cache = new ConcurrentHashMap<>(handlers.size());
     }
 
-    public Optional<Function<ServiceRecord, EventHandler>> findFactory(ServiceType serviceType) {
+    public Optional<EventHandlerFactory> findFactory(ServiceType serviceType) {
         return Optional.ofNullable(handlers.get(serviceType));
     }
 
     public Stream<EventHandler> find(ServiceRecord serviceRecord) {
         return findFactory(serviceRecord.type)
-                .map(factory -> Stream.of(cache.computeIfAbsent(serviceRecord, factory)))
+                .map(factory -> Stream.of(cache.computeIfAbsent(serviceRecord, factory::create)))
                 .orElseGet(Stream::empty);
     }
 
     public static final class Builder {
 
-        private final Map<ServiceType, Function<ServiceRecord, EventHandler>> handlers = new HashMap<>();
+        private final Map<ServiceType, EventHandlerFactory> handlers = new HashMap<>();
 
         public static Builder create() {
             return new Builder();
         }
 
-        public Builder register(ServiceType serviceType, Function<ServiceRecord, EventHandler> eventHandlerFactory) {
+        public Builder register(ServiceType serviceType, EventHandlerFactory eventHandlerFactory) {
             handlers.put(serviceType, eventHandlerFactory);
             return this;
         }
