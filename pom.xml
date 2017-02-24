@@ -6,7 +6,7 @@
 
     <groupId>net.soundvibe</groupId>
     <artifactId>reacto</artifactId>
-    <version>1.0.3-SNAPSHOT</version>
+    <version>1.0.3</version>
     <packaging>jar</packaging>
     <name>reacto</name>
     <description>Reacto is a functional reactive library built for Java 8 and above.</description>
