@@ -11,6 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.*;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * @author Linas on 2015.11.12.
  */
@@ -28,18 +30,18 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, C
     }
 
     public CommandRegistry and(String commandName, CommandExecutor onInvoke) {
-        Objects.requireNonNull(commandName, "Command name cannot be null");
-        Objects.requireNonNull(onInvoke, "onInvoke cannot be null");
+        requireNonNull(commandName, "Command name cannot be null");
+        requireNonNull(onInvoke, "onInvoke cannot be null");
         add(CommandDescriptor.of(commandName), onInvoke);
         return this;
     }
 
     public <C,E> CommandRegistry and(Class<C> commandType, Class<? extends E> eventType,
                                      Function<C, Observable<? extends E>> onInvoke) {
-        Objects.requireNonNull(commandType, "commandType name cannot be null");
-        Objects.requireNonNull(eventType, "eventType name cannot be null");
-        Objects.requireNonNull(onInvoke, "onInvoke cannot be null");
-        Objects.requireNonNull(mapper, "mapper cannot be null");
+        requireNonNull(commandType, "commandType name cannot be null");
+        requireNonNull(eventType, "eventType name cannot be null");
+        requireNonNull(onInvoke, "onInvoke cannot be null");
+        requireNonNull(mapper, "mapper cannot be null");
 
         final Function<Command, Observable<? extends E>> before = onInvoke
                 .compose(c -> mapper.toGenericCommand(c, commandType));
@@ -56,15 +58,23 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, C
         commands.put(descriptor, onInvoke);
     }
 
+    public static CommandRegistry typed(CommandRegistryMapper mapper) {
+        return new CommandRegistry(mapper);
+    }
+
+    public static CommandRegistry untyped() {
+        return new CommandRegistry();
+    }
+
     public static CommandRegistry of(String commandName, CommandExecutor onInvoke) {
-        return new CommandRegistry().and(commandName, onInvoke);
+        return untyped().and(commandName, onInvoke);
     }
 
     public static <C,E> CommandRegistry ofTyped(
             Class<C> commandType, Class<? extends E> eventType,
             Function<C, Observable<? extends E>> onInvoke,
             CommandRegistryMapper mapper) {
-        return new CommandRegistry(mapper).and(commandType, eventType, onInvoke);
+        return typed(mapper).and(commandType, eventType, onInvoke);
     }
 
     public static CommandRegistry empty() {
