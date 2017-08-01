@@ -81,6 +81,10 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, C
         return new CommandRegistry();
     }
 
+    public boolean isEmpty() {
+        return commands.isEmpty();
+    }
+
     public Optional<CommandExecutor> findCommand(CommandDescriptor descriptor) {
         return Optional.ofNullable(commands.get(descriptor));
     }
