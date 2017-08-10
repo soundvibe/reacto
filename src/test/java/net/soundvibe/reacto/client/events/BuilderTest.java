@@ -15,7 +15,7 @@ public class BuilderTest {
 
     @Test
     public void shouldBuildEventHandlerRegistry() throws Exception {
-        final EventHandlerRegistry sut = EventHandlerRegistry.Builder.create()
+        final CommandHandlerRegistry sut = CommandHandlerRegistry.Builder.create()
                 .register(ServiceType.LOCAL, serviceRecord -> eventHandler())
                 .build();
 
@@ -23,8 +23,8 @@ public class BuilderTest {
         assertFalse(sut.findFactory(ServiceType.WEBSOCKET).isPresent());
     }
 
-    private EventHandler eventHandler() {
-        return new EventHandler() {
+    private CommandHandler eventHandler() {
+        return new CommandHandler() {
             @Override
             public Observable<Event> observe(Command command) {
                 return Observable.empty();

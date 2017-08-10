@@ -26,7 +26,7 @@ public class AbstractServiceRegistryTest {
 
     @Test
     public void shouldNotFindAnyEventHandlers() throws Exception {
-        EventHandlerRegistry registry = EventHandlerRegistry.empty();
+        CommandHandlerRegistry registry = CommandHandlerRegistry.empty();
         ServiceRegistryMapper mapper = new ServiceRegistryMapper() {
             @Override
             public <C, E> TypedCommand toCommand(C genericCommand, Class<? extends E> eventClass) {
@@ -65,8 +65,8 @@ public class AbstractServiceRegistryTest {
         final CommandRegistry commandRegistry = CommandRegistry.of("simple",
                 command -> Observable.just(Event.create("one"), Event.create("two"), Event.create("three")));
 
-        TestServiceRegistry sut = new TestServiceRegistry(EventHandlerRegistry.Builder.create()
-                .register(ServiceType.LOCAL, serviceRecord -> new LocalEventHandler(serviceRecord, commandRegistry))
+        TestServiceRegistry sut = new TestServiceRegistry(CommandHandlerRegistry.Builder.create()
+                .register(ServiceType.LOCAL, serviceRecord -> new LocalCommandHandler(serviceRecord, commandRegistry))
                 .build(),
                 new JacksonMapper(JacksonMapper.JSON));
 
@@ -86,8 +86,8 @@ public class AbstractServiceRegistryTest {
 
     public class TestServiceRegistry extends AbstractServiceRegistry {
 
-        TestServiceRegistry(EventHandlerRegistry eventHandlerRegistry, ServiceRegistryMapper mapper) {
-            super(eventHandlerRegistry, mapper);
+        TestServiceRegistry(CommandHandlerRegistry commandHandlerRegistry, ServiceRegistryMapper mapper) {
+            super(commandHandlerRegistry, mapper);
         }
 
         @Override

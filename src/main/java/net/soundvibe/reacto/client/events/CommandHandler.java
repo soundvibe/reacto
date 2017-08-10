@@ -7,7 +7,7 @@ import rx.Observable;
 /**
  * @author Cipolinas on 2015.11.16.
  */
-public interface EventHandler extends Named {
+public interface CommandHandler extends Named {
 
     Observable<Event> observe(Command command);
 

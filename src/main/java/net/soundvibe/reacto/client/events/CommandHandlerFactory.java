@@ -6,6 +6,6 @@ import net.soundvibe.reacto.discovery.types.ServiceRecord;
  * @author OZY on 2017.02.20.
  */
 @FunctionalInterface
-public interface EventHandlerFactory {
-    EventHandler create(ServiceRecord serviceRecord);
+public interface CommandHandlerFactory {
+    CommandHandler create(ServiceRecord serviceRecord);
 }

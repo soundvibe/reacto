@@ -25,10 +25,10 @@ public final class LocalServiceRegistry extends AbstractServiceRegistry {
 
     public LocalServiceRegistry(ServiceRegistryMapper mapper,
                                 CommandRegistry commandRegistry) {
-        super(EventHandlerRegistry.Builder.create()
+        super(CommandHandlerRegistry.Builder.create()
                 .register(
                         ServiceType.LOCAL,
-                        serviceRecord -> new LocalEventHandler(serviceRecord, commandRegistry))
+                        serviceRecord -> new LocalCommandHandler(serviceRecord, commandRegistry))
                 .build(),
                 mapper);
         this.commandRegistry = commandRegistry;

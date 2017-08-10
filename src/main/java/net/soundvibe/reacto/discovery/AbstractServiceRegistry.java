@@ -21,17 +21,17 @@ import static java.util.stream.Collectors.toList;
 public abstract class AbstractServiceRegistry implements ServiceRegistry {
 
     private final ServiceRegistryMapper mapper;
-    private final EventHandlerRegistry eventHandlerRegistry;
+    private final CommandHandlerRegistry commandHandlerRegistry;
     private final Cache<String, Observable<List<ServiceRecord>>> commandCache = ExpiringCache.periodically(10L, TimeUnit.SECONDS);
 
-    protected AbstractServiceRegistry(EventHandlerRegistry eventHandlerRegistry, ServiceRegistryMapper mapper) {
+    protected AbstractServiceRegistry(CommandHandlerRegistry commandHandlerRegistry, ServiceRegistryMapper mapper) {
         Objects.requireNonNull(mapper, "mapper cannot be null");
-        Objects.requireNonNull(eventHandlerRegistry, "eventHandlerRegistry cannot be null");
-        this.eventHandlerRegistry = eventHandlerRegistry;
+        Objects.requireNonNull(commandHandlerRegistry, "commandHandlerRegistry cannot be null");
+        this.commandHandlerRegistry = commandHandlerRegistry;
         this.mapper = mapper;
     }
 
-    protected Observable<Event> execute(Command command, LoadBalancer<EventHandler> loadBalancer,
+    protected Observable<Event> execute(Command command, LoadBalancer<CommandHandler> loadBalancer,
                                         CommandExecutorFactory commandExecutorFactory) {
         return Observable.fromCallable(() -> ObserverMetric.findObserver(command))
                 .flatMap(metric -> Observable.using(metric::startTimer,
@@ -57,13 +57,13 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
 
     Observable<CommandExecutor> findExecutor(Observable<List<ServiceRecord>> records,
                                                      String name,
-                                                     LoadBalancer<EventHandler> loadBalancer,
+                                                     LoadBalancer<CommandHandler> loadBalancer,
                                                      CommandExecutorFactory commandExecutorFactory) {
         return records
                 .filter(recs -> !recs.isEmpty())
                 .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + name))))
                 .flatMap(recs -> Observable.just(recs.stream()
-                        .flatMap(eventHandlerRegistry::find)
+                        .flatMap(commandHandlerRegistry::find)
                         .collect(toList()))
                         .flatMap(eventHandlers -> eventHandlers.isEmpty() ?
                                 Observable.error(new CannotFindEventHandlers("Unable to find at least one compatible event handler for " + recs)) :
@@ -76,7 +76,7 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
     public <E, C> Observable<E> execute(
             C command,
             Class<? extends E> eventClass,
-            LoadBalancer<EventHandler> loadBalancer,
+            LoadBalancer<CommandHandler> loadBalancer,
             CommandExecutorFactory commandExecutorFactory) {
         if (command == null) return Observable.error(new IllegalArgumentException("command cannot be null"));
         if (eventClass == null) return Observable.error(new IllegalArgumentException("eventClass cannot be null"));

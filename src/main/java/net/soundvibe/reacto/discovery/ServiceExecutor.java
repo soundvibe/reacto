@@ -1,7 +1,7 @@
 package net.soundvibe.reacto.discovery;
 
 import net.soundvibe.reacto.client.commands.*;
-import net.soundvibe.reacto.client.events.EventHandler;
+import net.soundvibe.reacto.client.events.CommandHandler;
 import net.soundvibe.reacto.types.*;
 import rx.Observable;
 
@@ -25,7 +25,7 @@ public interface ServiceExecutor {
     <E,C> Observable<E> execute(
             C command,
             Class<? extends E> eventClass,
-            LoadBalancer<EventHandler> loadBalancer,
+            LoadBalancer<CommandHandler> loadBalancer,
             CommandExecutorFactory commandExecutorFactory);
 
 }

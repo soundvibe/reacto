@@ -11,12 +11,12 @@ import java.util.Objects;
 /**
  * @author OZY on 2017.01.25.
  */
-public final class LocalEventHandler implements EventHandler {
+public final class LocalCommandHandler implements CommandHandler {
 
     private final ServiceRecord serviceRecord;
     private final CommandRegistry commandRegistry;
 
-    public LocalEventHandler(ServiceRecord serviceRecord, CommandRegistry commandRegistry) {
+    public LocalCommandHandler(ServiceRecord serviceRecord, CommandRegistry commandRegistry) {
         Objects.requireNonNull(serviceRecord, "serviceRecord cannot be null");
         Objects.requireNonNull(commandRegistry, "commandRegistry cannot be null");
         this.serviceRecord = serviceRecord;

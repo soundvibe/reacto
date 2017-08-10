@@ -1,6 +1,6 @@
 package net.soundvibe.reacto.client.commands;
 
-import net.soundvibe.reacto.client.events.EventHandler;
+import net.soundvibe.reacto.client.events.CommandHandler;
 import net.soundvibe.reacto.discovery.*;
 import net.soundvibe.reacto.discovery.types.*;
 import net.soundvibe.reacto.errors.CannotFindEventHandlers;
@@ -52,13 +52,13 @@ public class ReactoCommandExecutorTest {
 
     @Test
     public void shouldExecuteAndHandleError() throws Exception {
-        List<EventHandler> eventHandlers = new ArrayList<>();
+        List<CommandHandler> commandHandlers = new ArrayList<>();
         AtomicInteger counter = new AtomicInteger(0);
-        eventHandlers.add(testHandler(Observable.<Event>error(new RuntimeException("error")).doOnError(e -> counter.incrementAndGet())));
-        eventHandlers.add(testHandler(Observable.just(Event.create("foo"))));
+        commandHandlers.add(testHandler(Observable.<Event>error(new RuntimeException("error")).doOnError(e -> counter.incrementAndGet())));
+        commandHandlers.add(testHandler(Observable.just(Event.create("foo"))));
 
         final ReactoCommandExecutor sut = new ReactoCommandExecutor(
-                eventHandlers,
+                commandHandlers,
                 LoadBalancers.ROUND_ROBIN);
 
         final TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
@@ -73,8 +73,8 @@ public class ReactoCommandExecutorTest {
     }
 
 
-    private EventHandler testHandler(Observable<Event> observable) {
-        return new EventHandler() {
+    private CommandHandler testHandler(Observable<Event> observable) {
+        return new CommandHandler() {
             @Override
             public Observable<Event> observe(Command command) {
                 return observable;

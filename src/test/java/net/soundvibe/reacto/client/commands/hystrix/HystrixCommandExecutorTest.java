@@ -1,7 +1,7 @@
 package net.soundvibe.reacto.client.commands.hystrix;
 
 import net.soundvibe.reacto.client.commands.CommandExecutor;
-import net.soundvibe.reacto.client.events.EventHandler;
+import net.soundvibe.reacto.client.events.CommandHandler;
 import net.soundvibe.reacto.discovery.LoadBalancers;
 import net.soundvibe.reacto.discovery.types.*;
 import net.soundvibe.reacto.errors.*;
@@ -84,8 +84,8 @@ public class HystrixCommandExecutorTest {
     private final ServiceRecord defaultRecord = ServiceRecord.create("hystrix", Status.UP,
             ServiceType.WEBSOCKET, "id", JsonObject.empty(), JsonObject.empty());
 
-    private EventHandler getEventHandler(Observable<Event> event) {
-        return new EventHandler() {
+    private CommandHandler getEventHandler(Observable<Event> event) {
+        return new CommandHandler() {
             @Override
             public Observable<Event> observe(Command command) {
                 return event;
