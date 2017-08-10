@@ -1,5 +1,8 @@
 # Change Log
 
+## [v1.0.5](https://github.com/soundvibe/reacto/tree/v1.0.5) (2017-08-10)
+[Full Changelog](https://github.com/soundvibe/reacto/compare/v1.0.4...v1.0.5)
+
 ## [v1.0.4](https://github.com/soundvibe/reacto/tree/v1.0.4) (2017-03-21)
 [Full Changelog](https://github.com/soundvibe/reacto/compare/v1.0.3...v1.0.4)
 
