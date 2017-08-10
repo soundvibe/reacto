@@ -105,4 +105,14 @@ public class CommandRegistryTest {
                 .collect(toList());
         assertEquals(Arrays.asList(CommandDescriptor.of("one"), CommandDescriptor.of("two")), actual);
     }
+
+    @Test
+    public void shouldBeEmpty() throws Exception {
+        assertTrue(CommandRegistry.empty().isEmpty());
+    }
+
+    @Test
+    public void shouldNotBeEmpty() throws Exception {
+        assertFalse(CommandRegistry.of("foo", command -> Observable.empty()).isEmpty());
+    }
 }

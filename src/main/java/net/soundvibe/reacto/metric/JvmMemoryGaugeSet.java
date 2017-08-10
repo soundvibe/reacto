@@ -17,10 +17,21 @@ public class JvmMemoryGaugeSet implements MetricSet {
         final Map<String, Metric> gauges = new HashMap<>();
         final MemoryUsage heapMemoryUsage = memoryMXBean.getHeapMemoryUsage();
 
-        gauges.put("committed", (Gauge<Long>) heapMemoryUsage::getCommitted);
-        gauges.put("init", (Gauge<Long>) heapMemoryUsage::getInit);
-        gauges.put("max", (Gauge<Long>) heapMemoryUsage::getMax);
-        gauges.put("used", (Gauge<Long>) heapMemoryUsage::getUsed);
+        gauges.put("heap.committed", (Gauge<Long>) heapMemoryUsage::getCommitted);
+        gauges.put("heap.init", (Gauge<Long>) heapMemoryUsage::getInit);
+        gauges.put("heap.max", (Gauge<Long>) heapMemoryUsage::getMax);
+        gauges.put("heap.used", (Gauge<Long>) heapMemoryUsage::getUsed);
+
+        final MemoryUsage nonHeapMemoryUsage = memoryMXBean.getNonHeapMemoryUsage();
+        gauges.put("non-heap.committed", (Gauge<Long>) nonHeapMemoryUsage::getCommitted);
+        gauges.put("non-heap.init", (Gauge<Long>) nonHeapMemoryUsage::getInit);
+        gauges.put("non-heap.max", (Gauge<Long>) nonHeapMemoryUsage::getMax);
+        gauges.put("non-heap.used", (Gauge<Long>) nonHeapMemoryUsage::getUsed);
+
+        gauges.put("total.committed", (Gauge<Long>) () -> heapMemoryUsage.getCommitted() + nonHeapMemoryUsage.getCommitted());
+        gauges.put("total.init", (Gauge<Long>) () -> heapMemoryUsage.getInit() + nonHeapMemoryUsage.getInit());
+        gauges.put("total.max", (Gauge<Long>) () -> heapMemoryUsage.getMax() + nonHeapMemoryUsage.getMax());
+        gauges.put("total.used", (Gauge<Long>) () -> heapMemoryUsage.getUsed() + nonHeapMemoryUsage.getUsed());
 
         return Collections.unmodifiableMap(gauges);
     }

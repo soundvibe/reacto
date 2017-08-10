@@ -3,7 +3,7 @@
 [![Coverage Status](https://codecov.io/github/soundvibe/reacto/coverage.svg?branch=develop)](https://codecov.io/github/soundvibe/reacto?branch=develop)
 
 # reacto
-![We Are Reactive](http://d379ifj7s9wntv.cloudfront.net/reactivemanifesto/images/ribbons/we-are-reactive-black-left.png)
+![logo](logo.png)
 
 Functional reactive abstractions for the JVM (Java 8 and above). Building simple scalable micro services has never been so easy.
 You are working with ordinary Observables but they can be executing on any discovered service in the network.
@@ -29,7 +29,7 @@ Binaries and dependency information for Maven, Ivy, Gradle and others can be fou
 Example for Gradle:
 
 ```groovy
-compile 'net.soundvibe:reacto:1.0.3'
+compile 'net.soundvibe:reacto:1.0.4'
 ```
 
 and for Maven:
@@ -38,7 +38,7 @@ and for Maven:
 <dependency>
     <groupId>net.soundvibe</groupId>
     <artifactId>reacto</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
