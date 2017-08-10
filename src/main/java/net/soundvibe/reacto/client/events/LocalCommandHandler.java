@@ -1,10 +1,10 @@
 package net.soundvibe.reacto.client.events;
 
+import io.reactivex.Flowable;
 import net.soundvibe.reacto.discovery.types.ServiceRecord;
 import net.soundvibe.reacto.errors.CannotDiscoverService;
 import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.types.*;
-import rx.Observable;
 
 import java.util.Objects;
 
@@ -24,10 +24,10 @@ public final class LocalCommandHandler implements CommandHandler {
     }
 
     @Override
-    public Observable<Event> observe(Command command) {
+    public Flowable<Event> observe(Command command) {
         return commandRegistry.findCommand(CommandDescriptor.fromCommand(command))
                 .map(commandExecutor -> commandExecutor.execute(command))
-                .orElseGet(() -> Observable.error(new CannotDiscoverService("Unable to find service for " + command)));
+                .orElseGet(() -> Flowable.error(new CannotDiscoverService("Unable to find service for " + command)));
     }
 
     @Override

@@ -1,12 +1,12 @@
 package net.soundvibe.reacto.client.events;
 
+import io.reactivex.subscribers.TestSubscriber;
 import net.soundvibe.reacto.discovery.types.*;
 import net.soundvibe.reacto.errors.CannotDiscoverService;
 import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.types.json.JsonObject;
 import org.junit.Test;
-import rx.observers.TestSubscriber;
 
 import static org.junit.Assert.assertEquals;
 
@@ -36,7 +36,7 @@ public class LocalCommandHandlerTest {
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNotCompleted();
+        testSubscriber.assertNotComplete();
         testSubscriber.assertNoValues();
         testSubscriber.assertError(CannotDiscoverService.class);
     }

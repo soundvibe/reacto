@@ -1,13 +1,13 @@
 package net.soundvibe.reacto.discovery;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.reactivex.Flowable;
+import io.reactivex.subscribers.TestSubscriber;
 import net.soundvibe.reacto.errors.CannotDiscoverService;
 import net.soundvibe.reacto.mappers.jackson.*;
 import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.types.*;
 import org.junit.Test;
-import rx.Observable;
-import rx.observers.TestSubscriber;
 
 /**
  * @author OZY on 2017.01.25.
@@ -22,7 +22,7 @@ public class LocalServiceRegistryTest {
         LocalServiceRegistry sut = new LocalServiceRegistry(
                 jacksonMapper,
                 CommandRegistry.ofTyped(JacksonCommand.class, JacksonEvent.class,
-                        cmd -> Observable.just(new JacksonEvent(cmd.name)),
+                        cmd -> Flowable.just(new JacksonEvent(cmd.name)),
                 jacksonMapper));
 
 
@@ -39,7 +39,7 @@ public class LocalServiceRegistryTest {
     public void shouldExecuteDefaultCommandSuccessfully() throws Exception {
         LocalServiceRegistry sut = new LocalServiceRegistry(
                 jacksonMapper,
-                CommandRegistry.of("foo", cmd -> Observable.just(Event.create("foo"))));
+                CommandRegistry.of("foo", cmd -> Flowable.just(Event.create("foo"))));
 
 
         TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
@@ -56,7 +56,7 @@ public class LocalServiceRegistryTest {
         LocalServiceRegistry sut = new LocalServiceRegistry(
                 jacksonMapper,
                 CommandRegistry.ofTyped(JacksonCommand.class, DemoMade.class,
-                        cmd -> Observable.just(new DemoMade(cmd.name)),
+                        cmd -> Flowable.just(new DemoMade(cmd.name)),
                         jacksonMapper));
 
 
@@ -65,7 +65,7 @@ public class LocalServiceRegistryTest {
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNotCompleted();
+        testSubscriber.assertNotComplete();
         testSubscriber.assertError(CannotDiscoverService.class);
     }
 
@@ -80,7 +80,7 @@ public class LocalServiceRegistryTest {
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
-        testSubscriber.assertCompleted();
+        testSubscriber.assertComplete();
         testSubscriber.assertValue(Any.VOID);
     }
 
@@ -95,7 +95,7 @@ public class LocalServiceRegistryTest {
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
-        testSubscriber.assertCompleted();
+        testSubscriber.assertComplete();
         testSubscriber.assertValue(Any.VOID);
 
         TestSubscriber<Any> testSubscriber2 = new TestSubscriber<>();
@@ -104,7 +104,7 @@ public class LocalServiceRegistryTest {
 
         testSubscriber2.awaitTerminalEvent();
         testSubscriber2.assertNoValues();
-        testSubscriber2.assertCompleted();
+        testSubscriber2.assertComplete();
     }
 
     @Test
@@ -118,7 +118,7 @@ public class LocalServiceRegistryTest {
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
-        testSubscriber.assertCompleted();
+        testSubscriber.assertComplete();
         testSubscriber.assertValue(Any.VOID);
 
         TestSubscriber<Any> testSubscriber2 = new TestSubscriber<>();
@@ -127,7 +127,7 @@ public class LocalServiceRegistryTest {
 
         testSubscriber2.awaitTerminalEvent();
         testSubscriber2.assertNoErrors();
-        testSubscriber2.assertCompleted();
+        testSubscriber2.assertComplete();
         testSubscriber2.assertValue(Any.VOID);
     }
 
@@ -142,7 +142,7 @@ public class LocalServiceRegistryTest {
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertNoErrors();
-        testSubscriber.assertCompleted();
+        testSubscriber.assertComplete();
         testSubscriber.assertNoValues();
     }
 }

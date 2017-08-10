@@ -1,7 +1,7 @@
 package net.soundvibe.reacto.types;
 
+import io.reactivex.Flowable;
 import net.soundvibe.reacto.utils.Bytes;
-import rx.Observable;
 
 import java.util.*;
 
@@ -28,8 +28,8 @@ public class Event {
         return metaData.flatMap(pairs -> pairs.valueOf(key));
     }
 
-    public Observable<Event> toObservable() {
-        return Observable.just(this);
+    public Flowable<Event> toObservable() {
+        return Flowable.just(this);
     }
 
     public static Event create(String name) {

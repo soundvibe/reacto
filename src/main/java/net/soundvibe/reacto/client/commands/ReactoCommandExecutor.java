@@ -1,10 +1,12 @@
 package net.soundvibe.reacto.client.commands;
 
+import io.reactivex.Flowable;
+import io.reactivex.functions.Function;
 import net.soundvibe.reacto.client.events.CommandHandler;
-import net.soundvibe.reacto.discovery.*;
+import net.soundvibe.reacto.discovery.LoadBalancer;
 import net.soundvibe.reacto.errors.CannotFindEventHandlers;
 import net.soundvibe.reacto.types.*;
-import rx.Observable;
+import org.reactivestreams.Publisher;
 
 import java.util.*;
 
@@ -27,20 +29,19 @@ public final class ReactoCommandExecutor implements CommandExecutor {
     }
 
     @Override
-    public Observable<Event> execute(Command command) {
-        if (commandHandlers.isEmpty()) return Observable.error(new CannotFindEventHandlers("No event handlers found for command: " + command));
-        return Observable.just(commandHandlers)
+    public Flowable<Event> execute(Command command) {
+        if (commandHandlers.isEmpty()) return Flowable.error(new CannotFindEventHandlers("No event handlers found for command: " + command));
+        return Flowable.just(commandHandlers)
                 .map(loadBalancer::balance)
                 .concatMap(eventHandler -> eventHandler.observe(command)
-                        .onBackpressureBuffer()
-                        .onErrorResumeNext(error -> handleError(error, command, eventHandler)))
+                        .onErrorResumeNext((Function<? super Throwable, ? extends Publisher<? extends Event>>) error -> handleError(error, command, eventHandler)))
                 ;
     }
 
-    private Observable<Event> handleError(Throwable error, Command command, CommandHandler commandHandler) {
-        return Observable.just(commandHandler)
+    private Flowable<Event> handleError(Throwable error, Command command, CommandHandler commandHandler) {
+        return Flowable.just(commandHandler)
                 .doOnNext(this::removeHandler)
-                .flatMap(any -> commandHandlers.isEmpty() ?  Observable.error(error) : Observable.just(command))
+                .flatMap(any -> commandHandlers.isEmpty() ?  Flowable.error(error) : Flowable.just(command))
                 .flatMap(this::execute);
     }
 

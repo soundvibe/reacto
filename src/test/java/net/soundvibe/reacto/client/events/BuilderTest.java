@@ -1,10 +1,10 @@
 package net.soundvibe.reacto.client.events;
 
+import io.reactivex.Flowable;
 import net.soundvibe.reacto.discovery.types.*;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.types.json.JsonObject;
 import org.junit.Test;
-import rx.Observable;
 
 import static org.junit.Assert.*;
 
@@ -26,8 +26,8 @@ public class BuilderTest {
     private CommandHandler eventHandler() {
         return new CommandHandler() {
             @Override
-            public Observable<Event> observe(Command command) {
-                return Observable.empty();
+            public Flowable<Event> observe(Command command) {
+                return Flowable.empty();
             }
 
             @Override

@@ -1,10 +1,10 @@
 package net.soundvibe.reacto.server;
 
+import io.reactivex.Flowable;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
-import net.soundvibe.reacto.mappers.CommandRegistryMapper;
 import net.soundvibe.reacto.errors.CommandAlreadyRegistered;
+import net.soundvibe.reacto.mappers.CommandRegistryMapper;
 import net.soundvibe.reacto.types.*;
-import rx.Observable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,15 +37,15 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, C
     }
 
     public <C,E> CommandRegistry and(Class<C> commandType, Class<? extends E> eventType,
-                                     Function<C, Observable<? extends E>> onInvoke) {
+                                     Function<C, Flowable<? extends E>> onInvoke) {
         requireNonNull(commandType, "commandType name cannot be null");
         requireNonNull(eventType, "eventType name cannot be null");
         requireNonNull(onInvoke, "onInvoke cannot be null");
         requireNonNull(mapper, "mapper cannot be null");
 
-        final Function<Command, Observable<? extends E>> before = onInvoke
+        final Function<Command, Flowable<? extends E>> before = onInvoke
                 .compose(c -> mapper.toGenericCommand(c, commandType));
-        final Function<Command, Observable<Event>> after = before
+        final Function<Command, Flowable<Event>> after = before
                 .andThen(observable -> observable.map(mapper::toEvent));
         add(CommandDescriptor.ofTypes(commandType, eventType), after::apply);
         return this;
@@ -72,7 +72,7 @@ public final class CommandRegistry implements Iterable<Pair<CommandDescriptor, C
 
     public static <C,E> CommandRegistry ofTyped(
             Class<C> commandType, Class<? extends E> eventType,
-            Function<C, Observable<? extends E>> onInvoke,
+            Function<C, Flowable<? extends E>> onInvoke,
             CommandRegistryMapper mapper) {
         return typed(mapper).and(commandType, eventType, onInvoke);
     }

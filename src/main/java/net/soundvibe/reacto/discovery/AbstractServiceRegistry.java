@@ -1,5 +1,6 @@
 package net.soundvibe.reacto.discovery;
 
+import io.reactivex.Flowable;
 import net.soundvibe.reacto.client.commands.*;
 import net.soundvibe.reacto.client.events.*;
 import net.soundvibe.reacto.discovery.types.ServiceRecord;
@@ -8,7 +9,6 @@ import net.soundvibe.reacto.internal.*;
 import net.soundvibe.reacto.mappers.ServiceRegistryMapper;
 import net.soundvibe.reacto.metric.ObserverMetric;
 import net.soundvibe.reacto.types.*;
-import rx.Observable;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -22,7 +22,7 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
 
     private final ServiceRegistryMapper mapper;
     private final CommandHandlerRegistry commandHandlerRegistry;
-    private final Cache<String, Observable<List<ServiceRecord>>> commandCache = ExpiringCache.periodically(10L, TimeUnit.SECONDS);
+    private final Cache<String, Flowable<List<ServiceRecord>>> commandCache = ExpiringCache.periodically(10L, TimeUnit.SECONDS);
 
     protected AbstractServiceRegistry(CommandHandlerRegistry commandHandlerRegistry, ServiceRegistryMapper mapper) {
         Objects.requireNonNull(mapper, "mapper cannot be null");
@@ -31,10 +31,10 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
         this.mapper = mapper;
     }
 
-    protected Observable<Event> execute(Command command, LoadBalancer<CommandHandler> loadBalancer,
-                                        CommandExecutorFactory commandExecutorFactory) {
-        return Observable.fromCallable(() -> ObserverMetric.findObserver(command))
-                .flatMap(metric -> Observable.using(metric::startTimer,
+    protected Flowable<Event> execute(Command command, LoadBalancer<CommandHandler> loadBalancer,
+                                      CommandExecutorFactory commandExecutorFactory) {
+        return Flowable.fromCallable(() -> ObserverMetric.findObserver(command))
+                .flatMap(metric -> Flowable.using(metric::startTimer,
                         pair -> commandCache.computeIfAbsent(commandKey(command), key -> findRecordsOf(command).cache())
                                 .compose(records -> findExecutor(records, command.name, loadBalancer, commandExecutorFactory))
                                 .concatMap(commandExecutor -> commandExecutor.execute(command))
@@ -49,47 +49,47 @@ public abstract class AbstractServiceRegistry implements ServiceRegistry {
      * @return Observable, which emits list of VertxRecords, if services are found successfully.
      * If no available services are found, CannotDiscoverService exception should be emitted.
      */
-    protected abstract Observable<List<ServiceRecord>> findRecordsOf(Command command);
+    protected abstract Flowable<List<ServiceRecord>> findRecordsOf(Command command);
 
     private String commandKey(Command command) {
         return command.name + ":" + command.eventType();
     }
 
-    Observable<CommandExecutor> findExecutor(Observable<List<ServiceRecord>> records,
+    Flowable<CommandExecutor> findExecutor(Flowable<List<ServiceRecord>> records,
                                                      String name,
                                                      LoadBalancer<CommandHandler> loadBalancer,
                                                      CommandExecutorFactory commandExecutorFactory) {
         return records
                 .filter(recs -> !recs.isEmpty())
-                .switchIfEmpty(Observable.defer(() -> Observable.error(new CannotDiscoverService("Unable to discover any of " + name))))
-                .flatMap(recs -> Observable.just(recs.stream()
+                .switchIfEmpty(Flowable.defer(() -> Flowable.error(new CannotDiscoverService("Unable to discover any of " + name))))
+                .flatMap(recs -> Flowable.just(recs.stream()
                         .flatMap(commandHandlerRegistry::find)
                         .collect(toList()))
                         .flatMap(eventHandlers -> eventHandlers.isEmpty() ?
-                                Observable.error(new CannotFindEventHandlers("Unable to find at least one compatible event handler for " + recs)) :
-                                Observable.just(eventHandlers))
+                                Flowable.error(new CannotFindEventHandlers("Unable to find at least one compatible event handler for " + recs)) :
+                                Flowable.just(eventHandlers))
                 )
                 .map(eventHandlers -> commandExecutorFactory.create(eventHandlers, loadBalancer));
     }
 
     @Override
-    public <E, C> Observable<E> execute(
+    public <E, C> Flowable<E> execute(
             C command,
             Class<? extends E> eventClass,
             LoadBalancer<CommandHandler> loadBalancer,
             CommandExecutorFactory commandExecutorFactory) {
-        if (command == null) return Observable.error(new IllegalArgumentException("command cannot be null"));
-        if (eventClass == null) return Observable.error(new IllegalArgumentException("eventClass cannot be null"));
-        if (loadBalancer == null) return Observable.error(new IllegalArgumentException("loadBalancer cannot be null"));
+        if (command == null) return Flowable.error(new IllegalArgumentException("command cannot be null"));
+        if (eventClass == null) return Flowable.error(new IllegalArgumentException("eventClass cannot be null"));
+        if (loadBalancer == null) return Flowable.error(new IllegalArgumentException("loadBalancer cannot be null"));
 
         if (command instanceof Command && eventClass.isAssignableFrom(Event.class)) {
             //noinspection unchecked
-            return (Observable<E>) execute((Command)command, loadBalancer, commandExecutorFactory);
+            return (Flowable<E>) execute((Command)command, loadBalancer, commandExecutorFactory);
         }
 
-        return Observable.just(command)
+        return Flowable.just(command)
                 .map(cmd -> mapper.toCommand(cmd, eventClass))
-                .concatMap(typedCommand -> execute(typedCommand, loadBalancer, commandExecutorFactory)).onBackpressureBuffer()
+                .concatMap(typedCommand -> execute(typedCommand, loadBalancer, commandExecutorFactory))
                 .map(event -> mapper.toGenericEvent(event, eventClass));
     }
 }

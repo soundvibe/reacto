@@ -1,8 +1,8 @@
 package net.soundvibe.reacto.internal;
 
+import io.reactivex.*;
+import io.reactivex.subscribers.TestSubscriber;
 import org.junit.Test;
-import rx.Observable;
-import rx.observers.TestSubscriber;
 
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
@@ -73,17 +73,17 @@ public class ExpiringCacheTest {
 
     @Test
     public void shouldCacheObservable() throws Exception {
-        Cache<String, Observable<List<String>>> cache = ExpiringCache.periodically(20L, TimeUnit.MILLISECONDS);
+        Cache<String, Flowable<List<String>>> cache = ExpiringCache.periodically(20L, TimeUnit.MILLISECONDS);
 
         AtomicInteger calledCounter = new AtomicInteger(0);
 
-        final Observable<List<String>> o = Observable.create(subscriber -> {
+        final Flowable<List<String>> o = Flowable.create(subscriber -> {
             calledCounter.incrementAndGet();
             subscriber.onNext(Arrays.asList("one", "two", "three"));
-            subscriber.onCompleted();
-        });
+            subscriber.onComplete();
+        }, BackpressureStrategy.BUFFER);
 
-        final Observable<List<String>> cached = o.cache();
+        final Flowable<List<String>> cached = o.cache();
 
         AtomicInteger counter = new AtomicInteger(0);
 

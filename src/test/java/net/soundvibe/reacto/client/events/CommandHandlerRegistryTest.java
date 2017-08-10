@@ -1,10 +1,10 @@
 package net.soundvibe.reacto.client.events;
 
+import io.reactivex.Flowable;
 import net.soundvibe.reacto.discovery.types.*;
 import net.soundvibe.reacto.server.ServiceOptions;
 import net.soundvibe.reacto.types.*;
 import org.junit.Test;
-import rx.Observable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,7 +30,7 @@ public class CommandHandlerRegistryTest {
         AtomicInteger counter = new AtomicInteger(0);
 
         CommandHandlerFactory f = serviceRecord -> getEventHandler(serviceRecord,
-                Observable.just(Event.create("one")), counter.incrementAndGet());
+                Flowable.just(Event.create("one")), counter.incrementAndGet());
 
         final CommandHandlerRegistry sut = CommandHandlerRegistry.Builder.create()
                 .register(ServiceType.WEBSOCKET, f)
@@ -63,7 +63,7 @@ public class CommandHandlerRegistryTest {
         AtomicInteger counter = new AtomicInteger(0);
 
         CommandHandlerFactory f = serviceRecord -> getEventHandler(serviceRecord,
-                Observable.just(Event.create("one")), counter.incrementAndGet());
+                Flowable.just(Event.create("one")), counter.incrementAndGet());
 
         final CommandHandlerRegistry sut = CommandHandlerRegistry.Builder.create()
                 .register(ServiceType.WEBSOCKET, f)
@@ -87,10 +87,10 @@ public class CommandHandlerRegistryTest {
     }
 
 
-    private CommandHandler getEventHandler(ServiceRecord serviceRecord, Observable<Event> observable, int hashCode) {
+    private CommandHandler getEventHandler(ServiceRecord serviceRecord, Flowable<Event> observable, int hashCode) {
         return new CommandHandler() {
             @Override
-            public Observable<Event> observe(Command command) {
+            public Flowable<Event> observe(Command command) {
                 return observable;
             }
 

@@ -2,7 +2,7 @@ package net.soundvibe.reacto.metric;
 
 import com.codahale.metrics.*;
 import net.soundvibe.reacto.types.*;
-import rx.Observer;
+import org.reactivestreams.*;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author linas on 17.2.9.
  */
-public final class ObserverMetric<T> implements Observer<T> {
+public final class ObserverMetric<T> implements Subscriber<T> {
 
     private final static Map<CommandDescriptor, ObserverMetric> observers = new ConcurrentHashMap<>();
     public static final String NAME_METER_ON_NEXT = "Meter:Events";
@@ -44,13 +44,18 @@ public final class ObserverMetric<T> implements Observer<T> {
     }
 
     @Override
-    public void onCompleted() {
+    public void onError(Throwable throwable) {
+        errorMeter.mark();
+    }
+
+    @Override
+    public void onComplete() {
         //do nothing
     }
 
     @Override
-    public void onError(Throwable throwable) {
-        errorMeter.mark();
+    public void onSubscribe(Subscription s) {
+        //do nothing
     }
 
     @Override

@@ -1,6 +1,8 @@
 package net.soundvibe.reacto.discovery;
 
 import com.codahale.metrics.ConsoleReporter;
+import io.reactivex.Flowable;
+import io.reactivex.subscribers.TestSubscriber;
 import net.soundvibe.reacto.client.commands.*;
 import net.soundvibe.reacto.client.events.*;
 import net.soundvibe.reacto.discovery.types.*;
@@ -12,12 +14,10 @@ import net.soundvibe.reacto.server.*;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.types.json.JsonObject;
 import org.junit.Test;
-import rx.Observable;
-import rx.observers.TestSubscriber;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.*;
+import java.util.stream.Stream;
 
 /**
  * @author OZY on 2017.01.19.
@@ -44,7 +44,7 @@ public class AbstractServiceRegistryTest {
         ServiceOptions serviceOptions = new ServiceOptions(
                 "test", "/", "1", false, 8080
         );
-        sut.findExecutor(Observable.just(Collections.singletonList(
+        sut.findExecutor(Flowable.just(Collections.singletonList(
                 ServiceRecord.createWebSocketEndpoint(serviceOptions, Collections.emptyList()))),
                 "foo", LoadBalancers.ROUND_ROBIN,
                 ReactoCommandExecutor.FACTORY)
@@ -52,7 +52,7 @@ public class AbstractServiceRegistryTest {
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertError(CannotFindEventHandlers.class);
-        testSubscriber.assertNotCompleted();
+        testSubscriber.assertNotComplete();
     }
 
     @Test
@@ -63,7 +63,7 @@ public class AbstractServiceRegistryTest {
                 .build();
 
         final CommandRegistry commandRegistry = CommandRegistry.of("simple",
-                command -> Observable.just(Event.create("one"), Event.create("two"), Event.create("three")));
+                command -> Flowable.just(Event.create("one"), Event.create("two"), Event.create("three")));
 
         TestServiceRegistry sut = new TestServiceRegistry(CommandHandlerRegistry.Builder.create()
                 .register(ServiceType.LOCAL, serviceRecord -> new LocalCommandHandler(serviceRecord, commandRegistry))
@@ -78,7 +78,7 @@ public class AbstractServiceRegistryTest {
 
                             eventTestSubscriber.awaitTerminalEvent();
                             eventTestSubscriber.assertNoErrors();
-                            eventTestSubscriber.assertCompleted();
+                            eventTestSubscriber.assertComplete();
                             eventTestSubscriber.assertValueCount(3);
                 });
         reporter.report();
@@ -91,19 +91,19 @@ public class AbstractServiceRegistryTest {
         }
 
         @Override
-        protected Observable<List<ServiceRecord>> findRecordsOf(Command command) {
-            return Observable.just(Collections.singletonList(ServiceRecord.create("test", Status.UP, ServiceType.LOCAL,
+        protected Flowable<List<ServiceRecord>> findRecordsOf(Command command) {
+            return Flowable.just(Collections.singletonList(ServiceRecord.create("test", Status.UP, ServiceType.LOCAL,
                     "111", JsonObject.empty(), JsonObject.empty())));
         }
 
         @Override
-        public Observable<Any> register() {
-            return Observable.just(Any.VOID);
+        public Flowable<Any> register() {
+            return Flowable.just(Any.VOID);
         }
 
         @Override
-        public Observable<Any> unregister() {
-            return Observable.just(Any.VOID);
+        public Flowable<Any> unregister() {
+            return Flowable.just(Any.VOID);
         }
     }
 }
