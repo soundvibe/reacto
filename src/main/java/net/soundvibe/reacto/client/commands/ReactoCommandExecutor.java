@@ -30,7 +30,7 @@ public final class ReactoCommandExecutor implements CommandExecutor {
 
     @Override
     public Flowable<Event> execute(Command command) {
-        if (commandHandlers.isEmpty()) return Flowable.error(new CannotFindEventHandlers("No event handlers found for command: " + command));
+        if (commandHandlers.isEmpty()) return Flowable.error(new CannotFindEventHandlers("No command handlers found for command: " + command));
         return Flowable.just(commandHandlers)
                 .map(loadBalancer::balance)
                 .concatMap(eventHandler -> eventHandler.observe(command)
