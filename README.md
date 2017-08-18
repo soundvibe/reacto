@@ -14,7 +14,6 @@ Learn more about reacto on the [Wiki home](https://github.com/soundvibe/reacto/w
 
 Makes use of: 
 * [RxJava](https://github.com/ReactiveX/RxJava) Observables for reactive async commands and events
-* [Hystrix](https://github.com/Netflix/Hystrix) for latency and fault tolerance.
 * [Protocol Buffers](https://developers.google.com/protocol-buffers/) for efficient internal messaging
 
 ## Available implementations
