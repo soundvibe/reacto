@@ -1,10 +1,10 @@
 package net.soundvibe.reacto.server;
 
+import io.reactivex.Flowable;
+import io.reactivex.schedulers.Schedulers;
 import net.soundvibe.reacto.errors.CommandNotFound;
 import net.soundvibe.reacto.mappers.Mappers;
 import net.soundvibe.reacto.types.*;
-import rx.Observable;
-import rx.schedulers.Schedulers;
 
 /**
  * @author Linas on 2017.01.12.
@@ -17,17 +17,17 @@ public class CommandProcessor {
         this.commands = commands;
     }
 
-    public Observable<Event> process(byte[] bytes) {
-        return Observable.just(bytes)
+    public Flowable<Event> process(byte[] bytes) {
+        return Flowable.just(bytes)
                 .map(Mappers::fromBytesToCommand)
                 .flatMap(this::process);
     }
 
-    public Observable<Event> process(Command command) {
-        return Observable.just(command)
+    public Flowable<Event> process(Command command) {
+        return Flowable.just(command)
                 .concatMap(cmd -> commands.findCommand(CommandDescriptor.fromCommand(cmd))
                         .map(commandExecutor -> commandExecutor.execute(cmd))
-                        .orElseGet(() -> Observable.error(new CommandNotFound(cmd.name))))
+                        .orElseGet(() -> Flowable.error(new CommandNotFound(cmd.name))))
                 .subscribeOn(Schedulers.computation());
     }
 }

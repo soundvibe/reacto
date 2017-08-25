@@ -1,16 +1,16 @@
 package net.soundvibe.reacto.metric;
 
 import com.codahale.metrics.*;
+import io.reactivex.Flowable;
+import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subscribers.TestSubscriber;
 import net.soundvibe.reacto.types.*;
 import org.junit.Test;
-import rx.Observable;
-import rx.observers.TestSubscriber;
-import rx.schedulers.Schedulers;
 
-import java.util.*;
+import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author linas on 17.2.9.
@@ -27,11 +27,11 @@ public class ObserverMetricTest {
         CommandDescriptor descriptor = CommandDescriptor.of("test-metrics");
 
         TestSubscriber<Integer> testSubscriber = new TestSubscriber<>();
-        Observable.range(1, 100)
+        Flowable.range(1, 100)
                 .subscribeOn(Schedulers.computation())
                 .doOnNext(integer -> sleep(1L))
-                .flatMap(i -> i > 98 ? Observable.error(new RuntimeException("error"))
-                        : Observable.just(i))
+                .flatMap(i -> i > 98 ? Flowable.error(new RuntimeException("error"))
+                        : Flowable.just(i))
                 .doOnEach(ObserverMetric.findObserver(Command.create("test-metrics")))
                 .subscribe(testSubscriber);
 
