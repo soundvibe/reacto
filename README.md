@@ -5,8 +5,8 @@
 # reacto
 ![logo](logo.png)
 
-Functional reactive abstractions for the JVM (Java 8 and above). Building simple scalable micro services has never been so easy.
-You are working with ordinary Observables but they can be executing on any discovered service in the network.
+Functional reactive abstractions for the JVM (Java 8 and above), compatible with Reactive Streams. Building simple scalable micro services has never been so easy.
+You are working with ordinary Flowables but they can be executing on any discovered service in the network.
 
 Start by reading an [introduction here](https://github.com/soundvibe/reacto/wiki/Introduction)
 
@@ -28,7 +28,7 @@ Binaries and dependency information for Maven, Ivy, Gradle and others can be fou
 Example for Gradle:
 
 ```groovy
-compile 'net.soundvibe:reacto:1.0.5'
+compile 'net.soundvibe:reacto:2.0.0'
 ```
 
 and for Maven:
@@ -37,7 +37,7 @@ and for Maven:
 <dependency>
     <groupId>net.soundvibe</groupId>
     <artifactId>reacto</artifactId>
-    <version>1.0.5</version>
+    <version>2.0.0</version>
 </dependency>
 ```
 
