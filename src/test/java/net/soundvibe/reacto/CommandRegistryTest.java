@@ -1,5 +1,6 @@
 package net.soundvibe.reacto;
 
+import io.reactivex.Flowable;
 import net.soundvibe.reacto.client.commands.CommandExecutor;
 import net.soundvibe.reacto.errors.CommandAlreadyRegistered;
 import net.soundvibe.reacto.server.CommandRegistry;
@@ -7,7 +8,6 @@ import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.utils.DemoCommandRegistryMapper;
 import net.soundvibe.reacto.utils.models.FooBar;
 import org.junit.Test;
-import rx.Observable;
 
 import java.util.*;
 
@@ -22,7 +22,7 @@ public class CommandRegistryTest {
 
     @Test
     public void shouldFindCommand() throws Exception {
-        CommandRegistry sut = CommandRegistry.of("foo", o -> Observable.just(Event.create("foo")));
+        CommandRegistry sut = CommandRegistry.of("foo", o -> Flowable.just(Event.create("foo")));
 
         assertTrue(sut.findCommand(CommandDescriptor.of("foo")).isPresent());
     }
@@ -32,7 +32,7 @@ public class CommandRegistryTest {
         final CommandDescriptor descriptor = CommandDescriptor.ofTypes(MakeDemo.class, DemoMade.class);
         CommandRegistry sut = CommandRegistry.ofTyped(
                 MakeDemo.class, DemoMade.class,
-                makeDemo -> Observable.just(new DemoMade("foo")),
+                makeDemo -> Flowable.just(new DemoMade("foo")),
                 new DemoCommandRegistryMapper());
         assertTrue(sut.findCommand(descriptor).isPresent());
     }
@@ -41,19 +41,19 @@ public class CommandRegistryTest {
     public void shouldNotFindCommandWithEventType() throws Exception {
         CommandRegistry sut = CommandRegistry.ofTyped(
                 MakeDemo.class, DemoMade.class,
-                makeDemo -> Observable.just(new DemoMade("foo")),
+                makeDemo -> Flowable.just(new DemoMade("foo")),
                 new DemoCommandRegistryMapper());
         assertFalse(sut.findCommand(CommandDescriptor.ofTypes(MakeDemo.class, FooBar.class)).isPresent());
     }
 
     @Test
     public void shouldNotFindCommand() throws Exception {
-        assertFalse(CommandRegistry.of("dfdf", o -> Observable.empty()).findCommand(CommandDescriptor.of("foobar")).isPresent());
+        assertFalse(CommandRegistry.of("dfdf", o -> Flowable.empty()).findCommand(CommandDescriptor.of("foobar")).isPresent());
     }
 
     @Test
     public void shouldStreamOverCommands() throws Exception {
-        final long actual = CommandRegistry.of("foo", o -> Observable.just(Event.create("foo")))
+        final long actual = CommandRegistry.of("foo", o -> Flowable.just(Event.create("foo")))
                 .stream()
                 .count();
         assertEquals(1L, actual);
@@ -61,7 +61,7 @@ public class CommandRegistryTest {
 
     @Test
     public void shouldLoopOverCommands() throws Exception {
-        final CommandRegistry sut = CommandRegistry.of("foo", o -> Observable.just(Event.create("foo")));
+        final CommandRegistry sut = CommandRegistry.of("foo", o -> Flowable.just(Event.create("foo")));
         for (Pair<CommandDescriptor, CommandExecutor> pair : sut) {
             assertEquals(CommandDescriptor.of("foo"), pair.getKey());
         }
@@ -70,22 +70,22 @@ public class CommandRegistryTest {
     @Test(expected = CommandAlreadyRegistered.class)
     public void shouldDisallowDuplicatedCommands() throws Exception {
         CommandRegistry
-                .of("foo", o -> Observable.empty())
-                .and("foo", o -> Observable.empty());
+                .of("foo", o -> Flowable.empty())
+                .and("foo", o -> Flowable.empty());
     }
 
     @Test(expected = CommandAlreadyRegistered.class)
     public void shouldDisallowDuplicatedTypedCommands() throws Exception {
         CommandRegistry
-                .ofTyped(MakeDemo.class, DemoMade.class, o -> Observable.empty(), new DemoCommandRegistryMapper())
-                .and(MakeDemo.class, DemoMade.class, o -> Observable.empty());
+                .ofTyped(MakeDemo.class, DemoMade.class, o -> Flowable.empty(), new DemoCommandRegistryMapper())
+                .and(MakeDemo.class, DemoMade.class, o -> Flowable.empty());
     }
 
     @Test
     public void shouldAllowSameTypedCommandsButDifferentEvents() throws Exception {
         final CommandRegistry sut = CommandRegistry
-                .ofTyped(MakeDemo.class, DemoMade.class, o -> Observable.empty(), new DemoCommandRegistryMapper())
-                .and(MakeDemo.class, FooBar.class, o -> Observable.empty());
+                .ofTyped(MakeDemo.class, DemoMade.class, o -> Flowable.empty(), new DemoCommandRegistryMapper())
+                .and(MakeDemo.class, FooBar.class, o -> Flowable.empty());
 
         assertEquals(2L, sut.stream().count());
     }
@@ -98,7 +98,7 @@ public class CommandRegistryTest {
 
     @Test
     public void shouldGetKeyStream() throws Exception {
-        CommandExecutor commandExecutor = command -> Observable.empty();
+        CommandExecutor commandExecutor = command -> Flowable.empty();
         CommandRegistry commandRegistry = CommandRegistry.of("one", commandExecutor).and("two", commandExecutor);
         List<CommandDescriptor> actual = commandRegistry.streamOfKeys()
                 .sorted(comparing(commandDescriptor -> commandDescriptor.commandType))
@@ -113,6 +113,6 @@ public class CommandRegistryTest {
 
     @Test
     public void shouldNotBeEmpty() throws Exception {
-        assertFalse(CommandRegistry.of("foo", command -> Observable.empty()).isEmpty());
+        assertFalse(CommandRegistry.of("foo", command -> Flowable.empty()).isEmpty());
     }
 }

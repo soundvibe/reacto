@@ -1,7 +1,7 @@
 package net.soundvibe.reacto.types;
 
+import io.reactivex.subscribers.TestSubscriber;
 import org.junit.Test;
-import rx.observers.TestSubscriber;
 
 import java.util.*;
 
@@ -63,7 +63,7 @@ public class EventTest {
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertCompleted();
+        testSubscriber.assertComplete();
         testSubscriber.assertValue(Event.create("foo"));
     }
 }

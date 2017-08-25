@@ -1,24 +1,24 @@
 package net.soundvibe.reacto.client.events;
 
+import io.reactivex.subscribers.TestSubscriber;
 import net.soundvibe.reacto.discovery.types.*;
 import net.soundvibe.reacto.errors.CannotDiscoverService;
 import net.soundvibe.reacto.server.CommandRegistry;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.types.json.JsonObject;
 import org.junit.Test;
-import rx.observers.TestSubscriber;
 
 import static org.junit.Assert.assertEquals;
 
 /**
  * @author OZY on 2017.01.25.
  */
-public class LocalEventHandlerTest {
+public class LocalCommandHandlerTest {
 
     @Test
     public void shouldReturnRecord() throws Exception {
         final ServiceRecord expected = getServiceRecord();
-        LocalEventHandler sut = new LocalEventHandler(expected,
+        LocalCommandHandler sut = new LocalCommandHandler(expected,
                 CommandRegistry.empty());
 
         final ServiceRecord actual = sut.serviceRecord();
@@ -28,7 +28,7 @@ public class LocalEventHandlerTest {
     @Test
     public void shouldNotFindService() throws Exception {
         final ServiceRecord expected = getServiceRecord();
-        LocalEventHandler sut = new LocalEventHandler(expected,
+        LocalCommandHandler sut = new LocalCommandHandler(expected,
                 CommandRegistry.empty());
 
         TestSubscriber<Event> testSubscriber = new TestSubscriber<>();
@@ -36,7 +36,7 @@ public class LocalEventHandlerTest {
                 .subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertNotCompleted();
+        testSubscriber.assertNotComplete();
         testSubscriber.assertNoValues();
         testSubscriber.assertError(CannotDiscoverService.class);
     }

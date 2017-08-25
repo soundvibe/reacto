@@ -1,7 +1,7 @@
 package net.soundvibe.reacto.types;
 
+import io.reactivex.Flowable;
 import net.soundvibe.reacto.internal.Lazy;
-import rx.Observable;
 
 import java.util.*;
 import java.util.function.Supplier;
@@ -101,8 +101,8 @@ public final class MetaData implements Iterable<Pair<String, String>> {
         return StreamSupport.stream(entries.spliterator(), true);
     }
 
-    public rx.Observable<Pair<String,String>> toObservable() {
-        return Observable.from(this.entries);
+    public Flowable<Pair<String,String>> toObservable() {
+        return Flowable.fromIterable(this.entries);
     }
 
     public MetaData concat(MetaData other) {

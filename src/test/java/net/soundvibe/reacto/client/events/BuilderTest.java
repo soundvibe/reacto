@@ -1,10 +1,10 @@
 package net.soundvibe.reacto.client.events;
 
+import io.reactivex.Flowable;
 import net.soundvibe.reacto.discovery.types.*;
 import net.soundvibe.reacto.types.*;
 import net.soundvibe.reacto.types.json.JsonObject;
 import org.junit.Test;
-import rx.Observable;
 
 import static org.junit.Assert.*;
 
@@ -15,7 +15,7 @@ public class BuilderTest {
 
     @Test
     public void shouldBuildEventHandlerRegistry() throws Exception {
-        final EventHandlerRegistry sut = EventHandlerRegistry.Builder.create()
+        final CommandHandlerRegistry sut = CommandHandlerRegistry.Builder.create()
                 .register(ServiceType.LOCAL, serviceRecord -> eventHandler())
                 .build();
 
@@ -23,11 +23,11 @@ public class BuilderTest {
         assertFalse(sut.findFactory(ServiceType.WEBSOCKET).isPresent());
     }
 
-    private EventHandler eventHandler() {
-        return new EventHandler() {
+    private CommandHandler eventHandler() {
+        return new CommandHandler() {
             @Override
-            public Observable<Event> observe(Command command) {
-                return Observable.empty();
+            public Flowable<Event> observe(Command command) {
+                return Flowable.empty();
             }
 
             @Override

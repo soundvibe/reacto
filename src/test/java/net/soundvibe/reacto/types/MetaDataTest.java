@@ -1,7 +1,7 @@
 package net.soundvibe.reacto.types;
 
+import io.reactivex.subscribers.TestSubscriber;
 import org.junit.Test;
-import rx.observers.TestSubscriber;
 
 import java.util.Collections;
 
@@ -42,7 +42,7 @@ public class MetaDataTest {
         TestSubscriber<Pair<String,String>> testSubscriber = new TestSubscriber<>();
         MetaData.from(iterable).toObservable().subscribe(testSubscriber);
         testSubscriber.awaitTerminalEvent();
-        testSubscriber.assertCompleted();
+        testSubscriber.assertComplete();
         testSubscriber.assertNoErrors();
         testSubscriber.assertNoValues();
 

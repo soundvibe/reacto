@@ -1,7 +1,7 @@
 package net.soundvibe.reacto.client.commands;
 
+import io.reactivex.Flowable;
 import net.soundvibe.reacto.types.*;
-import rx.Observable;
 
 /**
  * @author OZY on 2015.11.13.
@@ -14,6 +14,6 @@ public interface CommandExecutor {
      * @param command argument
      * @return event observable
      */
-    Observable<Event> execute(Command command);
+    Flowable<Event> execute(Command command);
 
 }
