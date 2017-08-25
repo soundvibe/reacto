@@ -5,8 +5,8 @@
 # reacto
 ![logo](logo.png)
 
-Functional reactive abstractions for the JVM (Java 8 and above). Building simple scalable micro services has never been so easy.
-You are working with ordinary Observables but they can be executing on any discovered service in the network.
+Functional reactive abstractions for the JVM (Java 8 and above), compatible with Reactive Streams. Building simple scalable micro services has never been so easy.
+You are working with ordinary Flowables but they can be executing on any discovered service in the network.
 
 Start by reading an [introduction here](https://github.com/soundvibe/reacto/wiki/Introduction)
 
