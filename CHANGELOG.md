@@ -1,7 +1,19 @@
 # Change Log
 
+## [2.0.0](https://github.com/soundvibe/reacto/tree/HEAD)
+
+[Full Changelog](https://github.com/soundvibe/reacto/compare/v1.0.5...HEAD)
+
+**Closed issues:**
+
+- Implement Reactive Streams [\#9](https://github.com/soundvibe/reacto/issues/9)
+
 ## [v1.0.5](https://github.com/soundvibe/reacto/tree/v1.0.5) (2017-08-10)
 [Full Changelog](https://github.com/soundvibe/reacto/compare/v1.0.4...v1.0.5)
+
+**Closed issues:**
+
+- Support new communication method \(Webhooks\) [\#3](https://github.com/soundvibe/reacto/issues/3)
 
 ## [v1.0.4](https://github.com/soundvibe/reacto/tree/v1.0.4) (2017-03-21)
 [Full Changelog](https://github.com/soundvibe/reacto/compare/v1.0.3...v1.0.4)
