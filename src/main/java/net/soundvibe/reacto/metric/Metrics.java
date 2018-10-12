@@ -8,7 +8,7 @@ import com.codahale.metrics.jvm.*;
  */
 public interface Metrics {
 
-    MetricRegistry REGISTRY = SharedMetricRegistries.getOrCreate("default");;
+    MetricRegistry REGISTRY = SharedMetricRegistries.getOrCreate("default");
 
     Initializer INITIALIZER = new Initializer();
 

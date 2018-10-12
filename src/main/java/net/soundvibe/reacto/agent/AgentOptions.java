@@ -51,7 +51,7 @@ public abstract class AgentOptions {
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
     public interface AgentRestartStrategy {
-        void restart(Runnable agentRunner);
+        boolean restart(Runnable agentRunner);
     }
     public static final class AlwaysRestart implements AgentRestartStrategy {
         public static final AlwaysRestart INSTANCE = new AlwaysRestart();
@@ -63,8 +63,9 @@ public abstract class AgentOptions {
         }
 
         @Override
-        public void restart(Runnable agentRunner) {
+        public boolean restart(Runnable agentRunner) {
             agentRunner.run();
+            return true;
         }
     }
     public static final class NeverRestart implements AgentRestartStrategy {
@@ -77,8 +78,8 @@ public abstract class AgentOptions {
         }
 
         @Override
-        public void restart(Runnable agentRunner) {
-            //no op
+        public boolean restart(Runnable agentRunner) {
+            return false;
         }
 
     }
@@ -108,9 +109,12 @@ public abstract class AgentOptions {
         }
 
         @Override
-        public void restart(Runnable agentRunner) {
+        public boolean restart(Runnable agentRunner) {
             if (timesRestarted++ < times) {
                 agentRunner.run();
+                return true;
+            } else {
+                return false;
             }
         }
     }
