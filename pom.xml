@@ -37,7 +37,7 @@
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <rxjava.version>2.2.2</rxjava.version>
-        <jackson.version>2.9.5</jackson.version>
+        <jackson.version>2.9.6</jackson.version>
     </properties>
 
     <distributionManagement>

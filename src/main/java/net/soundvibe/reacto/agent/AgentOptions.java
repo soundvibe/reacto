@@ -2,6 +2,7 @@ package net.soundvibe.reacto.agent;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+import java.time.Duration;
 import java.util.Objects;
 
 public abstract class AgentOptions {
@@ -9,7 +10,8 @@ public abstract class AgentOptions {
     private int clusterInstances = 1;
     private int maxInstancesOnNode = 4;
     private boolean isHA = false;
-    private boolean undeployOnComplete = true;
+    private OnCompleteAction onCompleteAction = OnCompleteAction.undeploy;
+    private AgentRestartStrategy onCompleteRestartStrategy = AlwaysRestart.INSTANCE;
     private AgentRestartStrategy agentRestartStrategy = AlwaysRestart.INSTANCE;
 
     public boolean isHA() {
@@ -31,12 +33,12 @@ public abstract class AgentOptions {
         return this;
     }
 
-    public boolean isUndeployOnComplete() {
-        return undeployOnComplete;
+    public OnCompleteAction getOnCompleteAction() {
+        return onCompleteAction;
     }
 
-    public AgentOptions setUndeployOnComplete(boolean undeployOnComplete) {
-        this.undeployOnComplete = undeployOnComplete;
+    public AgentOptions setOnCompleteAction(OnCompleteAction onCompleteAction) {
+        this.onCompleteAction = onCompleteAction;
         return this;
     }
 
@@ -47,6 +49,19 @@ public abstract class AgentOptions {
     public AgentOptions setMaxInstancesOnNode(int maxInstancesOnNode) {
         this.maxInstancesOnNode = maxInstancesOnNode;
         return this;
+    }
+
+    public AgentRestartStrategy getOnCompleteRestartStrategy() {
+        return onCompleteRestartStrategy;
+    }
+
+    public AgentOptions setOnCompleteRestartStrategy(AgentRestartStrategy onCompleteRestartStrategy) {
+        this.onCompleteRestartStrategy = onCompleteRestartStrategy;
+        return this;
+    }
+
+    public enum OnCompleteAction {
+        undeploy, restart
     }
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
@@ -116,6 +131,43 @@ public abstract class AgentOptions {
             } else {
                 return false;
             }
+        }
+    }
+
+    public static final class RestartWithTimeout implements AgentRestartStrategy {
+
+        private final Duration timeout;
+
+        public RestartWithTimeout(Duration timeout) {
+            this.timeout = timeout;
+        }
+
+        public static RestartWithTimeout of(Duration timeout) {
+            return new RestartWithTimeout(timeout);
+        }
+
+        @Override
+        public boolean restart(Runnable agentRunner) {
+            try {
+                Thread.sleep(timeout.toMillis());
+                agentRunner.run();
+                return true;
+            } catch (InterruptedException e) {
+                return false;
+            }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof RestartWithTimeout)) return false;
+            final RestartWithTimeout that = (RestartWithTimeout) o;
+            return Objects.equals(timeout, that.timeout);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(timeout);
         }
     }
 
