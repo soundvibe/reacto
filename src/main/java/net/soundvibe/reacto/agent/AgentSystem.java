@@ -1,10 +1,10 @@
 package net.soundvibe.reacto.agent;
 
-import io.reactivex.Completable;
+import io.reactivex.*;
 
 import java.io.Closeable;
 
 public interface AgentSystem<T extends AgentFactory<?>> extends Closeable {
 
-    Completable run(T agentFactory);
+    Maybe<String> run(T agentFactory);
 }
