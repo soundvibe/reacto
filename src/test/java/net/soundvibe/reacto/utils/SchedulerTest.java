@@ -16,7 +16,7 @@ public class SchedulerTest {
     public void shouldSetTimer() throws Exception {
         AtomicInteger counter = new AtomicInteger(0);
         final Timer actual = Scheduler.scheduleAtFixedInterval(10L, counter::incrementAndGet, "test");
-        Thread.sleep(22L);
+        Thread.sleep(52L);
         actual.cancel();
 
         assertTrue(counter.get() > 0);
