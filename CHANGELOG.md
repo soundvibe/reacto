@@ -1,6 +1,10 @@
 # Change Log
 
-## [2.0.0](https://github.com/soundvibe/reacto/tree/HEAD)
+## [2.1.0]
+- Implemented Agents [\#10](https://github.com/soundvibe/reacto/pull/10)
+
+## [2.0.0]
+- rxJava 2 support
 
 [Full Changelog](https://github.com/soundvibe/reacto/compare/v1.0.5...HEAD)
 
