@@ -15,7 +15,7 @@ public final class CommandHandlerRegistry {
 
     private final Map<ServiceRecord, CommandHandler> cache;
 
-    private final static CommandHandlerRegistry EMPTY = new CommandHandlerRegistry(Collections.emptyMap());
+    private static final CommandHandlerRegistry EMPTY = new CommandHandlerRegistry(Collections.emptyMap());
 
     public static CommandHandlerRegistry empty() {
         return EMPTY;
@@ -38,7 +38,7 @@ public final class CommandHandlerRegistry {
 
     public static final class Builder {
 
-        private final Map<ServiceType, CommandHandlerFactory> handlers = new HashMap<>();
+        private final Map<ServiceType, CommandHandlerFactory> handlers = new EnumMap<>(ServiceType.class);
 
         public static Builder create() {
             return new Builder();

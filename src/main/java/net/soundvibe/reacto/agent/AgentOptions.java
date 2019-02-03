@@ -1,13 +1,20 @@
 package net.soundvibe.reacto.agent;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.slf4j.*;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntSupplier;
 
 public abstract class AgentOptions {
 
+    private static final Logger log = LoggerFactory.getLogger(AgentOptions.class);
+
     private int clusterInstances = 1;
+    private final AtomicInteger clusterInstancesCache = new AtomicInteger(clusterInstances);
+    private IntSupplier clusterInstancesResolver;
     private int maxInstancesOnNode = 4;
     private boolean isHA = false;
     private OnCompleteAction onCompleteAction = OnCompleteAction.undeploy;
@@ -24,12 +31,42 @@ public abstract class AgentOptions {
     }
 
     public int getClusterInstances() {
-        return clusterInstances;
+        if (clusterInstancesResolver == null) {
+            return clusterInstances;
+        }
+
+        try {
+            final int instances = clusterInstancesResolver.getAsInt();
+            if (instances != clusterInstancesCache.get()) {
+                clusterInstancesCache.set(instances);
+            }
+            return instances;
+        } catch (Exception e) {
+            log.warn("Unable to resolve cluster instances, using default value: {}", clusterInstancesCache.get(), e);
+            return clusterInstancesCache.get();
+        }
     }
 
+    /**
+     * Sets static number of cluster instances.
+     * For implementing auto-scalable agents, use {@link AgentOptions}.setClusterInstances({@link IntSupplier} clusterInstancesResolver)
+     * @param clusterInstances number of cluster-wide instances to be deployed
+     * @return AgentOptions
+     */
     public AgentOptions setClusterInstances(int clusterInstances) {
         if (clusterInstances < 1) throw new IllegalArgumentException("Cluster instances cannot be less than 1 but was " + clusterInstances);
         this.clusterInstances = clusterInstances;
+        return this;
+    }
+
+    /**
+     * Sets clusterInstancesResolver, which will be called automatically before deploying new agents.
+     * Could be used to implement auto-scalable agents
+     * @param clusterInstancesResolver Function to resolve number of cluster instances
+     * @return AgentOptions
+     */
+    public AgentOptions setClusterInstances(IntSupplier clusterInstancesResolver) {
+        this.clusterInstancesResolver = clusterInstancesResolver;
         return this;
     }
 
