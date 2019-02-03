@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class ObserverMetric<T> implements Subscriber<T> {
 
-    private final static Map<CommandDescriptor, ObserverMetric> observers = new ConcurrentHashMap<>();
+    private static final Map<CommandDescriptor, ObserverMetric> observers = new ConcurrentHashMap<>();
     public static final String NAME_METER_ON_NEXT = "Meter:Events";
     public static final String NAME_METER_ON_ERROR = "Meter:Errors";
     public static final String NAME_TIMER_COMMAND = "Timer:Commands";

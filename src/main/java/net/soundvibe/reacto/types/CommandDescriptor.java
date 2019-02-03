@@ -7,8 +7,8 @@ import java.util.Objects;
  */
 public final class CommandDescriptor {
 
-    public final static String COMMAND = "commandType";
-    public final static String EVENT = "eventType";
+    public static final String COMMAND = "commandType";
+    public static final String EVENT = "eventType";
 
     public final String commandType;
     public final String eventType;
